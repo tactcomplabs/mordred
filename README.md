@@ -1,0 +1,2 @@
+# mordred
+SST NoC Component
