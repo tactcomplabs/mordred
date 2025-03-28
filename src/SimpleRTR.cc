@@ -15,72 +15,127 @@
 using namespace SST;
 using namespace SST::Mordred;
 
-SimpleRTR::SimpleRTR( ComponentId_t cid, Params& params ) :
-  Component(cid),
-    output(getSimulationOutput())
-{
+SimpleRTR::SimpleRTR( ComponentId_t cid, Params& params ) : Component( cid ), output( getSimulationOutput() ) {
   //num_local_ports = params.find<uint32_t>( "local_ports", 1 );
   //num_topo_ports = params.find<uint32_t>( "topo_ports", 1 );
 
   // Configure local/endpt ports -- borrowed this approach from
   // sst-elements/src/sst/elements/simpleElementExample/basicLinks.cc
-  std::string lcl_prefix = "local_port";
+  std::string lcl_prefix   = "local_port";
   std::string lcl_linkname = lcl_prefix + "0";
-  int32_t portnum = 0;
-  while ( isPortConnected(lcl_linkname) ) {
-    SST::Link* link = configureLink(lcl_linkname, new Event::Handler2<SimpleRTR, &SimpleRTR::handleLocalInWithID, int>(this, portnum));
+  int32_t     portnum      = 0;
+  while( isPortConnected( lcl_linkname ) ) {
+    SST::Link* link =
+      configureLink( lcl_linkname, new Event::Handler2<SimpleRTR, &SimpleRTR::handleLocalInWithID, int>( this, portnum ) );
 
-    if (!link)
-      output.fatal(CALL_INFO, -1, "Error in %s: unable to configure link %s\n", getName().c_str(), lcl_linkname.c_str());
+    if( !link )
+      output.fatal( CALL_INFO, -1, "Error in %s: unable to configure link %s\n", getName().c_str(), lcl_linkname.c_str() );
 
-    LocalPortsVec.push_back(link);
+    LocalPortsVec.push_back( link );
 
     // Build the next name to check
     portnum++;
-    lcl_linkname = lcl_prefix + std::to_string(portnum);
+    lcl_linkname = lcl_prefix + std::to_string( portnum );
   }
 
-  std::string topo_prefix = "topo_port";
+  std::string topo_prefix   = "topo_port";
   std::string topo_linkname = topo_prefix + "0";
-  portnum = 0;
-  while ( isPortConnected(topo_linkname) ) {
-    SST::Link* link = configureLink(topo_linkname, new Event::Handler2<SimpleRTR, &SimpleRTR::handleTopoInWithID, int>(this, portnum));
+  portnum                   = 0;
+  while( isPortConnected( topo_linkname ) ) {
+    SST::Link* link =
+      configureLink( topo_linkname, new Event::Handler2<SimpleRTR, &SimpleRTR::handleTopoInWithID, int>( this, portnum ) );
 
-    if (!link)
-      output.fatal(CALL_INFO, -1, "Error in %s: unable to configure link %s\n", getName().c_str(), topo_linkname.c_str());
+    if( !link )
+      output.fatal( CALL_INFO, -1, "Error in %s: unable to configure link %s\n", getName().c_str(), topo_linkname.c_str() );
 
-    TopoPortsVec.push_back(link);
+    TopoPortsVec.push_back( link );
 
     // Build the next name to check
     portnum++;
-    topo_linkname = topo_prefix + std::to_string(portnum);
+    topo_linkname = topo_prefix + std::to_string( portnum );
   }
 
-  num_local_ports = (uint32_t)LocalPortsVec.size();
-  num_topo_ports = (uint32_t)TopoPortsVec.size();
+  num_local_ports = (uint32_t) LocalPortsVec.size();
+  num_topo_ports  = (uint32_t) TopoPortsVec.size();
 
-  output.verbose(CALL_INFO, 5, 0, "Constructor complete. local_ports=%" PRIu32 "; topo_ports=%" PRIu32 "\n",
-                 num_local_ports, num_topo_ports);
+  output.verbose(
+    CALL_INFO, 5, 0, "Constructor complete. local_ports=%" PRIu32 "; topo_ports=%" PRIu32 "\n", num_local_ports, num_topo_ports
+  );
 }
 
-void SimpleRTR::handleLocalInWithID( SST::Event *ev, int32_t linknum )
-{
-  basicMordredEvent* mev = static_cast<basicMordredEvent*>(ev);
-  if (mev) {
-    output.verbose(CALL_INFO, 5, 0, "SimpleRTR::handleLocalInWithID on link %" PRId32 "\n", linknum);
+void SimpleRTR::init( unsigned int phase ) {
+
+}
+
+void SimpleRTR::setup() {
+
+}
+
+void SimpleRTR::complete( unsigned int phase ) {
+
+}
+
+void SimpleRTR::finish() {
+
+}
+
+
+void SimpleRTR::handleLocalInWithID( SST::Event* ev, int32_t linknum ) {
+  basicMordredEvent* mev = static_cast<basicMordredEvent*>( ev );
+  if( mev ) {
+    output.verbose( CALL_INFO, 5, 0, "SimpleRTR::handleLocalInWithID on link %" PRId32 "\n", linknum );
     delete mev;
   } else {
-    output.fatal(CALL_INFO, -1, "Error! Bad mev type received by %s on link ID %" PRId32 "\n", getName().c_str(), linknum);
+    output.fatal( CALL_INFO, -1, "Error! Bad mev type received by %s on link ID %" PRId32 "\n", getName().c_str(), linknum );
   }
 }
 
-void SimpleRTR::handleTopoInWithID( SST::Event *ev, int32_t linknum )
-{
-  basicMordredEvent* mev = static_cast<basicMordredEvent*>(ev);
-  if (mev) {
-    output.verbose(CALL_INFO, 5, 0, "SimpleRTR::handleTopoInWithID on link %" PRId32 "\n", linknum);
+void SimpleRTR::handleTopoInWithID( SST::Event* ev, int32_t linknum ) {
+  basicMordredEvent* mev = static_cast<basicMordredEvent*>( ev );
+  if( mev ) {
+    output.verbose( CALL_INFO, 5, 0, "SimpleRTR::handleTopoInWithID on link %" PRId32 "\n", linknum );
     delete mev;
   } else {
-    output.fatal(CALL_INFO, -1, "Error! Bad mev type received by %s on link ID %" PRId32 "\n", getName().c_str(), linknum);
+    output.fatal( CALL_INFO, -1, "Error! Bad mev type received by %s on link ID %" PRId32 "\n", getName().c_str(), linknum );
+  }
+}
+
+/******************************************************************************************************/
+/******************************************************************************************************/
+/******************************************************************************************************/
+
+TestEP::TestEP( ComponentId_t cid, Params& params ) : Component( cid ), output( getSimulationOutput() ) {
+
+  localPort = configureLink( "port", new Event::Handler2<TestEP, &TestEP::handleIncomingPacket>( this ) );
+  if( !localPort )
+    output.fatal( CALL_INFO, -1, "Error in %s: unable to configure link\n", getName().c_str() );
+
+  output.verbose( CALL_INFO, 5, 0, "Constructor complete.\n" );
+}
+
+void TestEP::init( unsigned int phase ) {
+
+}
+
+void TestEP::setup() {
+
+}
+
+void TestEP::complete( unsigned int phase ) {
+
+}
+
+void TestEP::finish() {
+
+}
+
+
+void TestEP::handleIncomingPacket( SST::Event* ev ) {
+  basicMordredEvent* mev = static_cast<basicMordredEvent*>( ev );
+  if( mev ) {
+    output.verbose( CALL_INFO, 5, 0, "TestEP::handle in packet\n" );
+    delete mev;
+  } else {
+    output.fatal( CALL_INFO, -1, "Error! Bad mev type received by %s\n", getName().c_str() );
   }
 }
