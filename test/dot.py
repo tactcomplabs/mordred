@@ -160,11 +160,11 @@ class FlattenedButterfly:
             self.routers[j].addLink(link_name, rtr_pname, "800ps")
 
 # Configuration options
-#x_size = 4
-#y_size = 4
-#num_endpoints = 1 # unused in mesh
+x_size = 4
+y_size = 4
+num_endpoints = 1 # unused in mesh
 
-#createMesh(x_size, y_size, num_endpoints)
+createMesh(x_size, y_size, num_endpoints)
 #createSimpleTorus(x_size, y_size, num_endpoints)
 
 # Flattened Butterfly Paper
@@ -180,7 +180,7 @@ class FlattenedButterfly:
 #print("Fig 1B in flat fly paper")
 #flatfly2 = FlattenedButterfly(4, 2) # fig 1b in paper
 
-print("Fig 3 in Micro2007 FlatFly Paper")
-flatfly3 = FlattenedButterfly(4, 3) # fig 1b in paper
+#print("Fig 3 in Micro2007 FlatFly Paper")
+#flatfly3 = FlattenedButterfly(4, 3) # fig 1b in paper
 
 #EOF

@@ -3,8 +3,11 @@
 # this is triggered via the top-level CMakeLists.txt in mordred
 
 set(MordredSrcs
+        MordredEvents.h
         SimpleRTR.h
         SimpleRtr.cc
+        TestEP.h
+        TestEP.cc
 )
 
 add_library(mordred SHARED ${MordredSrcs})

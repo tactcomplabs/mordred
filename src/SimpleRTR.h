@@ -20,27 +20,6 @@
 namespace SST {
 namespace Mordred {
 
-// currently just using sst-elements/src/sst/elements/simpleElementExample/basicEvent.h
-class basicMordredEvent : public SST::Event {
-public:
-  basicMordredEvent() : SST::Event() { /* empty */ }
-
-  // Example data members
-  std::vector<char> payload;
-  bool              last;
-
-  // Events must provide a serialization function that serializes
-  // all data members of the event
-  void serialize_order( SST::Core::Serialization::serializer& ser ) override {
-    Event::serialize_order( ser );
-    ser & payload;
-    ser & last;
-  }
-
-  // Register this event as serializable
-  ImplementSerializable( SST::Mordred::basicMordredEvent );
-};
-
 class SimpleRTR : public SST::Component {
 
 public:
@@ -78,9 +57,9 @@ public:
   ~SimpleRTR() { /* empty destructor */ }
 
   /// SST Required
-  void init(unsigned int phase) override;
+  void init(uint32_t phase) override;
   void setup() override;
-  void complete(unsigned int phase) override;
+  void complete(uint32_t phase) override;
   void finish() override;
 
 private:
@@ -96,38 +75,6 @@ private:
   std::vector<SST::Link*> TopoPortsVec;
 
 };  // SimpleRTR
-
-class TestEP : public SST::Component {
-
-public:
-  SST_ELI_REGISTER_COMPONENT(
-    TestEP, "mordred", "test_ep", SST_ELI_ELEMENT_VERSION( 0, 1, 0 ), "Simple endpoint", COMPONENT_CATEGORY_NETWORK
-  )
-
-  SST_ELI_DOCUMENT_PARAMS()
-
-  SST_ELI_DOCUMENT_PORTS( { "port", "Port which connects to a router.", { "basicMordredEvent" } }, )
-
-  SST_ELI_DOCUMENT_STATISTICS()
-
-public:
-  TestEP( ComponentId_t cid, Params& params );
-  ~TestEP() { /* empty destructor */ }
-
-  /// SST Required
-  void init(unsigned int phase) override;
-  void setup() override;
-  void complete(unsigned int phase) override;
-  void finish() override;
-
-private:
-  // event handlers
-  void handleIncomingPacket( SST::Event* ev );
-
-private:
-  SST::Output& output;
-  SST::Link*   localPort;
-};  // TestEP
 
 }  // namespace Mordred
 }  // namespace SST
