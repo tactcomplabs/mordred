@@ -16,9 +16,11 @@
 using namespace SST;
 using namespace SST::Mordred;
 
-SimpleRTR::SimpleRTR( ComponentId_t cid, Params& params ) : Component( cid ), output( getSimulationOutput() ) {
-  //num_local_ports = params.find<uint32_t>( "local_ports", 1 );
-  //num_topo_ports = params.find<uint32_t>( "topo_ports", 1 );
+SimpleRTR::SimpleRTR( ComponentId_t cid, Params& params ) : Component( cid ) {
+
+  auto Verbosity = params.find<uint32_t>( "verbose", 5 );
+  // Initialize the output handler
+  output.init( "SimpleRTR[" + getName() + ":@p:@t]: ", Verbosity, 0, SST::Output::STDOUT );
 
   // Configure local/endpt ports -- borrowed this approach from
   // sst-elements/src/sst/elements/simpleElementExample/basicLinks.cc
@@ -60,7 +62,8 @@ SimpleRTR::SimpleRTR( ComponentId_t cid, Params& params ) : Component( cid ), ou
   num_topo_ports  = (uint32_t) TopoPortsVec.size();
 
   output.verbose(
-    CALL_INFO, 5, 0, "Constructor complete. local_ports=%" PRIu32 "; topo_ports=%" PRIu32 "\n", num_local_ports, num_topo_ports
+    CALL_INFO, 5, 0, "Constructor complete for %s. local_ports=%" PRIu32 "; topo_ports=%" PRIu32 "\n",
+    getName().c_str(), num_local_ports, num_topo_ports
   );
   output.flush();
 }

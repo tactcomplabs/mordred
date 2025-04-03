@@ -16,13 +16,17 @@
 using namespace SST;
 using namespace SST::Mordred;
 
-TestEP::TestEP( ComponentId_t cid, Params& params ) : Component( cid ), output( getSimulationOutput() ) {
+TestEP::TestEP( ComponentId_t cid, Params& params ) : Component( cid ) {
+
+  auto Verbosity = params.find<uint32_t>( "verbose", 5 );
+  // Initialize the output handler
+  output.init( "TestEP[" + getName() + ":@p:@t]: ", Verbosity, 0, SST::Output::STDOUT );
 
   localPort = configureLink( "port", new Event::Handler2<TestEP, &TestEP::handleIncomingPacket>( this ) );
   if( !localPort )
     output.fatal( CALL_INFO, -1, "Error in %s: unable to configure link\n", getName().c_str() );
 
-  output.verbose( CALL_INFO, 5, 0, "Constructor complete.\n" );
+  output.verbose( CALL_INFO, 5, 0, "Constructor complete for %s.\n", getName().c_str() );
   output.flush();
 }
 

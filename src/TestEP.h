@@ -27,7 +27,9 @@ public:
     TestEP, "mordred", "test_ep", SST_ELI_ELEMENT_VERSION( 0, 1, 0 ), "Simple endpoint", COMPONENT_CATEGORY_NETWORK
   )
 
-  SST_ELI_DOCUMENT_PARAMS()
+  SST_ELI_DOCUMENT_PARAMS(
+    { "verbose",       "Sets the output verbsoity",                    "5" },
+    )
 
   SST_ELI_DOCUMENT_PORTS( { "port", "Port which connects to a router.", { "basicMordredEvent" } }, )
 
@@ -48,7 +50,7 @@ private:
   void handleIncomingPacket( SST::Event* ev );
 
 private:
-  SST::Output& output;
+  SST::Output  output;
   SST::Link*   localPort;
 };  // TestEP
 

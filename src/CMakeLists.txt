@@ -5,7 +5,7 @@
 set(MordredSrcs
         MordredEvents.h
         SimpleRTR.h
-        SimpleRtr.cc
+        SimpleRTR.cc
         TestEP.h
         TestEP.cc
 )

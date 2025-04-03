@@ -21,13 +21,13 @@ namespace SST {
 namespace Mordred {
 
 // currently just using sst-elements/src/sst/elements/simpleElementExample/basicEvent.h
-class basicMordredEvent : public SST::Event {
+class basicMordredEvent final : public SST::Event {
 public:
   basicMordredEvent() : SST::Event() { /* empty */ }
 
   // Example data members
   std::vector<char> payload;
-  bool              last;
+  bool              last{};
 
   // Events must provide a serialization function that serializes
   // all data members of the event

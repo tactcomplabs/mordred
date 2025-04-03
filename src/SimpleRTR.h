@@ -33,6 +33,7 @@ public:
   )
 
   SST_ELI_DOCUMENT_PARAMS(
+    { "verbose",       "Sets the output verbsoity",                    "5" },
     //{"local_ports",        "Number of ports that are dedicated to endpoints.","1"},
     //{"topo_ports",         "Number of ports that connect to other routers.", "1"}
     // {"frequency",          "Frequency of the router in Hz (can include SI prefix."},
@@ -68,7 +69,7 @@ private:
   void handleTopoInWithID( SST::Event* ev, int32_t linknum );
 
 private:
-  SST::Output&            output;
+  SST::Output             output;
   uint32_t                num_local_ports{};
   uint32_t                num_topo_ports{};
   std::vector<SST::Link*> LocalPortsVec;
