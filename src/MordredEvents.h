@@ -15,10 +15,10 @@
 // Local SST header
 #include "sst_config.h"
 
-// TODO: Configure verbosity control
-
 namespace SST {
 namespace Mordred {
+
+// TODO: Create a flit structure
 
 // currently just using sst-elements/src/sst/elements/simpleElementExample/basicEvent.h
 class basicMordredEvent final : public SST::Event {
@@ -26,14 +26,18 @@ public:
   basicMordredEvent() : SST::Event() { /* empty */ }
 
   // Example data members
-  std::vector<char> payload;
-  bool              last{};
+  std::vector<uint64_t> payload;
+  std::string           src_name;
+  bool                  last{};
+
+  // will need things like destination, priority, etc
 
   // Events must provide a serialization function that serializes
   // all data members of the event
   void serialize_order( SST::Core::Serialization::serializer& ser ) override {
     Event::serialize_order( ser );
     ser & payload;
+    ser & src_name;
     ser & last;
   }
 

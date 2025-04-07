@@ -11,16 +11,6 @@ def getLink(name1, name2):
         print("New link: %s"%name)
     return links[name]
 
-# Using a new function rather than rewriting all the code using getLink;
-# this version ensures we're not doing duplicate links
-def getFlatFlyLink(name1, name2):
-    name = "link.%s_%s"%(name1, name2)
-    if name not in links:
-        links[name] = sst.Link(name)
-        return links[name], True
-    return links[name], False
-
-
 topo_port_nums = dict()
 def getNextTopoPort(name):
     if name not in topo_port_nums:
@@ -33,7 +23,7 @@ def getNextTopoPort(name):
 # This version has a simple component (mordred.test_ep) that is a placeholder
 # for the unconnected "topology" ports
 # There is nothing connected to the local ports of the routers
-def createMesh(x_size, y_size, num_endpoints):
+def createMesh(x_size, y_size, local_ports, concentration):
     # Create the routers
     for y in range(y_size):
         for x in range(x_size):
@@ -78,8 +68,17 @@ def createMesh(x_size, y_size, num_endpoints):
                 epw = sst.Component("epW_X_%d"%(y), "mordred.test_ep")
                 epw.addLink(getLink("rtr_X_%d"%(y), "epW_%d_%d"%(x,y)), "port", "800ps")
 
+            # local ports
+            for k in range(local_ports):
+                lcl_portname = "local_port" + str(k)
+                # create endpoint
+                ep_name = "local_ep_%d_%d_%d"%(x,y,k)
+                lcl_ep = sst.Component(ep_name, "mordred.test_ep")
+                rtr.addLink(getLink("rtr_%d_%d"%(x, y), ep_name), lcl_portname, "800ps")
+                lcl_ep.addLink(getLink("rtr_%d_%d"%(x, y), ep_name), "port", "800ps")
+
 # Now, let's do another topology...
-def createSimpleTorus(x_size, y_size, num_endpoints):
+def createSimpleTorus(x_size, y_size, local_ports, concentration):
     # Create the routers
     for y in range(y_size):
         for x in range(x_size):
@@ -117,6 +116,9 @@ def createSimpleTorus(x_size, y_size, num_endpoints):
             else: # x=0 case; already have a link from the "east" links
                 rtr.addLink(getLink("rtr_%d_%d"%(x_size-1,y), "rtr_%d_%d"%(0,y)), rtr_portname, "800ps")
 
+
+            # TODO: Create local ports
+
 class FlattenedButterfly:
     def __init__(self, k, n):
         self.k = k
@@ -126,21 +128,22 @@ class FlattenedButterfly:
         self.radix = ( n * (k-1) ) + 1
         self.num_rtr_rtr_links = k-1
         self.num_dims = n - 1
+        self.flatfly_links = dict()
         self.routers = self.gen_routers()
-        self.create_all_links()
+        self.create_topo_links()
+        # TODO: Create local links
 
     def gen_routers(self):
         routers = []
         for i in range(self.num_routers):
             rtr_name = "rtr_%d"%(i)
-            #routers.append(rtr_name)
             routers.append(sst.Component(rtr_name, "mordred.simple_rtr"))
             print("Created router {}".format(rtr_name))
         return routers
 
 # The range of d might be off a hair - paper has it as 1, self.n-1 but that blows up
 # on a 4-ary, 2-fly.
-    def create_all_links(self):
+    def create_topo_links(self):
         for d in range(self.num_dims):
             for m in range (self.num_rtr_rtr_links):
                 for i in range(self.num_routers):
@@ -152,20 +155,85 @@ class FlattenedButterfly:
     def create_link(self, i, j):
         if (i > j):
             i,j = j,i
-        link_name, new_link = getFlatFlyLink("rtr_%d"%(i), "rtr_%d"%(j))
+        link_name, new_link = self.getFlatFlyLink("rtr_%d"%(i), "rtr_%d"%(j))
         if new_link:
             rtr_pname = "topo_port" + str(getNextTopoPort("rtr_%d"%i))
             self.routers[i].addLink(link_name, rtr_pname, "800ps")
             rtr_pname = "topo_port" + str(getNextTopoPort("rtr_%d"%j))
             self.routers[j].addLink(link_name, rtr_pname, "800ps")
 
-# Configuration options
+    def getFlatFlyLink(self, name1, name2):
+        name = "link.%s_%s"%(name1, name2)
+        if name not in self.flatfly_links:
+            self.flatfly_links[name] = sst.Link(name)
+            return self.flatfly_links[name], True
+        return self.flatfly_links[name], False
+
+class Crossbar:
+    def __init__(self, num_routers, local_ports, concentration):
+        self.num_routers = num_routers
+        self.local_ports = local_ports
+        self.concentration = concentration
+        self.xbar_links = dict()
+        self.routers = self.gen_routers()
+        self.create_xbar_links()
+        self.create_local_ports()
+
+    def gen_routers(self):
+        routers = []
+        for i in range(self.num_routers):
+            rtr_name = "rtr_%d"%(i)
+            routers.append(sst.Component(rtr_name, "mordred.simple_rtr"))
+            print("Created router {}".format(rtr_name))
+        return routers
+
+    def create_xbar_links(self):
+        for i in range(self.num_routers):
+            for j in range(i+1, self.num_routers):
+                #if (i == j):
+                #    continue
+                link_name, new_link = self.getXbarLink("rtr_%d"%(i), "rtr_%d"%(j))
+                if (new_link):
+                    rtr_pname = "topo_port" + str(getNextTopoPort("rtr_%d"%i))
+                    self.routers[i].addLink(link_name, rtr_pname, "800ps")
+                    rtr_pname = "topo_port" + str(getNextTopoPort("rtr_%d"%j))
+                    self.routers[j].addLink(link_name, rtr_pname, "800ps")
+    
+    def getXbarLink(self, name1, name2):
+        name = "link.%s_%s"%(name1, name2)
+        if name not in self.xbar_links:
+            self.xbar_links[name] = sst.Link(name)
+            return self.xbar_links[name], True
+        return self.xbar_links[name], False
+
+    def create_local_ports(self):
+        # local ports
+        for i in range(self.num_routers):
+            for j in range(self.local_ports):
+                lcl_portname = "local_port" + str(j)
+                # create endpoint
+                ep_name = "local_ep_%d_%d"%(i,j)
+                lcl_ep = sst.Component(ep_name, "mordred.test_ep")
+                self.routers[i].addLink(getLink("rtr_%d"%(i), ep_name), lcl_portname, "800ps")
+                lcl_ep.addLink(getLink("rtr_%d"%(i), ep_name), "port", "800ps")
+
+
+# General params
+local_ports = 2
+concentration = 1
+
+# Mesh/torus Configuration options
 x_size = 4
 y_size = 4
-num_endpoints = 1 # unused in mesh
 
-createMesh(x_size, y_size, num_endpoints)
-#createSimpleTorus(x_size, y_size, num_endpoints)
+#Xbar config
+xbar_size = 6
+
+#createMesh(x_size, y_size, local_ports, concentration)
+#createSimpleTorus(x_size, y_size, local_ports, concentration)
+
+print("Do crossbar")
+xbar_net = Crossbar(xbar_size, local_ports, concentration)
 
 # Flattened Butterfly Paper
 # Flattened Butterfly : A Cost-Efficient Topology for

@@ -71,6 +71,22 @@ SimpleRTR::SimpleRTR( ComponentId_t cid, Params& params ) : Component( cid ) {
 void SimpleRTR::init( uint32_t phase ) {
   output.verbose(CALL_INFO, 5, 0, "SimpleRTR::init(%" PRIu32 ")\n", phase);
   output.flush();
+
+  if (phase == 0) {
+    auto *bev = new basicMordredEvent();
+    bev->src_name = getName();
+
+    for ( const auto &i : TopoPortsVec )
+      i->sendUntimedData( bev );
+  }
+
+  if ( phase >= 1 ) {
+    for ( const auto &i : TopoPortsVec ) {
+      basicMordredEvent *bev = static_cast<basicMordredEvent*>(i->recvUntimedData());
+      output.verbose( CALL_INFO, 5, 0, "Received Untimed packet with src_name %s\n",
+        bev->src_name.c_str() );
+    }
+  }
 }
 
 void SimpleRTR::setup() {

@@ -8,6 +8,17 @@
 // See LICENSE in the top level directory for licensing details
 //
 
+/**
+ * Components of booksim with multiple implementations:
+ * - Network (topology) - mostly python to do the linkage
+ * - Router - basic implementation - probably want this to be pretty generic/flexible
+ *    - Routing function - impacted by topology; include pipeline model
+ *    - Buffer - may differ on input and output (and virtual channels)
+ *    - Allocator - VC and internal xbar
+ *      - Arbiter - manage who gets what and when
+ *    - Credit tracker - how managed; paper shows as flexible, but would have to dig through code to compare
+ */
+
 // Standard headers
 #include <cinttypes>
 #include <vector>
@@ -45,6 +56,8 @@ public:
     // {"use_dense_map",      "Set to true to have a dense network id map instead of the sparse map normally used.","false"},
     // {"network_inspectors", "Comma separated list of network inspectors to put on output ports.", ""},
   )
+
+  SST_ELI_DOCUMENT_SUBCOMPONENT_SLOTS()
 
   SST_ELI_DOCUMENT_PORTS(
     { "local_port%(portnum)d", "Ports which connect to endpoints.", { "basicMordredEvent" } },
