@@ -18,8 +18,6 @@
 namespace SST {
 namespace Mordred {
 
-// TODO: Create a flit structure
-
 // currently just using sst-elements/src/sst/elements/simpleElementExample/basicEvent.h
 class basicMordredEvent final : public SST::Event {
 public:
@@ -30,7 +28,7 @@ public:
   std::string           src_name;
   bool                  last{};
 
-  // will need things like destination, priority, etc
+  // will need things like destination, class/priority, etc
 
   // Events must provide a serialization function that serializes
   // all data members of the event

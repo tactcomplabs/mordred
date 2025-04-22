@@ -10,10 +10,10 @@
 
 /**
  * Components of booksim with multiple implementations:
- * - Network (topology) - mostly python to do the linkage
+ * - Network (topology) - mostly python to do the linkage; but router has to be aware for initialization
  * - Router - basic implementation - probably want this to be pretty generic/flexible
- *    - Routing function - impacted by topology; include pipeline model
- *    - Buffer - may differ on input and output (and virtual channels)
+ *    - Routing function - impacted by topology; include pipeline model - initialization(?)
+ *    - Buffer/port interface - may differ on input and output (and virtual channels)
  *    - Allocator - VC and internal xbar
  *      - Arbiter - manage who gets what and when
  *    - Credit tracker - how managed; paper shows as flexible, but would have to dig through code to compare

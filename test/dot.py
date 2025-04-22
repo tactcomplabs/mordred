@@ -117,7 +117,7 @@ def createSimpleTorus(x_size, y_size, local_ports, concentration):
                 rtr.addLink(getLink("rtr_%d_%d"%(x_size-1,y), "rtr_%d_%d"%(0,y)), rtr_portname, "800ps")
 
 
-            # TODO: Create local ports
+            # TODO: Create local endpoints and link them to the router
 
 class FlattenedButterfly:
     def __init__(self, k, n):
@@ -131,7 +131,7 @@ class FlattenedButterfly:
         self.flatfly_links = dict()
         self.routers = self.gen_routers()
         self.create_topo_links()
-        # TODO: Create local links
+        # TODO: Create local endpoints and link them to the router
 
     def gen_routers(self):
         routers = []
