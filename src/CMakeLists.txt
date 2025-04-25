@@ -4,10 +4,15 @@
 
 set(MordredSrcs
         MordredEvents.h
+        MordredNIC.h
+        MordredNIC.cc
         SimpleRTR.h
         SimpleRTR.cc
         TestEP.h
         TestEP.cc
+        TopologyAPI.h
+        MeshTopology.h
+        MeshTopology.cc
 )
 
 add_library(mordred SHARED ${MordredSrcs})

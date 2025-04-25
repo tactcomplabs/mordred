@@ -28,45 +28,56 @@ def createMesh(x_size, y_size, local_ports, concentration):
     for y in range(y_size):
         for x in range(x_size):
             rtr = sst.Component("rtr_%d_%d"%(x, y), "mordred.simple_rtr")
+            rtr_topo = rtr.setSubComponent( "topology", "mordred.MeshTopology" )
+            rtr_topo.addParams({
+                "xId" : x,
+                "yId" : y,
+                "xSize" : x_size,
+                "ySize" : y_size
+            })
             rtr_portnum = 0
             rtr_portname = "topo_port" + str(rtr_portnum)
             # north links
             if y != y_size - 1:
                 rtr.addLink(getLink("rtr_%d_%d"%(x,y), "rtr_%d_%d"%(x,y+1)), rtr_portname, "800ps")
-            else: # connect to y == 0
-                rtr.addLink(getLink("rtr_%d_%d"%(x,y), "epN_%d_%d"%(x,y+1)), rtr_portname, "800ps")
-                epn = sst.Component("epN_%d_%d"%(x,y+1), "mordred.test_ep")
-                epn.addLink(getLink("rtr_%d_%d"%(x,y), "epN_%d_%d"%(x,y+1)), "port", "800ps")
-            rtr_portnum += 1
-            rtr_portname = "topo_port" + str(rtr_portnum)
+                print("Add north link with portname=%s to x,y=%d_%d"%(rtr_portname,x,y))
+            # else: # connect to y == 0
+                # rtr.addLink(getLink("rtr_%d_%d"%(x,y), "epN_%d_%d"%(x,y+1)), rtr_portname, "800ps")
+                # epn = sst.Component("epN_%d_%d"%(x,y+1), "mordred.test_ep")
+                # epn.addLink(getLink("rtr_%d_%d"%(x,y), "epN_%d_%d"%(x,y+1)), "port", "800ps")
+                rtr_portnum += 1
+                rtr_portname = "topo_port" + str(rtr_portnum)
 
             # south links
             if y != 0:
                 rtr.addLink(getLink("rtr_%d_%d"%(x,y-1), "rtr_%d_%d"%(x,y)), rtr_portname, "800ps")
-            else: # connect to endpts
-                rtr.addLink(getLink("rtr_%d_X"%(x), "epS_%d_%d"%(x,y)), rtr_portname, "800ps")
-                eps = sst.Component("epS_%d_X"%(x), "mordred.test_ep")
-                eps.addLink(getLink("rtr_%d_X"%(x), "epS_%d_%d"%(x,y)), "port", "800ps")
-            rtr_portnum += 1
-            rtr_portname = "topo_port" + str(rtr_portnum)
+                print("Add south link with portname=%s to x,y=%d_%d"%(rtr_portname,x,y))
+            # else: # connect to endpts
+                # rtr.addLink(getLink("rtr_%d_X"%(x), "epS_%d_%d"%(x,y)), rtr_portname, "800ps")
+                # eps = sst.Component("epS_%d_X"%(x), "mordred.test_ep")
+                # eps.addLink(getLink("rtr_%d_X"%(x), "epS_%d_%d"%(x,y)), "port", "800ps")
+                rtr_portnum += 1
+                rtr_portname = "topo_port" + str(rtr_portnum)
 
             # east links
             if x != x_size - 1:
                 rtr.addLink(getLink("rtr_%d_%d"%(x,y), "rtr_%d_%d"%(x+1,y)), rtr_portname, "800ps")
-            else:
-                rtr.addLink(getLink("rtr_%d_%d"%(x,y), "epE_%d_%d"%(x+1,y)), rtr_portname, "800ps")
-                epe = sst.Component("epE_%d_%d"%(x+1,y), "mordred.test_ep")
-                epe.addLink(getLink("rtr_%d_%d"%(x,y), "epE_%d_%d"%(x+1,y)), "port", "800ps")
-            rtr_portnum += 1
-            rtr_portname = "topo_port" + str(rtr_portnum)
+                print("Add east link with portname=%s to x,y=%d_%d"%(rtr_portname,x,y))
+            #else:
+                # rtr.addLink(getLink("rtr_%d_%d"%(x,y), "epE_%d_%d"%(x+1,y)), rtr_portname, "800ps")
+                # epe = sst.Component("epE_%d_%d"%(x+1,y), "mordred.test_ep")
+                # epe.addLink(getLink("rtr_%d_%d"%(x,y), "epE_%d_%d"%(x+1,y)), "port", "800ps")
+                rtr_portnum += 1
+                rtr_portname = "topo_port" + str(rtr_portnum)
 
             # west links
             if x != 0:
                 rtr.addLink(getLink("rtr_%d_%d"%(x-1,y), "rtr_%d_%d"%(x,y)), rtr_portname, "800ps")
-            else:
-                rtr.addLink(getLink("rtr_X_%d"%(y), "epW_%d_%d"%(x,y)), rtr_portname, "800ps")
-                epw = sst.Component("epW_X_%d"%(y), "mordred.test_ep")
-                epw.addLink(getLink("rtr_X_%d"%(y), "epW_%d_%d"%(x,y)), "port", "800ps")
+                print("Add west link with portname=%s to x,y=%d_%d"%(rtr_portname,x,y))
+            #else:
+                # rtr.addLink(getLink("rtr_X_%d"%(y), "epW_%d_%d"%(x,y)), rtr_portname, "800ps")
+                # epw = sst.Component("epW_X_%d"%(y), "mordred.test_ep")
+                # epw.addLink(getLink("rtr_X_%d"%(y), "epW_%d_%d"%(x,y)), "port", "800ps")
 
             # local ports
             for k in range(local_ports):
@@ -219,21 +230,24 @@ class Crossbar:
 
 
 # General params
-local_ports = 2
+local_ports = 1
 concentration = 1
 
 # Mesh/torus Configuration options
-x_size = 4
-y_size = 4
+x_size = 2
+y_size = 2
 
 #Xbar config
 xbar_size = 6
 
-#createMesh(x_size, y_size, local_ports, concentration)
+print("Do mesh")
+createMesh(x_size, y_size, local_ports, concentration)
+
+print("Do simple torus")
 #createSimpleTorus(x_size, y_size, local_ports, concentration)
 
 print("Do crossbar")
-xbar_net = Crossbar(xbar_size, local_ports, concentration)
+#xbar_net = Crossbar(xbar_size, local_ports, concentration)
 
 # Flattened Butterfly Paper
 # Flattened Butterfly : A Cost-Efficient Topology for

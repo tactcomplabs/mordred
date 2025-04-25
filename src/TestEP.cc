@@ -48,7 +48,7 @@ void TestEP::finish() {
 }
 
 void TestEP::handleIncomingPacket( SST::Event* ev ) {
-  basicMordredEvent* mev = static_cast<basicMordredEvent*>( ev );
+  MordredFlit* mev = static_cast<MordredFlit*>( ev );
   if( mev ) {
     output.verbose( CALL_INFO, 5, 0, "TestEP::handle in packet\n" );
     delete mev;

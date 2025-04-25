@@ -20,10 +20,11 @@
  */
 
 // Standard headers
-#include <cinttypes>
+#include <cstdint>
 #include <vector>
 
 // Local SST header
+#include "TopologyAPI.h"
 #include "sst_config.h"
 
 // TODO: Configure verbosity control
@@ -57,7 +58,10 @@ public:
     // {"network_inspectors", "Comma separated list of network inspectors to put on output ports.", ""},
   )
 
-  SST_ELI_DOCUMENT_SUBCOMPONENT_SLOTS()
+  // Create a topology subcomponent
+  SST_ELI_DOCUMENT_SUBCOMPONENT_SLOTS(
+    {"topology", "Topology and routing subcomponent", "SST::Mordred::TopologyAPI"},
+  )
 
   SST_ELI_DOCUMENT_PORTS(
     { "local_port%(portnum)d", "Ports which connect to endpoints.", { "basicMordredEvent" } },
@@ -87,6 +91,12 @@ private:
   uint32_t                num_topo_ports{};
   std::vector<SST::Link*> LocalPortsVec;
   std::vector<SST::Link*> TopoPortsVec;
+
+  // Major components
+  TopologyAPI* topology{nullptr};
+
+  enum InitStatesE { ENDPT_SEND, RECV_ENDPTS };
+  //InitStatesE init_state{ ENDPT_SEND };
 
 };  // SimpleRTR
 

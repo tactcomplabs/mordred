@@ -1,5 +1,5 @@
 //
-// SimpleRTR.h
+// MordredEvents.h
 //
 // Copyright (C) 2025-2025 Tactical Computing Laboratories, LLC
 // All Rights Reserved
@@ -7,6 +7,13 @@
 //
 // See LICENSE in the top level directory for licensing details
 //
+
+// NOTE: Borrowing heavily from the Kingsley sst-element library and, to a lesser extent, the
+// shogun sst-element library.
+
+
+#ifndef MORDREDEVENTS_H
+#define MORDREDEVENTS_H
 
 // Standard headers
 #include <cinttypes>
@@ -18,30 +25,70 @@
 namespace SST {
 namespace Mordred {
 
-// currently just using sst-elements/src/sst/elements/simpleElementExample/basicEvent.h
-class basicMordredEvent final : public SST::Event {
+class baseMordredEvent : public Event {
 public:
-  basicMordredEvent() : SST::Event() { /* empty */ }
+  enum MordredEventType { HEAD_FLIT, BODY_FLIT, TAIL_FLIT, CREDIT, INITIALIZATION };
 
-  // Example data members
-  std::vector<uint64_t> payload;
-  std::string           src_name;
-  bool                  last{};
+  baseMordredEvent( MordredEventType type_ ) : SST::Event(), type( type_ ) { /* empty */ }
 
-  // will need things like destination, class/priority, etc
+  void serialize_order(Core::Serialization::serializer& ser) override {
+    Event::serialize_order(ser);
+    ser & type;
+  }
+
+private:
+  baseMordredEvent() {} // for serialization
+  MordredEventType type;
+
+  ImplementSerializable( SST::Mordred::baseMordredEvent );
+};
+
+// Used to initialize the network
+class MordredInitEvent : public baseMordredEvent {
+public:
+  enum Commands { REPORT_ENDPOINT };
+  MordredInitEvent() : baseMordredEvent( INITIALIZATION ) {}
+
+  Commands command;
+  int32_t value;
+  UnitAlgebra ua_value;
+
+private:
+  ImplementSerializable( SST::Mordred::MordredInitEvent )
+};
+
+// currently just using sst-elements/src/sst/elements/simpleElementExample/basicEvent.h
+// TODO: Inherit from baseMordredEvent
+class MordredFlit final : public SST::Event {
+public:
+  MordredFlit() : SST::Event() { /* empty */ }
+
+  enum FlitTypeE { HEAD, BODY, TAIL, CREDIT, EMPTY, NUM_TYPES };
+  FlitTypeE ftype{NUM_TYPES};
+
+  // Using this as a placeholder
+  std::string src_name;
+  uint64_t src;
+  uint64_t dest;
+
+  uint64_t datum;
 
   // Events must provide a serialization function that serializes
   // all data members of the event
   void serialize_order( SST::Core::Serialization::serializer& ser ) override {
     Event::serialize_order( ser );
-    ser & payload;
+    ser & ftype;
     ser & src_name;
-    ser & last;
+    ser & src;
+    ser & dest;
+    ser & datum;
   }
 
   // Register this event as serializable
-  ImplementSerializable( SST::Mordred::basicMordredEvent );
+  ImplementSerializable( SST::Mordred::MordredFlit );
 };
 
 }  // namespace Mordred
 }  // namespace SST
+
+#endif
