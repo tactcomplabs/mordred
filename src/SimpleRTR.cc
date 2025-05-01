@@ -24,11 +24,6 @@ SimpleRTR::SimpleRTR( ComponentId_t cid, Params& params ) : Component( cid ) {
   // Initialize the output handler
   output.init( "SimpleRTR[" + getName() + ":@p:@t]: ", Verbosity, 0, SST::Output::STDOUT );
 
-  // Load subcomponents
-  topology = loadUserSubComponent<TopologyAPI>( "topology" );
-  if ( !topology )
-    output.fatal( CALL_INFO, -1, "Couldn't load topology\n" );
-
   // Configure local/endpt ports -- borrowed this approach from
   // sst-elements/src/sst/elements/simpleElementExample/basicLinks.cc
   std::string lcl_prefix   = "local_port";
@@ -48,29 +43,35 @@ SimpleRTR::SimpleRTR( ComponentId_t cid, Params& params ) : Component( cid ) {
     lcl_linkname = lcl_prefix + std::to_string( portnum );
   }
 
-  std::string topo_prefix   = "topo_port";
-  std::string topo_linkname = topo_prefix + "0";
+  std::string rtr_prefix   = "rtr_port";
+  std::string rtr_linkname = rtr_prefix + "0";
   portnum                   = 0;
-  while( isPortConnected( topo_linkname ) ) {
+  while( isPortConnected( rtr_linkname ) ) {
     SST::Link* link =
-      configureLink( topo_linkname, new Event::Handler2<SimpleRTR, &SimpleRTR::handleTopoInWithID, int>( this, portnum ) );
+      configureLink( rtr_linkname, new Event::Handler2<SimpleRTR, &SimpleRTR::handleRtrInWithID, int>( this, portnum ) );
 
     if( !link )
-      output.fatal( CALL_INFO, -1, "Error in %s: unable to configure link %s\n", getName().c_str(), topo_linkname.c_str() );
+      output.fatal( CALL_INFO, -1, "Error in %s: unable to configure link %s\n", getName().c_str(), rtr_linkname.c_str() );
 
-    TopoPortsVec.push_back( link );
+    RtrPortsVec.push_back( link );
 
     // Build the next name to check
     portnum++;
-    topo_linkname = topo_prefix + std::to_string( portnum );
+    rtr_linkname = rtr_prefix + std::to_string( portnum );
   }
 
   num_local_ports = (uint32_t) LocalPortsVec.size();
-  num_topo_ports  = (uint32_t) TopoPortsVec.size();
+  num_rtr_ports  = (uint32_t) RtrPortsVec.size();
+
+  // Load subcomponents
+  topology = loadUserSubComponent<TopologyAPI>( "topology", ComponentInfo::SHARE_NONE, cid, num_rtr_ports, num_local_ports );
+  if ( !topology )
+    output.fatal( CALL_INFO, -1, "Couldn't load topology\n" );
+
 
   output.verbose(
-    CALL_INFO, 5, 0, "Constructor complete for %s. local_ports=%" PRIu32 "; topo_ports=%" PRIu32 "\n",
-    getName().c_str(), num_local_ports, num_topo_ports
+    CALL_INFO, 5, 0, "Constructor complete for %s. local_ports=%" PRIu32 "; rtr_ports=%" PRIu32 "\n",
+    getName().c_str(), num_local_ports, num_rtr_ports
   );
   output.flush();
 }
@@ -79,9 +80,18 @@ void SimpleRTR::init( uint32_t phase ) {
   output.verbose(CALL_INFO, 5, 0, "SimpleRTR::init(%" PRIu32 ")\n", phase);
   output.flush();
 
+  topology->init( phase );
+  MordredFlit* ev = nullptr;
+
+  while ( ( ev = topology->sendInitMessage() ) != nullptr ) {
+
+  }
+
+#if 0
+
   if (phase == 0) {
     uint32_t cntr = 0;
-    for( const auto &i : TopoPortsVec ) {
+    for( const auto &i : RtrPortsVec ) {
       auto *bev = topology->sendInitMessage();
       if (!bev)
         output.fatal( CALL_INFO, -1, "Yikes! cntr=%" PRIu32 "\n", cntr );
@@ -91,39 +101,15 @@ void SimpleRTR::init( uint32_t phase ) {
     output.verbose( CALL_INFO, 5, 0, "Sent %" PRIu32 " init msgs\n", cntr );
   }
 
-#if 0
-  // TODO: Send any incoming packets from this state to the Topology/Routing subcomponent
-
-  switch( init_state ) {
-  case ENDPT_SEND:
-    init_state = RECV_ENDPTS;
-    break;
-
-  case RECV_ENDPTS:
-    break;
-
-  default:
-    output.fatal( CALL_INFO, -1, "Invalid state\n" );
-  }
-
-  if (phase == 0) {
-    auto *bev = new MordredFlit();
-    bev->src_name = getName();
-
-    for ( const auto &i : TopoPortsVec )
-      i->sendUntimedData( bev );
-  }
-#endif
-
   if ( phase >= 1 ) {
-    for ( size_t i = 0; i < TopoPortsVec.size(); i++ ) {
-      auto ev = (TopoPortsVec[i]->recvUntimedData());
+    for ( size_t i = 0; i < RtrPortsVec.size(); i++ ) {
+      auto ev = (RtrPortsVec[i]->recvUntimedData());
       topology->processInitMessage( i, ev );
       //output.verbose( CALL_INFO, 5, 0, "Received Untimed packet with src_name \n");//,
       //  bev->src_name.c_str() );
     }
   }
-
+#endif
 }
 
 void SimpleRTR::setup() {
@@ -149,7 +135,7 @@ void SimpleRTR::handleLocalInWithID( SST::Event* ev, int32_t linknum ) {
   }
 }
 
-void SimpleRTR::handleTopoInWithID( SST::Event* ev, int32_t linknum ) {
+void SimpleRTR::handleRtrInWithID( SST::Event* ev, int32_t linknum ) {
   MordredFlit* mev = static_cast<MordredFlit*>( ev );
   if( mev ) {
     output.verbose( CALL_INFO, 5, 0, "SimpleRTR::handleTopoInWithID on link %" PRId32 "\n", linknum );

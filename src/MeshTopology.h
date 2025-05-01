@@ -53,19 +53,30 @@ public:
   SST_ELI_DOCUMENT_SUBCOMPONENT_SLOTS()
 
   /// MeshTopology: constructor
-  MeshTopology( ComponentId_t id, Params& params );
+  /// TODO: This is where I can include additional parameters since the constructor is called
+  /// when loading the subcomponent
+  MeshTopology( ComponentId_t id, Params& params, ComponentId_t rtr_id_, uint32_t num_rtr_ports, uint32_t num_local_ports );
 
   /// MeshTopology: destructor
   ~MeshTopology() override = default;
+
+  /// MeshTopology: lifecycle functions
+  void init ( uint32_t phase ) final;
 
   /// Send init messages (e.g, network discovery, etc)
   MordredFlit* sendInitMessage() final;
 
   /// Handle init messages (e.g, network discovery, etc)
-  void processInitMessage( size_t topo_port_num, Event *ev ) final;
+  void processInitMessage( Event* ev, size_t topo_port_num, uint32_t vn ) final;
 
 private:
   SST::Output* output;
+
+  ComponentId_t rtr_id;
+  uint32_t rtr_port_count;
+  uint32_t local_port_count;
+
+  uint32_t init_state{0};
 
   // Mesh parameters
   int32_t xId;
@@ -74,8 +85,10 @@ private:
   int32_t ySize;
   uint32_t num_links;
 
-  std::queue<MordredFlit*>init_flit_vec;
   std::vector<int32_t> dir_topo_port_vec; // n,e,s,w order; content of -1 is unused, otherwise it's SimpleRtr.topo_port[]
+
+  std::queue<MordredFlit*> init_out_queue;
+  std::queue<std::tuple<Event*,size_t,uint32_t> > init_in_queue; // Event, port_num, vn
 
 };
 

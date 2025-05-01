@@ -10,6 +10,7 @@
 
 // Standard headers
 #include <cstdint>
+#include <cinttypes>
 
 // Local SST header
 #include "sst_config.h"
@@ -19,7 +20,13 @@
 
 using namespace SST::Mordred;
 
-MeshTopology::MeshTopology( ComponentId_t id, Params& params ) : TopologyAPI( id, params ) {
+MeshTopology::MeshTopology( ComponentId_t id, Params& params,
+  ComponentId_t rtr_id_, uint32_t num_rtr_ports, uint32_t num_local_ports ) :
+  TopologyAPI( id ),
+  rtr_id( rtr_id_ ),
+  rtr_port_count( num_rtr_ports ),
+  local_port_count( num_local_ports )
+{
   const auto verbosity = params.find<uint32_t>( "verbose", 5 );
   output               = new Output( "MeshTopology [" + getName() + ":@p:@t]:", verbosity, 0, Output::STDOUT );
 
@@ -49,28 +56,51 @@ MeshTopology::MeshTopology( ComponentId_t id, Params& params ) : TopologyAPI( id
   if( yId == ( ySize - 1 ) )
     num_links--;
 
-  for ( uint32_t i = 0; i < num_links; i++ ) {
-    auto *bev = new MordredFlit();
-    bev->src_name = "rtr_" + std::to_string( xId ) + "_" + std::to_string( yId );
-    init_flit_vec.push( bev );
-  }
-
   dir_topo_port_vec.assign( 4, -1 );
 
   output->verbose( CALL_INFO, 1, 0, "MeshTopology constructed; num_links=%" PRIu32 "\n", num_links );
+  output->verbose( CALL_INFO, 1, 0, "\t rtr_id=%" PRIu64 ", rtr_ports=%" PRIu32 ", local_ports=%" PRIu32 "\n",
+    rtr_id, rtr_port_count, local_port_count);
 }
+
+void MeshTopology::init( uint32_t phase ) {
+  output->verbose( CALL_INFO, 1, 0, "MeshTopology, init function\n" );
+  output->flush();
+
+  switch( init_state ) {
+  case 0: {
+    for ( uint32_t i = 0; i < num_links; i++ ) {
+      auto *bev = new MordredFlit();
+      bev->src_name = "rtr_" + std::to_string( xId ) + "_" + std::to_string( yId );
+      init_out_queue.push( bev );
+    }
+    init_state = 1;
+    break;
+  }
+  case 1: [[fallthrough]];
+
+
+  case 2: [[fallthrough]];
+  default:
+    output->fatal( CALL_INFO, -1, "Not implemented\n" );
+
+  }
+}
+
 
 MordredFlit* MeshTopology::sendInitMessage() {
 
-  if ( init_flit_vec.empty() )
+  if ( init_out_queue.empty() )
     return nullptr;
 
-  auto *bev = init_flit_vec.front();
-  init_flit_vec.pop();
+  auto *bev = init_out_queue.front();
+  init_out_queue.pop();
   return bev;
 }
 
-void MeshTopology::processInitMessage( size_t topo_port_num, Event* ev ) {
+void MeshTopology::processInitMessage( Event* ev, size_t topo_port_num, uint32_t vn=1 ) {
+
+  //init_in_queue.push( std::make_tuple( ev, topo_port_num, vn ) );
   output->flush();
   //output->fatal( CALL_INFO, -1, "Not yet implemented\n" );
   output->verbose( CALL_INFO, 1, 0, "Not yet implemented\n" );

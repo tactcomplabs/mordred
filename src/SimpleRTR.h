@@ -61,11 +61,15 @@ public:
   // Create a topology subcomponent
   SST_ELI_DOCUMENT_SUBCOMPONENT_SLOTS(
     {"topology", "Topology and routing subcomponent", "SST::Mordred::TopologyAPI"},
+    // TODO: Base the PortControl blocks off of Merlin's version
+    //{"portcontrol", "PortControl blocks", "SST::Mordred::PortInterface"}
+    //{"arbitration", "Arbitration scheme/model", "SST::Mordred::Arbitration"}
   )
 
   SST_ELI_DOCUMENT_PORTS(
+    // TODO: Add message types as appropriate
     { "local_port%(portnum)d", "Ports which connect to endpoints.", { "basicMordredEvent" } },
-    { "topo_port%(portnum)d", "Ports which connect to other routers.", { "basicMordredEvent" } },
+    { "rtr_port%(portnum)d", "Ports which connect to other routers.", { "basicMordredEvent" } },
   )
 
   SST_ELI_DOCUMENT_STATISTICS()
@@ -83,20 +87,17 @@ public:
 private:
   // event handlers
   void handleLocalInWithID( SST::Event* ev, int32_t linknum );
-  void handleTopoInWithID( SST::Event* ev, int32_t linknum );
+  void handleRtrInWithID( SST::Event* ev, int32_t linknum );
 
 private:
   SST::Output             output;
   uint32_t                num_local_ports{};
-  uint32_t                num_topo_ports{};
+  uint32_t                num_rtr_ports{};
   std::vector<SST::Link*> LocalPortsVec;
-  std::vector<SST::Link*> TopoPortsVec;
+  std::vector<SST::Link*> RtrPortsVec;
 
   // Major components
   TopologyAPI* topology{nullptr};
-
-  enum InitStatesE { ENDPT_SEND, RECV_ENDPTS };
-  //InitStatesE init_state{ ENDPT_SEND };
 
 };  // SimpleRTR
 

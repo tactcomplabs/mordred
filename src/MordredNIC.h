@@ -11,9 +11,13 @@
 // Standard headers
 #include <cinttypes>
 #include <vector>
+#include <queue>
 
 // Local SST header
 #include "sst_config.h"
+
+// Local headers
+#include "MordredEvents.h"
 
 namespace SST::Mordred {
 
@@ -29,7 +33,12 @@ public:
     SST::Interfaces::SimpleNetwork
   )
 
-  SST_ELI_DOCUMENT_PARAMS( { "verbose", "Sets the output verbsoity", "5" }, )
+  SST_ELI_DOCUMENT_PARAMS(
+    { "verbose", "Sets the output verbsoity", "5" },
+    //{ "link_bw",        "Bandwidth of the links specified in either b/s or B/s (can include SI prefix)."},
+    { "in_buf_size",    "Size of input buffers specified in b or B (can include SI prefix).", "1kB"},
+    { "out_buf_size",   "Size of output buffers specified in b or B (can include SI prefix).", "1kB"}
+    )
 
   // TODO: Add packet types as needed
   SST_ELI_DOCUMENT_PORTS(
@@ -147,12 +156,29 @@ private:
 
   //std::vector<Request*> initReqs;
 
-  std::vector<uint32_t> out_credits;
+  UnitAlgebra inbuf_size;
+  UnitAlgebra outbuf_size;
+
+  // Packet buffers
+  std::vector<std::queue<MordredFlit*>> in_buf; // from router
+  std::vector<std::queue<MordredFlit*>> out_buf; // to router
+
+  // Credit buffers; 1 credit = 1 flit
+  // credits received from router; initialize to 0;
+  // (dec on send to router, inc when credit packet comes from router)
+  std::vector<int32_t> rtr_credits;
+
+  // credits for space in the out_buf (decrement as msgs recv'd from endpoint,
+  // increment when put on network))
+  std::vector<int32_t> outbuf_credits;
+
+  // credits to return to the router as the in_buf is emptied out
+  std::vector<int32_t> in_ret_credits;
 
   UnitAlgebra bw;
 
-  enum mordredNicInitE {SEND_ENDPT_NOTIFY, INIT_NETWORK_CONFIG, INIT_ENDPT_CONFIG, INIT_COMPLETE};
-  mordredNicInitE init_state{SEND_ENDPT_NOTIFY};
+  enum mordredNicInitE {NOTIFY_RTR, RCV_FLIT_SIZE, WAIT_FOR_ID, INIT_COMPLETE, NUM_STATES};
+  mordredNicInitE init_state{NOTIFY_RTR};
 
   // TODO: Add stats
 

@@ -25,20 +25,26 @@ namespace Mordred {
 
 class TopologyAPI : public SST::SubComponent {
 public:
-  SST_ELI_REGISTER_SUBCOMPONENT_API( SST::Mordred::TopologyAPI )
+  SST_ELI_REGISTER_SUBCOMPONENT_API( SST::Mordred::TopologyAPI, ComponentId_t, uint32_t, uint32_t )
 
   /// TopologyAPI: constructor
-  TopologyAPI( ComponentId_t id, Params& params ) : SubComponent( id ) {}
+  TopologyAPI( ComponentId_t id ) : SubComponent( id ) {}
 
   /// TopologyAPI: default destructor
   ~TopologyAPI() override                                    = default;
 
-  /// TopologyAPI: prep and/or send an initialization message
+  // Necessary lifecycle functions
+  void init ( uint32_t phase ) override                      = 0;
+
+  /// TopologyAPI: send initialization messages; currently, the constructor
+  /// of the topology is expected to generate a series of "discovery" packets
+  /// to send to its neighbors to say who I am
   virtual MordredFlit* sendInitMessage()                     = 0;
 
   /// TopologyAPI: receive and handle an initialization message
-  /// TODO: Include phase?
-  virtual void processInitMessage( size_t topo_port_num, Event *ev ) = 0;
+  /// These are the messages sent by sendInitMessage(); this allows the topology
+  /// to map the topo_ports in SimpleRTR to specific neighbors
+  virtual void processInitMessage( Event* ev, size_t topo_port_num, uint32_t vn ) = 0;
 
 };  // class TopologyAPI
 
