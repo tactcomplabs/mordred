@@ -23,14 +23,14 @@
 #include <cstdint>
 #include <vector>
 
-// Local SST header
-#include "TopologyAPI.h"
+// Local SST headers
 #include "sst_config.h"
+#include "RtrPortControlAPI.h"
+#include "TopologyAPI.h"
 
 // TODO: Configure verbosity control
 
-namespace SST {
-namespace Mordred {
+namespace SST::Mordred {
 
 class SimpleRTR : public SST::Component {
 
@@ -46,14 +46,18 @@ public:
 
   SST_ELI_DOCUMENT_PARAMS(
     { "verbose",       "Sets the output verbsoity",                    "5" },
-    //{"local_ports",        "Number of ports that are dedicated to endpoints.","1"},
-    //{"topo_ports",         "Number of ports that connect to other routers.", "1"}
+    {"id", "ID of the router", nullptr},
+    {"clock", "Clock frequency of the router", "1GHz"},
+    //{"num_vcs",            "Number of virtual channels.", "1"},
+    {"num_ports", "Number of ports on the router", "3"},
+    {"num_local_ports", "Number of local ports", "1"},
+    {"flit_width", "Number of bits per flit", "32"},
+    {"channel_bus_width", "Number of bits per channel/link", "32",}
     // {"frequency",          "Frequency of the router in Hz (can include SI prefix."},
     // {"link_bw",            "Bandwidth of the links specified in either b/s or B/s (can include SI prefix)."},
     // {"flit_size",          "Flit size specified in either b or B (can include SI prefix)."},
     // {"input_buf_size",     "Size of input buffers in either b or B (can use SI prefix).  Default is 2*flit_size."},
     // {"port_priority_equal","Set to true to have all port have equal priority (usually endpoint ports have higher priority).","false"},
-    // {"route_y_first",      "Set to true to rout Y-dimension first.","false"},
     // {"use_dense_map",      "Set to true to have a dense network id map instead of the sparse map normally used.","false"},
     // {"network_inspectors", "Comma separated list of network inspectors to put on output ports.", ""},
   )
@@ -61,15 +65,13 @@ public:
   // Create a topology subcomponent
   SST_ELI_DOCUMENT_SUBCOMPONENT_SLOTS(
     {"topology", "Topology and routing subcomponent", "SST::Mordred::TopologyAPI"},
-    // TODO: Base the PortControl blocks off of Merlin's version
-    //{"portcontrol", "PortControl blocks", "SST::Mordred::PortInterface"}
-    //{"arbitration", "Arbitration scheme/model", "SST::Mordred::Arbitration"}
+    {"portcontrol", "PortControl blocks; loaded anonymously", "SST::Mordred::RtrPortControlAPI"}
+    //{"arbitration", "Arbitration scheme/model", "SST::Mordred::RtrArbitrationAPI"}
   )
 
   SST_ELI_DOCUMENT_PORTS(
     // TODO: Add message types as appropriate
-    { "local_port%(portnum)d", "Ports which connect to endpoints.", { "basicMordredEvent" } },
-    { "rtr_port%(portnum)d", "Ports which connect to other routers.", { "basicMordredEvent" } },
+    { "port%(portnum)d", "Port id.", { "basicMordredEvent" } },
   )
 
   SST_ELI_DOCUMENT_STATISTICS()
@@ -84,22 +86,25 @@ public:
   void complete(uint32_t phase) override;
   void finish() override;
 
+  // Clock Handler
+  bool clockTick( Cycle_t cycle );
+
+
 private:
   // event handlers
-  void handleLocalInWithID( SST::Event* ev, int32_t linknum );
-  void handleRtrInWithID( SST::Event* ev, int32_t linknum );
+  void handleInEvent( SST::Event* ev, int32_t linknum );
 
 private:
   SST::Output             output;
-  uint32_t                num_local_ports{};
-  uint32_t                num_rtr_ports{};
-  std::vector<SST::Link*> LocalPortsVec;
-  std::vector<SST::Link*> RtrPortsVec;
+  uint32_t                id;
+  TimeConverter*          timeConverter;
+  uint32_t                numPorts{};
+  uint32_t                numLocalPorts{};
 
   // Major components
   TopologyAPI* topology{nullptr};
+  std::vector<RtrPortControlAPI*>  portsVec;
 
 };  // SimpleRTR
 
-}  // namespace Mordred
-}  // namespace SST
+} // namespace SST::Mordred

@@ -15,19 +15,22 @@
 
 using namespace SST::Mordred;
 
-MordredNIC::MordredNIC( ComponentId_t cid, Params& params, int32_t num_vns=1 ) :
-   SimpleNetwork(cid),
+MordredNIC::MordredNIC( ComponentId_t cid, Params& params, int vns = 1 ) :
+   Interfaces::SimpleNetwork(cid),
    netID(-1),
    bw("1GB/s")
 {
-  const auto verbosity = params.find<uint32_t>("verbose", 0);
-  output = new SST::Output("MordredNIC-Startup ", verbosity, 0, Output::STDOUT);
+  const auto verbosity = params.find<uint32_t>("verbose", 5);
+  output = new SST::Output("MordredNIC[" + getName() + ":@p:@t]: ", verbosity, 0, Output::STDOUT);
 
+#if 0
   // Validate vns
   if ( num_vns <= 0 ) {
     output->fatal( CALL_INFO, -1, "Invalid number of vns=%" PRId32 "; must be >= 1\n", num_vns );
   }
   size_t vns = static_cast<size_t>(num_vns);
+#endif
+  size_t num_vns = (size_t)vns;
 
   // Set up buffers (paritally borrowed from Kingsley)
   inbuf_size = params.find<UnitAlgebra>("in_buf_size", "1kB");
@@ -44,19 +47,19 @@ MordredNIC::MordredNIC( ComponentId_t cid, Params& params, int32_t num_vns=1 ) :
   }
   if ( outbuf_size.hasUnits("B") ) outbuf_size *= UnitAlgebra("8b/B");
 
-  in_buf.resize( vns );
-  out_buf.resize( vns );
+  in_buf.resize( num_vns );
+  out_buf.resize( num_vns );
 
-  rtr_credits.resize( vns, 0 );
-  outbuf_credits.resize( vns );
-  in_ret_credits.resize( vns );
+  rtr_credits.resize( num_vns, 0 );
+  outbuf_credits.resize( num_vns );
+  in_ret_credits.resize( num_vns );
 
   // Configure the links
   // For now give it a fake timebase.  Will give it the real timebase during init
   std::string port_name("port");
   //if ( isAnonymous())
   //  port_name = params.find<std::string>("port_name");
-  rtr_link = configureLink(port_name, std::string("1GHz"),
+  link = configureLink(port_name, std::string("1GHz"),
       new Event::Handler<MordredNIC>(this,&MordredNIC::handleIncomingPacket));
 
   output->verbose(CALL_INFO, 5, 0, "MordredNIC constructed\n");
@@ -72,13 +75,20 @@ void MordredNIC::init( uint32_t phase ) {
   case NOTIFY_RTR:
     init_ev = new MordredInitEvent();
     init_ev->command = MordredInitEvent::REPORT_ENDPOINT;
-    rtr_link->sendUntimedData( init_ev );
+    init_ev->value = (int)UINT32_MAX;
+    link->sendUntimedData( init_ev );
     init_state = RCV_FLIT_SIZE;
     break;
 
   case RCV_FLIT_SIZE: {
-    ev = rtr_link->recvUntimedData();
+    ev = link->recvUntimedData();
     if (ev == nullptr) break;
+    init_ev = static_cast<MordredInitEvent*>(ev);
+    if ( init_ev->command != MordredInitEvent::ROUTER_ID ) {
+      output->fatal( CALL_INFO, -1, "Incoming init event command != ROUTER_ID; =%d\n", (int)init_ev->command );
+    }
+    rtrId = (uint32_t)init_ev->value;
+    output->verbose( CALL_INFO, 5, 0, "Received packet with router_id=%" PRIu32 ", phase=%u\n", rtrId, phase );
 #if 0 // from Kingsley
     init_ev = static_cast<MordredInitEvent*>(ev);
     UnitAlgebra flit_size_ua = init_ev->ua_value;
@@ -94,25 +104,29 @@ void MordredNIC::init( uint32_t phase ) {
       in_ret_credits[i] = inbuf_size.getRoundedValue() /flit_size;
     }
 
-    delete ev;
 #endif
+    delete ev;
     init_state = WAIT_FOR_ID;
     break;
   }
 
   case WAIT_FOR_ID: {
-    ev = rtr_link->recvUntimedData();
-    if ( NULL == ev ) break;
-#if 0 // from Kingsley
+    ev = link->recvUntimedData();
+    if ( ev == nullptr ) break;
     init_ev = static_cast<MordredInitEvent*>(ev);
-    id = init_ev->int_value;
+    if ( init_ev->command != MordredInitEvent::ENDPOINT_ID ) {
+      output->fatal( CALL_INFO, -1, "Unexpected command type=%d\n", init_ev->command );
+    }
+    netID = init_ev->value;
+    output->verbose( CALL_INFO, 5, 0, "Received endpoint id = %" PRId64 "\n", netID );
     delete ev;
-
+#if 0
     // Send credit event to router
     credit_event* cr_ev = new credit_event(0,inbuf_size.getRoundedValue() / flit_size);
     rtr_link->sendUntimedData(cr_ev);
 #endif
-    // initialized = true;
+
+    //initialized = true;
     init_state = INIT_COMPLETE;
     break;
   }
@@ -122,7 +136,8 @@ void MordredNIC::init( uint32_t phase ) {
     init_state = NUM_STATES;
     break;
 
-  case NUM_STATES: [[fallthrough]];
+  case NUM_STATES: break;
+
   default:
     output->fatal( CALL_INFO, -1, "Invalid state\n" );
 #if 0 // from Kingsley

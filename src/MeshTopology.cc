@@ -21,73 +21,50 @@
 using namespace SST::Mordred;
 
 MeshTopology::MeshTopology( ComponentId_t id, Params& params,
-  ComponentId_t rtr_id_, uint32_t num_rtr_ports, uint32_t num_local_ports ) :
+  uint32_t rtr_id, uint32_t num_ports, uint32_t num_local_ports ) :
   TopologyAPI( id ),
-  rtr_id( rtr_id_ ),
-  rtr_port_count( num_rtr_ports ),
-  local_port_count( num_local_ports )
+  rtrId( rtr_id ),
+  numPorts( num_ports ),
+  numLocalPorts( num_local_ports )
 {
   const auto verbosity = params.find<uint32_t>( "verbose", 5 );
   output               = new Output( "MeshTopology [" + getName() + ":@p:@t]:", verbosity, 0, Output::STDOUT );
 
   // Process and validate input parameters
-  xId                  = params.find<int32_t>( "xId", -1 );
-  yId                  = params.find<int32_t>( "yId", -1 );
-  xSize                = params.find<int32_t>( "xSize", 1 );
-  ySize                = params.find<int32_t>( "ySize", 1 );
+  xDim                = params.find<uint32_t>( "xDim", 1 );
+  yDim                = params.find<uint32_t>( "yDim", 1 );
 
-  if( ( xId < 0 ) || ( yId < 0 ) ) {
-    output->fatal( CALL_INFO, -1, "Invalid xId=%" PRId32 " or yId=%" PRId32 "\n", xId, yId );
-  }
+  xId = rtrId % xDim;
+  yId = rtrId / xDim;
 
-  if( ( xId >= xSize ) || ( yId >= ySize ) ) {
+  if( ( xId >= xDim ) || ( yId >= yDim ) ) {
     output->fatal(
-      CALL_INFO, -1, "xId=%" PRId32 " >= xSize=%" PRId32 " OR yId=%" PRId32 " >= ySize=%" PRId32 "\n", xId, xSize, yId, ySize
+      CALL_INFO, -1, "xId=%" PRId32 " >= xSize=%" PRId32 " OR yId=%" PRId32 " >= ySize=%" PRId32 "\n", xId, xDim, yId, yDim
     );
   }
 
-  num_links = 4;
-  if( xId == 0 )
-    num_links--;
-  if( xId == ( xSize - 1 ) )
-    num_links--;
-  if( yId == 0 )
-    num_links--;
-  if( yId == ( ySize - 1 ) )
-    num_links--;
-
   dir_topo_port_vec.assign( 4, -1 );
 
-  output->verbose( CALL_INFO, 1, 0, "MeshTopology constructed; num_links=%" PRIu32 "\n", num_links );
-  output->verbose( CALL_INFO, 1, 0, "\t rtr_id=%" PRIu64 ", rtr_ports=%" PRIu32 ", local_ports=%" PRIu32 "\n",
-    rtr_id, rtr_port_count, local_port_count);
+  output->verbose( CALL_INFO, 1, 0, "MeshTopology constructed; rtr_id=%" PRIu32 ", num_ports=%" PRIu32 ", local_ports=%" PRIu32 "\n",
+    rtrId, numPorts, numLocalPorts);
 }
 
-void MeshTopology::init( uint32_t phase ) {
-  output->verbose( CALL_INFO, 1, 0, "MeshTopology, init function\n" );
-  output->flush();
+TopologyAPI::PortConnectionE MeshTopology::getPortConnection( uint32_t portnum ) {
+  if (portnum >= 4)
+    return ENDPT;
+  return ROUTER;
+}
 
-  switch( init_state ) {
-  case 0: {
-    for ( uint32_t i = 0; i < num_links; i++ ) {
-      auto *bev = new MordredFlit();
-      bev->src_name = "rtr_" + std::to_string( xId ) + "_" + std::to_string( yId );
-      init_out_queue.push( bev );
-    }
-    init_state = 1;
-    break;
-  }
-  case 1: [[fallthrough]];
-
-
-  case 2: [[fallthrough]];
-  default:
-    output->fatal( CALL_INFO, -1, "Not implemented\n" );
-
-  }
+int32_t MeshTopology::getEndpointId( uint32_t portnum ) {
+  if ( portnum < 4 )
+    return -1;
+  uint32_t base_id = rtrId * numLocalPorts;
+  uint32_t local_id = portnum-4;
+  return static_cast<int32_t>( base_id + local_id );
 }
 
 
+#if 0
 MordredFlit* MeshTopology::sendInitMessage() {
 
   if ( init_out_queue.empty() )
@@ -130,3 +107,4 @@ void MeshTopology::processInitMessage( Event* ev, size_t topo_port_num, uint32_t
     dir_topo_port_vec[0], dir_topo_port_vec[1], dir_topo_port_vec[2], dir_topo_port_vec[3]);
 
 }
+#endif

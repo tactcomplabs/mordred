@@ -46,7 +46,7 @@ private:
 // Used to initialize the network
 class MordredInitEvent : public baseMordredEvent {
 public:
-  enum Commands { REPORT_ENDPOINT };
+  enum Commands { REPORT_ENDPOINT, ROUTER_ID, ENDPOINT_ID };
   MordredInitEvent() : baseMordredEvent( INITIALIZATION ) {}
 
   Commands command;

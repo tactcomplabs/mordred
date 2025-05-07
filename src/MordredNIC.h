@@ -21,7 +21,7 @@
 
 namespace SST::Mordred {
 
-class MordredNIC : public Interfaces::SimpleNetwork {
+class MordredNIC : public SST::Interfaces::SimpleNetwork {
 
 public:
   SST_ELI_REGISTER_SUBCOMPONENT(
@@ -34,22 +34,21 @@ public:
   )
 
   SST_ELI_DOCUMENT_PARAMS(
-    { "verbose", "Sets the output verbsoity", "5" },
-    //{ "link_bw",        "Bandwidth of the links specified in either b/s or B/s (can include SI prefix)."},
-    { "in_buf_size",    "Size of input buffers specified in b or B (can include SI prefix).", "1kB"},
-    { "out_buf_size",   "Size of output buffers specified in b or B (can include SI prefix).", "1kB"}
+    { "verbose",      "Sets the output verbsoity", "5" },
+    //{"link_bw",       "Bandwidth of the links specified in either b/s or B/s (can include SI prefix)."},
+    //{"flit_size",     "Size of a flit in either b or B (can include SI prefix)."},
+    { "in_buf_size",  "Size of input buffers specified in b or B (can include SI prefix).", "1kB"},
+    { "out_buf_size", "Size of output buffers specified in b or B (can include SI prefix).", "1kB"}
     )
 
   // TODO: Add packet types as needed
   SST_ELI_DOCUMENT_PORTS(
-    {
-      "port", "Port that connects to a router.", { "untimedMordredEvent", "basicMordredEvent" }
-  },
+    {"port", "Port that connects to a router.", { "untimedMordredEvent", "basicMordredEvent" } },
   )
 
   SST_ELI_DOCUMENT_STATISTICS()
 
-  MordredNIC( ComponentId_t cid, Params& params, int32_t vns );
+  MordredNIC( ComponentId_t cid, Params& params, int vns );
   ~MordredNIC() { /* empty destructor */ }
 
   /// SST Required
@@ -140,8 +139,9 @@ private:
 
 private:
   Output*     output;
-  Link*       rtr_link;
+  Link*       link;
   nid_t       netID;
+  uint32_t    rtrId{UINT32_MAX};
   bool        initialized{false};
 
   HandlerBase* sendFunctor{nullptr};

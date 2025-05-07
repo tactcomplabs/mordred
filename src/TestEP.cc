@@ -9,6 +9,7 @@
 //
 
 #include <string>
+#include <cinttypes>
 
 #include "TestEP.h"
 #include "MordredEvents.h"
@@ -22,17 +23,24 @@ TestEP::TestEP( ComponentId_t cid, Params& params ) : Component( cid ) {
   // Initialize the output handler
   output.init( "TestEP[" + getName() + ":@p:@t]: ", Verbosity, 0, SST::Output::STDOUT );
 
-  localPort = configureLink( "port", new Event::Handler2<TestEP, &TestEP::handleIncomingPacket>( this ) );
-  if( !localPort )
-    output.fatal( CALL_INFO, -1, "Error in %s: unable to configure link\n", getName().c_str() );
+  auto clockFreq = params.find<std::string>("clock", "1GHz");
+  timeConverter = registerClock( clockFreq, new Clock::Handler2<TestEP, &TestEP::clockTick>(this) );
+  registerAsPrimaryComponent();
+  primaryComponentDoNotEndSim();
 
-  output.verbose( CALL_INFO, 5, 0, "Constructor complete for %s.\n", getName().c_str() );
+  nocIface = loadUserSubComponent<Interfaces::SimpleNetwork>( "noc_iface", ComponentInfo::SHARE_NONE, 1 );
+  if ( !nocIface )
+    output.fatal( CALL_INFO, -1, "Failed to load nocIface\n" );
+
+  output.verbose( CALL_INFO, 5, 0, "Constructor complete for %s with cid=%" PRIu64 ".\n", getName().c_str(), cid );
   output.flush();
 }
 
 void TestEP::init( uint32_t phase ) {
   output.verbose( CALL_INFO, 5, 0, "TestEP::init(%" PRIu32 ")\n", phase );
   output.flush();
+
+  nocIface->init( phase );
 }
 
 void TestEP::setup() {
@@ -46,6 +54,15 @@ void TestEP::complete( uint32_t phase ) {
 void TestEP::finish() {
 
 }
+
+bool TestEP::clockTick( Cycle_t cycle ) {
+  output.verbose( CALL_INFO, 3, 0, "Cycle=%" PRIu64 "\n", cycle );
+  if ( cycle == 10 ) {
+    primaryComponentOKToEndSim();
+  }
+  return false;
+}
+
 
 void TestEP::handleIncomingPacket( SST::Event* ev ) {
   MordredFlit* mev = static_cast<MordredFlit*>( ev );

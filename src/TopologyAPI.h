@@ -20,35 +20,45 @@
 // Other local headers
 #include "MordredEvents.h"
 
-namespace SST {
-namespace Mordred {
+/*
+ * In Merlin, the Topology API is in router.h; the API generally maintains a set of routing
+ * functions and an enum tracking what each port of the router is connected to;
+ * a subset of the routing functions is processing and handling untimed functions
+ *
+ *
+ * TODO: Remove the send/process InitMessage functions - these should be doing strictly
+ * routing
+ */
 
-class TopologyAPI : public SST::SubComponent {
+namespace SST::Mordred {
+
+class TopologyAPI : public SubComponent {
 public:
   SST_ELI_REGISTER_SUBCOMPONENT_API( SST::Mordred::TopologyAPI, ComponentId_t, uint32_t, uint32_t )
+
+  enum PortConnectionE { ENDPT, ROUTER, UNKNOWN, INVALID };
+  virtual PortConnectionE getPortConnection( uint32_t portnum ) = 0;
 
   /// TopologyAPI: constructor
   TopologyAPI( ComponentId_t id ) : SubComponent( id ) {}
 
   /// TopologyAPI: default destructor
-  ~TopologyAPI() override                                    = default;
+  ~TopologyAPI() override                                                         = default;
 
-  // Necessary lifecycle functions
-  void init ( uint32_t phase ) override                      = 0;
+  virtual int32_t getEndpointId( uint32_t portnum ) { return -1; }
 
   /// TopologyAPI: send initialization messages; currently, the constructor
   /// of the topology is expected to generate a series of "discovery" packets
   /// to send to its neighbors to say who I am
-  virtual MordredFlit* sendInitMessage()                     = 0;
+  //virtual MordredFlit* sendInitMessage()                                          = 0;
 
   /// TopologyAPI: receive and handle an initialization message
   /// These are the messages sent by sendInitMessage(); this allows the topology
   /// to map the topo_ports in SimpleRTR to specific neighbors
-  virtual void processInitMessage( Event* ev, size_t topo_port_num, uint32_t vn ) = 0;
+  //virtual void processInitMessage( Event* ev, size_t topo_port_num, uint32_t vn ) = 0;
 
 };  // class TopologyAPI
 
-} // namespace Mordred
-} // namespace SST
+}  // namespace SST::Mordred
 
 #endif //TOPOLOGYAPI_H

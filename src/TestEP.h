@@ -13,6 +13,7 @@
 #include <vector>
 
 // Local SST header
+#include "MordredNIC.h"
 #include "sst_config.h"
 
 // TODO: Configure verbosity control
@@ -29,9 +30,14 @@ public:
 
   SST_ELI_DOCUMENT_PARAMS(
     { "verbose",       "Sets the output verbsoity",                    "5" },
+    {"clock", "Clock frequency of the endpoint", "1GHz"},
     )
 
-  SST_ELI_DOCUMENT_PORTS( { "port", "Port which connects to a router.", { "basicMordredEvent" } }, )
+  SST_ELI_DOCUMENT_SUBCOMPONENT_SLOTS(
+    {"noc_iface", "NoC interface", "SST::Interfaces::SimpleNetwork"}
+  )
+
+  SST_ELI_DOCUMENT_PORTS()
 
   SST_ELI_DOCUMENT_STATISTICS()
 
@@ -45,13 +51,16 @@ public:
   void complete(uint32_t phase) override;
   void finish() override;
 
+  bool clockTick( Cycle_t cycle );
+
 private:
   // event handlers
   void handleIncomingPacket( SST::Event* ev );
 
 private:
-  SST::Output  output;
-  SST::Link*   localPort;
+  Output  output;
+  TimeConverter*          timeConverter;
+  Interfaces::SimpleNetwork*  nocIface;
 };  // TestEP
 
 }  // namespace Mordred

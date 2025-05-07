@@ -24,54 +24,40 @@ SimpleRTR::SimpleRTR( ComponentId_t cid, Params& params ) : Component( cid ) {
   // Initialize the output handler
   output.init( "SimpleRTR[" + getName() + ":@p:@t]: ", Verbosity, 0, SST::Output::STDOUT );
 
-  // Configure local/endpt ports -- borrowed this approach from
-  // sst-elements/src/sst/elements/simpleElementExample/basicLinks.cc
-  std::string lcl_prefix   = "local_port";
-  std::string lcl_linkname = lcl_prefix + "0";
-  int32_t     portnum      = 0;
-  while( isPortConnected( lcl_linkname ) ) {
-    SST::Link* link =
-      configureLink( lcl_linkname, new Event::Handler2<SimpleRTR, &SimpleRTR::handleLocalInWithID, int>( this, portnum ) );
-
-    if( !link )
-      output.fatal( CALL_INFO, -1, "Error in %s: unable to configure link %s\n", getName().c_str(), lcl_linkname.c_str() );
-
-    LocalPortsVec.push_back( link );
-
-    // Build the next name to check
-    portnum++;
-    lcl_linkname = lcl_prefix + std::to_string( portnum );
+  id = params.find<uint32_t>("id",UINT32_MAX);
+  if ( id == UINT32_MAX ) {
+    output.fatal(CALL_INFO, -1, "SimpleRTR requires id to be specified\n");
   }
 
-  std::string rtr_prefix   = "rtr_port";
-  std::string rtr_linkname = rtr_prefix + "0";
-  portnum                   = 0;
-  while( isPortConnected( rtr_linkname ) ) {
-    SST::Link* link =
-      configureLink( rtr_linkname, new Event::Handler2<SimpleRTR, &SimpleRTR::handleRtrInWithID, int>( this, portnum ) );
+  auto clockFreq = params.find<std::string>("clock", "1GHz");
+  timeConverter = registerClock( clockFreq, new Clock::Handler2<SimpleRTR, &SimpleRTR::clockTick>(this) );
 
-    if( !link )
-      output.fatal( CALL_INFO, -1, "Error in %s: unable to configure link %s\n", getName().c_str(), rtr_linkname.c_str() );
+  numPorts = params.find<uint32_t>("num_ports", 3);
+  numLocalPorts = params.find<uint32_t>( "num_local_ports", 1 );
 
-    RtrPortsVec.push_back( link );
-
-    // Build the next name to check
-    portnum++;
-    rtr_linkname = rtr_prefix + std::to_string( portnum );
-  }
-
-  num_local_ports = (uint32_t) LocalPortsVec.size();
-  num_rtr_ports  = (uint32_t) RtrPortsVec.size();
+  // TODO: Ensure numPorts >= numLocalPorts
 
   // Load subcomponents
-  topology = loadUserSubComponent<TopologyAPI>( "topology", ComponentInfo::SHARE_NONE, cid, num_rtr_ports, num_local_ports );
+  topology = loadUserSubComponent<TopologyAPI>( "topology", ComponentInfo::SHARE_NONE, id, numPorts, numLocalPorts );
   if ( !topology )
     output.fatal( CALL_INFO, -1, "Couldn't load topology\n" );
 
+  // Configure local/endpt ports -- borrowed this approach from
+  // sst-elements/src/sst/elements/simpleElementExample/basicLinks.cc
+  for ( uint32_t i = 0; i < numPorts; i++ ) {
+    std::string linkname = "port" + std::to_string(i);
+    if ( isPortConnected( linkname ) ) {
+      portsVec.push_back( loadAnonymousSubComponent<RtrPortControlAPI>("mordred.rtrPortControl", "portcontrol", (int)i,
+        ComponentInfo::SHARE_PORTS, params, topology, id, i) );
+    } else {
+      output.verbose( CALL_INFO, 9, 0, "Port %u with name=%s unconnected\n", i, linkname.c_str() );
+      portsVec.push_back( nullptr );
+    }
+  }
 
   output.verbose(
     CALL_INFO, 5, 0, "Constructor complete for %s. local_ports=%" PRIu32 "; rtr_ports=%" PRIu32 "\n",
-    getName().c_str(), num_local_ports, num_rtr_ports
+    getName().c_str(), numLocalPorts, numPorts-numLocalPorts
   );
   output.flush();
 }
@@ -81,11 +67,9 @@ void SimpleRTR::init( uint32_t phase ) {
   output.flush();
 
   topology->init( phase );
-  MordredFlit* ev = nullptr;
-
-  while ( ( ev = topology->sendInitMessage() ) != nullptr ) {
-
-  }
+  for ( auto &port : portsVec )
+    if ( port != nullptr )
+      port->init( phase );
 
 #if 0
 
@@ -124,21 +108,17 @@ void SimpleRTR::finish() {
 
 }
 
-
-void SimpleRTR::handleLocalInWithID( SST::Event* ev, int32_t linknum ) {
-  MordredFlit* mev = static_cast<MordredFlit*>( ev );
-  if( mev ) {
-    output.verbose( CALL_INFO, 5, 0, "SimpleRTR::handleLocalInWithID on link %" PRId32 "\n", linknum );
-    delete mev;
-  } else {
-    output.fatal( CALL_INFO, -1, "Error! Bad mev type received by %s on link ID %" PRId32 "\n", getName().c_str(), linknum );
-  }
+bool SimpleRTR::clockTick( Cycle_t cycle ) {
+  output.verbose( CALL_INFO, 3, 0, "Cycle=%" PRIu64 "\n", cycle );
+  return false;
 }
 
-void SimpleRTR::handleRtrInWithID( SST::Event* ev, int32_t linknum ) {
+
+
+void SimpleRTR::handleInEvent( SST::Event* ev, int32_t linknum ) {
   MordredFlit* mev = static_cast<MordredFlit*>( ev );
   if( mev ) {
-    output.verbose( CALL_INFO, 5, 0, "SimpleRTR::handleTopoInWithID on link %" PRId32 "\n", linknum );
+    output.verbose( CALL_INFO, 5, 0, "SimpleRTR::handleInEvent on link %" PRId32 "\n", linknum );
     delete mev;
   } else {
     output.fatal( CALL_INFO, -1, "Error! Bad mev type received by %s on link ID %" PRId32 "\n", getName().c_str(), linknum );

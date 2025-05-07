@@ -21,54 +21,62 @@ def getNextTopoPort(name):
 
 
 # There is a simple endpoint connected to a local port of the routers
+# rtr_id is expected to go linearly from 0-((x*y)-1)
+# rtr_id is also expected to be x-dominant (e.g, router id xDim has location x=0,y=1)
 def createMesh(x_size, y_size, local_ports, concentration):
     # Create the routers
+    rtr_id = 0
+    nports = 4 + local_ports
     for y in range(y_size):
         for x in range(x_size):
             rtr = sst.Component("rtr_%d_%d"%(x, y), "mordred.simple_rtr")
+            rtr.addParam("id", rtr_id)
+            rtr.addParam("num_ports", nports)
+            rtr.addParam("num_local_ports", local_ports)
+            rtr_id += 1
             rtr_topo = rtr.setSubComponent( "topology", "mordred.MeshTopology" )
             rtr_topo.addParams({
-                "xId" : x,
-                "yId" : y,
-                "xSize" : x_size,
-                "ySize" : y_size
+                "xDim" : x_size,
+                "yDim" : y_size
             })
             rtr_portnum = 0
-            rtr_portname = "rtr_port" + str(rtr_portnum)
+            rtr_portname = "port" + str(rtr_portnum)
             # north links
             if y != y_size - 1:
                 rtr.addLink(getLink("rtr_%d_%d"%(x,y), "rtr_%d_%d"%(x,y+1)), rtr_portname, "800ps")
                 print("Add north link with portname=%s to x,y=%d_%d"%(rtr_portname,x,y))
-                rtr_portnum += 1
-                rtr_portname = "rtr_port" + str(rtr_portnum)
+            rtr_portnum += 1
+            rtr_portname = "port" + str(rtr_portnum)
 
             # south links
             if y != 0:
                 rtr.addLink(getLink("rtr_%d_%d"%(x,y-1), "rtr_%d_%d"%(x,y)), rtr_portname, "800ps")
                 print("Add south link with portname=%s to x,y=%d_%d"%(rtr_portname,x,y))
-                rtr_portnum += 1
-                rtr_portname = "rtr_port" + str(rtr_portnum)
+            rtr_portnum += 1
+            rtr_portname = "port" + str(rtr_portnum)
 
             # east links
             if x != x_size - 1:
                 rtr.addLink(getLink("rtr_%d_%d"%(x,y), "rtr_%d_%d"%(x+1,y)), rtr_portname, "800ps")
                 print("Add east link with portname=%s to x,y=%d_%d"%(rtr_portname,x,y))
-                rtr_portnum += 1
-                rtr_portname = "rtr_port" + str(rtr_portnum)
+            rtr_portnum += 1
+            rtr_portname = "port" + str(rtr_portnum)
 
             # west links
             if x != 0:
                 rtr.addLink(getLink("rtr_%d_%d"%(x-1,y), "rtr_%d_%d"%(x,y)), rtr_portname, "800ps")
                 print("Add west link with portname=%s to x,y=%d_%d"%(rtr_portname,x,y))
+            rtr_portnum += 1
 
-            # local ports
+        # local ports
             for k in range(local_ports):
-                lcl_portname = "local_port" + str(k)
+                lcl_portname = "port" + str(k+rtr_portnum)
                 # create endpoint
                 ep_name = "local_ep_%d_%d_%d"%(x,y,k)
                 lcl_ep = sst.Component(ep_name, "mordred.test_ep")
+                lcl_ep_iface = lcl_ep.setSubComponent("noc_iface", "mordred.mordredNIC")
                 rtr.addLink(getLink("rtr_%d_%d"%(x, y), ep_name), lcl_portname, "800ps")
-                lcl_ep.addLink(getLink("rtr_%d_%d"%(x, y), ep_name), "port", "800ps")
+                lcl_ep_iface.addLink(getLink("rtr_%d_%d"%(x, y), ep_name), "port", "800ps")
 
 # This was an earlier version of the mesh that added a simple endpoint
 # so that all routers have all four ports connected; this is not
@@ -286,7 +294,7 @@ local_ports = 1
 concentration = 1
 
 # Mesh/torus Configuration options
-x_size = 2
+x_size = 3
 y_size = 2
 
 #Xbar config
@@ -294,6 +302,9 @@ xbar_size = 6
 
 print("Do mesh")
 createMesh(x_size, y_size, local_ports, concentration)
+
+## TODO: THE OTHER TOPOLOGIES HAVE NOT BEEN FIXED FOR THE NEW NAMING
+## IN THE ROUTER COMPONENT
 
 #print("Do simple torus")
 #createSimpleTorus(x_size, y_size, local_ports, concentration)
