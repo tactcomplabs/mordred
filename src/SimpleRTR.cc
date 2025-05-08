@@ -35,7 +35,8 @@ SimpleRTR::SimpleRTR( ComponentId_t cid, Params& params ) : Component( cid ) {
   numPorts = params.find<uint32_t>("num_ports", 3);
   numLocalPorts = params.find<uint32_t>( "num_local_ports", 1 );
 
-  // TODO: Ensure numPorts >= numLocalPorts
+  if ( numPorts <= numLocalPorts )
+    output.fatal( CALL_INFO, -1, "num_ports must be greater than num_local_ports\n" );
 
   // Load subcomponents
   topology = loadUserSubComponent<TopologyAPI>( "topology", ComponentInfo::SHARE_NONE, id, numPorts, numLocalPorts );
@@ -70,34 +71,13 @@ void SimpleRTR::init( uint32_t phase ) {
   for ( auto &port : portsVec )
     if ( port != nullptr )
       port->init( phase );
-
-#if 0
-
-  if (phase == 0) {
-    uint32_t cntr = 0;
-    for( const auto &i : RtrPortsVec ) {
-      auto *bev = topology->sendInitMessage();
-      if (!bev)
-        output.fatal( CALL_INFO, -1, "Yikes! cntr=%" PRIu32 "\n", cntr );
-      i->sendUntimedData( bev );
-      cntr++;
-    }
-    output.verbose( CALL_INFO, 5, 0, "Sent %" PRIu32 " init msgs\n", cntr );
-  }
-
-  if ( phase >= 1 ) {
-    for ( size_t i = 0; i < RtrPortsVec.size(); i++ ) {
-      auto ev = (RtrPortsVec[i]->recvUntimedData());
-      topology->processInitMessage( i, ev );
-      //output.verbose( CALL_INFO, 5, 0, "Received Untimed packet with src_name \n");//,
-      //  bev->src_name.c_str() );
-    }
-  }
-#endif
 }
 
 void SimpleRTR::setup() {
-
+  topology->setup();
+  for ( auto &port : portsVec )
+    if ( port != nullptr )
+      port->setup();
 }
 
 void SimpleRTR::complete( uint32_t phase ) {

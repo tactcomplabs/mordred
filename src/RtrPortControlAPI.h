@@ -42,6 +42,7 @@ class RtrPortControlAPI : public SubComponent {
 public:
   SST_ELI_REGISTER_SUBCOMPONENT_API( SST::Mordred::RtrPortControlAPI, TopologyAPI*, uint32_t, uint32_t )
 
+  enum PortConnectionE { ENDPT, ROUTER, UNKNOWN, INVALID };
 
   /// RtrPortControlAPI: constructor
   RtrPortControlAPI( ComponentId_t id ) : SubComponent( id ) {}

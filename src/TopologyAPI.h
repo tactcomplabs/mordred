@@ -36,8 +36,6 @@ class TopologyAPI : public SubComponent {
 public:
   SST_ELI_REGISTER_SUBCOMPONENT_API( SST::Mordred::TopologyAPI, ComponentId_t, uint32_t, uint32_t )
 
-  enum PortConnectionE { ENDPT, ROUTER, UNKNOWN, INVALID };
-  virtual PortConnectionE getPortConnection( uint32_t portnum ) = 0;
 
   /// TopologyAPI: constructor
   TopologyAPI( ComponentId_t id ) : SubComponent( id ) {}
@@ -45,17 +43,8 @@ public:
   /// TopologyAPI: default destructor
   ~TopologyAPI() override                                                         = default;
 
+  /// Computed endpoint ID
   virtual int32_t getEndpointId( uint32_t portnum ) { return -1; }
-
-  /// TopologyAPI: send initialization messages; currently, the constructor
-  /// of the topology is expected to generate a series of "discovery" packets
-  /// to send to its neighbors to say who I am
-  //virtual MordredFlit* sendInitMessage()                                          = 0;
-
-  /// TopologyAPI: receive and handle an initialization message
-  /// These are the messages sent by sendInitMessage(); this allows the topology
-  /// to map the topo_ports in SimpleRTR to specific neighbors
-  //virtual void processInitMessage( Event* ev, size_t topo_port_num, uint32_t vn ) = 0;
 
 };  // class TopologyAPI
 

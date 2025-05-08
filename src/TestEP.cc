@@ -44,7 +44,7 @@ void TestEP::init( uint32_t phase ) {
 }
 
 void TestEP::setup() {
-
+  nocIface->setup();
 }
 
 void TestEP::complete( uint32_t phase ) {

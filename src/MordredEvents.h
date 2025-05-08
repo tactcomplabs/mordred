@@ -46,11 +46,11 @@ private:
 // Used to initialize the network
 class MordredInitEvent : public baseMordredEvent {
 public:
-  enum Commands { REPORT_ENDPOINT, ROUTER_ID, ENDPOINT_ID };
+  enum Commands { REPORT_ENDPOINT, REPORT_ROUTER, ROUTER_ID, PORT_NUM, ENDPOINT_ID, NUM_VCS, FLIT_WIDTH, BUS_WIDTH, NUM_COMMANDS };
   MordredInitEvent() : baseMordredEvent( INITIALIZATION ) {}
 
   Commands command;
-  int32_t value;
+  uint32_t value;
   UnitAlgebra ua_value;
 
 private:

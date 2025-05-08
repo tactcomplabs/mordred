@@ -48,9 +48,9 @@ public:
     { "verbose",       "Sets the output verbsoity",                    "5" },
     {"id", "ID of the router", nullptr},
     {"clock", "Clock frequency of the router", "1GHz"},
-    //{"num_vcs",            "Number of virtual channels.", "1"},
     {"num_ports", "Number of ports on the router", "3"},
     {"num_local_ports", "Number of local ports", "1"},
+    {"num_vcs",            "Number of virtual channels.", "1"},
     {"flit_width", "Number of bits per flit", "32"},
     {"channel_bus_width", "Number of bits per channel/link", "32",}
     // {"frequency",          "Frequency of the router in Hz (can include SI prefix."},

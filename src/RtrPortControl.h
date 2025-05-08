@@ -52,7 +52,7 @@ public:
 
   // Lifecycle functions
   void init(unsigned int phase) final;
-  void setup() override { /* empty */ }
+  void setup() final;
   void complete(unsigned int phase) override { /* empty */ }
   void finish() override { /* empty */ }
 
@@ -65,10 +65,15 @@ private:
   Output* output;
   Link*   link{};
   TopologyAPI *topo{};
-  TopologyAPI::PortConnectionE connectionType{TopologyAPI::PortConnectionE::UNKNOWN};
+  PortConnectionE connectionType{UNKNOWN};
   uint32_t rtrId;
   uint32_t portId;
-  uint32_t connectionId{UINT32_MAX};
+  uint32_t connectedRtrId{UINT32_MAX};
+  uint32_t connectedPortId{UINT32_MAX};
+  uint32_t numVcs{};
+  uint32_t flitWidth{};
+  uint32_t channelBusWidth{};
+
 
   UnitAlgebra param_link_bw;
   UnitAlgebra param_flit_size;

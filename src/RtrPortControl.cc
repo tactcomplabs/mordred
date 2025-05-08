@@ -31,9 +31,13 @@ RtrPortControl::RtrPortControl( ComponentId_t id, Params& params, TopologyAPI* t
   const auto verbosity = params.find<uint32_t>("verbose", 5);
   output = new SST::Output("RtrPortControl[" + getName() + ":@p:@t]: ", verbosity, 0, Output::STDOUT);
 
+  numVcs = params.find<uint32_t>( "num_vcs", 1 );
+  flitWidth = params.find<uint32_t>( "flit_width", 32 );
+  channelBusWidth = params.find<uint32_t>( "channel_bus_width", 32 );
+
   // This constructor should only ever be activated for connected ports (per SimpleRtr constructor)
   // so not checking connectedness here
-  std::string pname = "port" + std::to_string(port_num);
+  const std::string pname = "port" + std::to_string(port_num);
   link = configureLink( pname, new Event::Handler2<RtrPortControl, &RtrPortControl::inHandler>( this ) );
   if (!link)
     output->fatal( CALL_INFO, -1, "Error in %s: unable to configure link %s\n", getName().c_str(), pname.c_str() );
@@ -46,58 +50,99 @@ RtrPortControl::RtrPortControl( ComponentId_t id, Params& params, TopologyAPI* t
 
 void RtrPortControl::init( unsigned int phase ) {
   output->verbose( CALL_INFO, 5, 0, " init phase=%" PRIu32 "\n", phase );
-  // In the early phases, we want to recvUntimedPackets from the endpoints to know that we're connected
-  // to an endpoint
 
-  // Then we can send a packet to our neighbor to identify ourself (or at least the router id)
-
-  // At a higher level, we'll have to start adding up the number of endpoints and then assigning endpt ids
-  switch( initState ) {
-  case REPORT_RTR_ID:{
+  switch( phase ) {
+  case 0: {
     auto *init_ev = new MordredInitEvent();
+    init_ev->command = MordredInitEvent::REPORT_ROUTER;
+    link->sendUntimedData( init_ev );
+    output->verbose( CALL_INFO, 5, 0, " REPORT_ROUTER init phase=%" PRIu32 "\n", phase );
+
+    init_ev = new MordredInitEvent();
     init_ev->command = MordredInitEvent::ROUTER_ID;
-    init_ev->value = (int32_t)rtrId;
+    init_ev->value = rtrId;
+    link->sendUntimedData( init_ev );
+    output->verbose( CALL_INFO, 5, 0, " REPORT_RTR_ID init phase=%" PRIu32 "\n", phase );
+
+    init_ev = new MordredInitEvent();
+    init_ev->command = MordredInitEvent::PORT_NUM;
+    init_ev->value = portId;
     link->sendUntimedData( init_ev );
     initState = RECV_ID;
-    output->verbose( CALL_INFO, 5, 0, " REPORT_RTR_ID init phase=%" PRIu32 "\n", phase );
+    output->verbose( CALL_INFO, 5, 0, " REPORT_PORT_NUM init phase=%" PRIu32 "\n", phase );
     break;
-  }
+    }
 
-  case RECV_ID: {
+  case 1: {
     Event* ev = link->recvUntimedData();
-    if (ev == nullptr) break;
-    auto *init_ev = static_cast<MordredInitEvent*>(ev);
-    if ( init_ev->command == MordredInitEvent::ROUTER_ID ) {
-      connectionType = TopologyAPI::PortConnectionE::ROUTER;
+    if ( ev == nullptr ) {
+      output->fatal( CALL_INFO, -1, "Error in %s: unable to recv init event\n", getName().c_str() );
+    }
+    auto init_ev = static_cast<MordredInitEvent*>(ev);
+    if ( init_ev->command == MordredInitEvent::REPORT_ROUTER ) {
+      connectionType = ROUTER;
     } else if ( init_ev->command == MordredInitEvent::REPORT_ENDPOINT ) {
-      connectionType = TopologyAPI::PortConnectionE::ENDPT;
+      connectionType = ENDPT;
     } else {
       output->fatal( CALL_INFO, -1, "Received packet with unexpected command=%d \n", (int)connectionType );
     }
-    connectionId = (uint32_t)init_ev->value;
-    output->verbose( CALL_INFO, 5, 0, "Received packet with command=%d and id=%" PRIu32 "\n", (int)init_ev->command, connectionId );
-    output->verbose( CALL_INFO, 5, 0, " RECV_ID init phase=%" PRIu32 "\n", phase );
     delete ev;
-    initState = SEND_ENDPT_IDS;
-    if ( connectionType != TopologyAPI::PortConnectionE::ENDPT )
-      break;
-    init_ev = new MordredInitEvent();
-    init_ev->command = MordredInitEvent::ENDPOINT_ID;
-    init_ev->value = topo->getEndpointId( portId );
-    link->sendUntimedData( init_ev );
-    initState = NUM_STATES;
-    output->verbose( CALL_INFO, 5, 0, " SEND IDs init phase=%" PRIu32 "\n", phase );
+
+    if ( connectionType == ROUTER ) {
+      ev = link->recvUntimedData();
+      if ( ev == nullptr ) {
+        output->fatal( CALL_INFO, -1, "Error in %s: unable to recv init event\n", getName().c_str() );
+      }
+      init_ev = static_cast<MordredInitEvent*>(ev);
+      if ( init_ev->command != MordredInitEvent::ROUTER_ID ) {
+        output->fatal( CALL_INFO, -1, "Incoming init event command != ROUTER_ID; =%d\n", (int)init_ev->command );
+      }
+      connectedRtrId = init_ev->value;
+      output->verbose( CALL_INFO, 5, 0, "Received packet with router_id=%" PRIu32 ", phase=%u\n", connectedRtrId, phase );
+      delete ev;
+
+      ev = link->recvUntimedData();
+      if ( ev == nullptr ) {
+        output->fatal( CALL_INFO, -1, "Error in %s: unable to recv second init event\n", getName().c_str() );
+      }
+      init_ev = static_cast<MordredInitEvent*>(ev);
+      if ( init_ev->command != MordredInitEvent::PORT_NUM ) {
+        output->fatal( CALL_INFO, -1, "Incoming init event command != PORT_NUM; =%d\n", (int)init_ev->command );
+      }
+      connectedPortId = init_ev->value;
+      output->verbose( CALL_INFO, 5, 0, "Received packet with router_port=%" PRIu32 ", phase=%u\n", connectedPortId, phase );
+      delete ev;
+    } else if ( connectionType == ENDPT ) {
+      init_ev = new MordredInitEvent();
+      init_ev->command = MordredInitEvent::NUM_VCS;
+      init_ev->value = numVcs;
+      link->sendUntimedData( init_ev );
+
+      init_ev = new MordredInitEvent();
+      init_ev->command = MordredInitEvent::FLIT_WIDTH;
+      init_ev->value = flitWidth;
+      link->sendUntimedData( init_ev );
+
+      init_ev = new MordredInitEvent();
+      init_ev->command = MordredInitEvent::BUS_WIDTH;
+      init_ev->value = channelBusWidth;
+      link->sendUntimedData( init_ev );
+
+      output->verbose( CALL_INFO, 5, 0, " Send flit and bus widths init_phase=%" PRIu32 "\n", phase );
+    }
+
     break;
   }
 
-  case SEND_ENDPT_IDS: {
-    if ( connectionType != TopologyAPI::PortConnectionE::ENDPT )
+  case 2: {
+    if ( connectionType != ENDPT ) {
+      output->verbose( CALL_INFO, 5, 0, " connected to non-endpoint; init_phase=%" PRIu32 "\n", phase );
       break;
+    }
     auto *init_ev = new MordredInitEvent();
     init_ev->command = MordredInitEvent::ENDPOINT_ID;
-    init_ev->value = topo->getEndpointId( portId );
+    init_ev->value = (uint32_t)topo->getEndpointId( portId );
     link->sendUntimedData( init_ev );
-    initState = NUM_STATES;
     output->verbose( CALL_INFO, 5, 0, " SEND IDs init phase=%" PRIu32 "\n", phase );
     break;
   }
@@ -105,6 +150,13 @@ void RtrPortControl::init( unsigned int phase ) {
   default:
     break;
   }
+}
+
+void RtrPortControl::setup() {
+  output->verbose(CALL_INFO, 5, 0, "RtrPortControl SETUP rtrId=%" PRIu32 ", rtrPort=%" PRIu32 ", connected Rtr ID=%" PRIu32 ", connected Port ID=%" PRIu32 "\n",
+    rtrId, portId, connectedRtrId, connectedPortId);
+  output->verbose( CALL_INFO, 5, 0, "flitWidth=%" PRIu32 ", channelBusWidth=%" PRIu32 "\n", flitWidth, channelBusWidth );
+  output->flush();
 }
 
 void RtrPortControl::sendUntimedData( Event* ev ) {

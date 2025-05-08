@@ -48,17 +48,17 @@ def createMesh(x_size, y_size, local_ports, concentration):
             rtr_portnum += 1
             rtr_portname = "port" + str(rtr_portnum)
 
-            # south links
-            if y != 0:
-                rtr.addLink(getLink("rtr_%d_%d"%(x,y-1), "rtr_%d_%d"%(x,y)), rtr_portname, "800ps")
-                print("Add south link with portname=%s to x,y=%d_%d"%(rtr_portname,x,y))
-            rtr_portnum += 1
-            rtr_portname = "port" + str(rtr_portnum)
-
             # east links
             if x != x_size - 1:
                 rtr.addLink(getLink("rtr_%d_%d"%(x,y), "rtr_%d_%d"%(x+1,y)), rtr_portname, "800ps")
                 print("Add east link with portname=%s to x,y=%d_%d"%(rtr_portname,x,y))
+            rtr_portnum += 1
+            rtr_portname = "port" + str(rtr_portnum)
+
+            # south links
+            if y != 0:
+                rtr.addLink(getLink("rtr_%d_%d"%(x,y-1), "rtr_%d_%d"%(x,y)), rtr_portname, "800ps")
+                print("Add south link with portname=%s to x,y=%d_%d"%(rtr_portname,x,y))
             rtr_portnum += 1
             rtr_portname = "port" + str(rtr_portnum)
 

@@ -56,17 +56,7 @@ public:
   /// MeshTopology: destructor
   ~MeshTopology() override = default;
 
-  PortConnectionE getPortConnection( uint32_t portnum ) final;
-
   int32_t getEndpointId( uint32_t portnum ) override;
-
-
-  // TODO: Probably don't need these next two functions
-  /// Send init messages (e.g, network discovery, etc)
-  //MordredFlit* sendInitMessage() final;
-
-  /// Handle init messages (e.g, network discovery, etc)
-  //void processInitMessage( Event* ev, size_t topo_port_num, uint32_t vn ) final;
 
 private:
   SST::Output* output;

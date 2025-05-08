@@ -137,12 +137,15 @@ private:
   // event handlers
   void handleIncomingPacket( SST::Event* ev );
 
-private:
   Output*     output;
   Link*       link;
   nid_t       netID;
   uint32_t    rtrId{UINT32_MAX};
+  uint32_t    rtrPort{UINT32_MAX};
   bool        initialized{false};
+  uint32_t    numVcs{UINT32_MAX};
+  uint32_t    flitWidth{};
+  uint32_t    channelBusWidth{};
 
   HandlerBase* sendFunctor{nullptr};
   HandlerBase* recvFunctor{nullptr};
@@ -176,9 +179,6 @@ private:
   std::vector<int32_t> in_ret_credits;
 
   UnitAlgebra bw;
-
-  enum mordredNicInitE {NOTIFY_RTR, RCV_FLIT_SIZE, WAIT_FOR_ID, INIT_COMPLETE, NUM_STATES};
-  mordredNicInitE init_state{NOTIFY_RTR};
 
   // TODO: Add stats
 
