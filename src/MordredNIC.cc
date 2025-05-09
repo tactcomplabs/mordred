@@ -16,7 +16,7 @@
 using namespace SST::Mordred;
 
 MordredNIC::MordredNIC( ComponentId_t cid, Params& params, int vns = 1 ) :
-   Interfaces::SimpleNetwork(cid),
+   SimpleNetwork(cid),
    netID(-1),
    bw("1GB/s")
 {
@@ -30,29 +30,24 @@ MordredNIC::MordredNIC( ComponentId_t cid, Params& params, int vns = 1 ) :
   }
   size_t vns = static_cast<size_t>(num_vns);
 #endif
-  size_t num_vns = (size_t)vns;
+  //size_t num_vns = (size_t)vns;
 
-  // Set up buffers (paritally borrowed from Kingsley)
-  inbuf_size = params.find<UnitAlgebra>("in_buf_size", "1kB");
+  // Set up buffers (partially borrowed from Kingsley)
+  inbuf_size = params.find<UnitAlgebra>("input_buf_size", "1kiB");
   if ( !inbuf_size.hasUnits("b") && !inbuf_size.hasUnits("B") ) {
-    output->fatal(CALL_INFO,-1,"in_buf_size must be specified in either "
+    output->fatal(CALL_INFO,-1,"input_buf_size must be specified in either "
                        "bits or bytes: %s\n",inbuf_size.toStringBestSI().c_str());
   }
-  if ( inbuf_size.hasUnits("B") ) inbuf_size *= UnitAlgebra("8b/B");
+  if ( inbuf_size.hasUnits("B") )
+    inbuf_size *= UnitAlgebra("8b/B");
 
-  outbuf_size = params.find<UnitAlgebra>("out_buf_size", "1kB");
+  outbuf_size = params.find<UnitAlgebra>("output_buf_size", "1kiB");
   if ( !outbuf_size.hasUnits("b") && !outbuf_size.hasUnits("B") ) {
-    output->fatal(CALL_INFO,-1,"out_buf_size must be specified in either "
+    output->fatal(CALL_INFO,-1,"output_buf_size must be specified in either "
                        "bits or bytes: %s\n",outbuf_size.toStringBestSI().c_str());
   }
-  if ( outbuf_size.hasUnits("B") ) outbuf_size *= UnitAlgebra("8b/B");
-
-  in_buf.resize( num_vns );
-  out_buf.resize( num_vns );
-
-  rtr_credits.resize( num_vns, 0 );
-  outbuf_credits.resize( num_vns );
-  in_ret_credits.resize( num_vns );
+  if ( outbuf_size.hasUnits("B") )
+    outbuf_size *= UnitAlgebra("8b/B");
 
   // Configure the links
   // For now give it a fake timebase.  Will give it the real timebase during init
@@ -137,8 +132,8 @@ void MordredNIC::init( uint32_t phase ) {
     if ( init_ev->command != MordredInitEvent::FLIT_WIDTH ) {
       output->fatal( CALL_INFO, -1, "Incoming init event command != FLIT_SIZE; =%d\n", (int)init_ev->command );
     }
-    flitWidth = init_ev->value;
-    output->verbose( CALL_INFO, 5, 0, "Received packet with flit_width=%" PRIu32 ", phase=%u\n", flitWidth, phase );
+    flitSize = init_ev->value;
+    output->verbose( CALL_INFO, 5, 0, "Received packet with flit_width=%" PRIu32 ", phase=%u\n", flitSize, phase );
     delete ev;
 
     ev = link->recvUntimedData();
@@ -172,25 +167,45 @@ void MordredNIC::init( uint32_t phase ) {
 #endif
   }
 
-  case 3:
+  case 3: {
     ev = link->recvUntimedData();
-    if ( ev == nullptr ) break;
-    init_ev = static_cast<MordredInitEvent*>(ev);
-    if ( init_ev->command == MordredInitEvent::ENDPOINT_ID ) {
+    if( ev == nullptr )
+      break;
+    init_ev = static_cast<MordredInitEvent*>( ev );
+    if( init_ev->command == MordredInitEvent::ENDPOINT_ID ) {
       initialized = true;
-      netID = init_ev->value;
+      netID       = init_ev->value;
       output->verbose( CALL_INFO, 5, 0, "Received endpoint id = %" PRId64 "\n", netID );
       delete ev;
     }
+
+    // Setup/send credit info
+    resizeVectors();
+    // Send router credits equal to num_flits in_buf can hold
+    auto credits = static_cast<int32_t>( inbuf_size.getRoundedValue() / flitSize );
+    for( uint32_t i = 0; i < numVcs; i++ ) {
+      auto* credit_ev = new MordredCreditEvent( i, credits );
+      link->sendUntimedData( credit_ev );
+    }
     break;
+  }
 
   default:
     output->verbose( CALL_INFO, 5, 0, "Init phase = %" PRIu32 "\n", phase );
-#if 0
-    // Send credit event to router
-    credit_event* cr_ev = new credit_event(0,inbuf_size.getRoundedValue() / flit_size);
-    rtr_link->sendUntimedData(cr_ev);
-#endif
+    while ( ( ev = link->recvUntimedData() ) != nullptr ) {
+      auto base_ev = static_cast<baseMordredEvent*>( ev );
+      if( base_ev->getType() == baseMordredEvent::CREDIT ) {
+        auto credit_ev = static_cast<MordredCreditEvent*>( ev );
+        rtr_credits.at( credit_ev->vc ) += credit_ev->credits;
+        output->verbose( CALL_INFO, 5, 0, "Received credit event vc=%d, credits=%d; cur_credits=%d\n",
+          credit_ev->vc, credit_ev->credits, rtr_credits.at( credit_ev->vc ) );
+      } else {
+        output->verbose( CALL_INFO, 5, 0, "Received unexpected event type=%d\n", (int) base_ev->getType() );
+      }
+      delete ev;
+      ev = nullptr;
+    }
+    break;
 
 #if 0 // from Kingsley
     // For all other phases, look for credit events, any other
@@ -233,7 +248,7 @@ void MordredNIC::init( uint32_t phase ) {
 
 void MordredNIC::setup() {
   output->verbose(CALL_INFO, 5, 0, "MordredNIC SETUP nid=%" PRId64 ", rtrId=%" PRIu32 ", rtrPort=%" PRIu32 "\n", netID, rtrId, rtrPort);
-  output->verbose( CALL_INFO, 5, 0, "MordredNIC SETUP numVCs=%" PRIu32 ", flitWidth=%" PRIu32 ", channelBusWidth=%" PRIu32 "\n", numVcs, flitWidth, channelBusWidth );
+  output->verbose( CALL_INFO, 5, 0, "MordredNIC SETUP numVCs=%" PRIu32 ", flitWidth=%" PRIu32 ", channelBusWidth=%" PRIu32 "\n", numVcs, flitSize, channelBusWidth );
   output->flush();
 }
 
@@ -280,6 +295,16 @@ bool MordredNIC::requestToReceive( int vn ) {
   output->flush();
   output->fatal( CALL_INFO, -1, "Not yet implemented\n" );
   return false;
+}
+
+void MordredNIC::resizeVectors() {
+  in_buf.resize( numVcs );
+  out_buf.resize( numVcs );
+
+  auto credits = outbuf_size.getRoundedValue() / flitSize;
+  rtr_credits.resize( numVcs, 0 );
+  outbuf_credits.resize( numVcs, static_cast<int32_t>( credits ) );
+  in_ret_credits.resize( numVcs, 0 );
 }
 
 void MordredNIC::handleIncomingPacket( SST::Event* ev ) {

@@ -22,8 +22,7 @@
 // Local SST header
 #include "sst_config.h"
 
-namespace SST {
-namespace Mordred {
+namespace SST::Mordred {
 
 class baseMordredEvent : public Event {
 public:
@@ -35,6 +34,8 @@ public:
     Event::serialize_order(ser);
     ser & type;
   }
+
+  MordredEventType getType() { return type; }
 
 private:
   baseMordredEvent() {} // for serialization
@@ -88,7 +89,27 @@ public:
   ImplementSerializable( SST::Mordred::MordredFlit );
 };
 
-}  // namespace Mordred
-}  // namespace SST
+class MordredCreditEvent : public baseMordredEvent {
+public:
+  uint32_t vc;
+  int32_t credits;
+
+  MordredCreditEvent() : baseMordredEvent( CREDIT ) {}
+
+  MordredCreditEvent( uint32_t vc_, int32_t credits_ ) :
+  baseMordredEvent( CREDIT ), vc( vc_ ), credits( credits_ ) {}
+
+  void serialize_order(Core::Serialization::serializer& ser) override {
+    baseMordredEvent::serialize_order(ser);
+    ser & vc;
+    ser & credits;
+  }
+
+private:
+  ImplementSerializable( SST::Mordred::MordredCreditEvent );
+};
+
+} // namespace SST::Mordred
+
 
 #endif

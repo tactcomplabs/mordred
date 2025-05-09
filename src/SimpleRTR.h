@@ -51,11 +51,12 @@ public:
     {"num_ports", "Number of ports on the router", "3"},
     {"num_local_ports", "Number of local ports", "1"},
     {"num_vcs",            "Number of virtual channels.", "1"},
-    {"flit_width", "Number of bits per flit", "32"},
-    {"channel_bus_width", "Number of bits per channel/link", "32",}
+    {"flit_size",          "Flit size specified in either b or B (can include SI prefix).", "32b"},
+    {"input_buf_size",     "Size of input buffers specified in b or B (can include SI prefix).", nullptr},
+    {"output_buf_size",    "Size of output buffers specified in b or B (can include SI prefix).", nullptr},
+    // {"channel_bus_width", "Number of bits per channel/link", "32",}
     // {"frequency",          "Frequency of the router in Hz (can include SI prefix."},
     // {"link_bw",            "Bandwidth of the links specified in either b/s or B/s (can include SI prefix)."},
-    // {"flit_size",          "Flit size specified in either b or B (can include SI prefix)."},
     // {"input_buf_size",     "Size of input buffers in either b or B (can use SI prefix).  Default is 2*flit_size."},
     // {"port_priority_equal","Set to true to have all port have equal priority (usually endpoint ports have higher priority).","false"},
     // {"use_dense_map",      "Set to true to have a dense network id map instead of the sparse map normally used.","false"},

@@ -34,11 +34,11 @@ public:
   )
 
   SST_ELI_DOCUMENT_PARAMS(
-    { "verbose",      "Sets the output verbsoity", "5" },
+    { "verbose",      "Sets the output verbosity", "5" },
     //{"link_bw",       "Bandwidth of the links specified in either b/s or B/s (can include SI prefix)."},
     //{"flit_size",     "Size of a flit in either b or B (can include SI prefix)."},
-    { "in_buf_size",  "Size of input buffers specified in b or B (can include SI prefix).", "1kB"},
-    { "out_buf_size", "Size of output buffers specified in b or B (can include SI prefix).", "1kB"}
+    { "input_buf_size",  "Size of input buffers specified in b or B (can include SI prefix).", "1kiB"},
+    { "output_buf_size", "Size of output buffers specified in b or B (can include SI prefix).", "1kiB"}
     )
 
   // TODO: Add packet types as needed
@@ -134,6 +134,8 @@ public:
   const UnitAlgebra& getLinkBW() const override { return bw; }
 
 private:
+  void resizeVectors();
+
   // event handlers
   void handleIncomingPacket( SST::Event* ev );
 
@@ -144,8 +146,8 @@ private:
   uint32_t    rtrPort{UINT32_MAX};
   bool        initialized{false};
   uint32_t    numVcs{UINT32_MAX};
-  uint32_t    flitWidth{};
-  uint32_t    channelBusWidth{};
+  uint32_t    flitSize{};
+  uint32_t    channelBusWidth{}; // TODO: Make UnitAlgebra
 
   HandlerBase* sendFunctor{nullptr};
   HandlerBase* recvFunctor{nullptr};
@@ -159,6 +161,7 @@ private:
 
   //std::vector<Request*> initReqs;
 
+  // in bits
   UnitAlgebra inbuf_size;
   UnitAlgebra outbuf_size;
 
@@ -166,8 +169,8 @@ private:
   std::vector<std::queue<MordredFlit*>> in_buf; // from router
   std::vector<std::queue<MordredFlit*>> out_buf; // to router
 
-  // Credit buffers; 1 credit = 1 flit
-  // credits received from router; initialize to 0;
+  // Credit counters; 1 credit = 1 flit
+  // credits received from router; initalization comes from router in init;
   // (dec on send to router, inc when credit packet comes from router)
   std::vector<int32_t> rtr_credits;
 
@@ -175,7 +178,12 @@ private:
   // increment when put on network))
   std::vector<int32_t> outbuf_credits;
 
+  // Notes to self: NIC can accept a packet from the endpoint when there are
+  // outbuf_credits; this gets broken up into flits and stays in the outbuf
+  // until there are rtr_credits available so we can send the packet
+
   // credits to return to the router as the in_buf is emptied out
+  // init to 0
   std::vector<int32_t> in_ret_credits;
 
   UnitAlgebra bw;

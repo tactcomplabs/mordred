@@ -27,12 +27,18 @@ def createMesh(x_size, y_size, local_ports, concentration):
     # Create the routers
     rtr_id = 0
     nports = 4 + local_ports
+    rtr_params = {
+        "num_local_ports" : local_ports,
+        "flit_size" : "32b",
+        "input_buf_size" : "32B",
+        "output_buf_size" : "32B"
+    }
     for y in range(y_size):
         for x in range(x_size):
             rtr = sst.Component("rtr_%d_%d"%(x, y), "mordred.simple_rtr")
             rtr.addParam("id", rtr_id)
             rtr.addParam("num_ports", nports)
-            rtr.addParam("num_local_ports", local_ports)
+            rtr.addParams(rtr_params)
             rtr_id += 1
             rtr_topo = rtr.setSubComponent( "topology", "mordred.MeshTopology" )
             rtr_topo.addParams({
@@ -75,6 +81,10 @@ def createMesh(x_size, y_size, local_ports, concentration):
                 ep_name = "local_ep_%d_%d_%d"%(x,y,k)
                 lcl_ep = sst.Component(ep_name, "mordred.test_ep")
                 lcl_ep_iface = lcl_ep.setSubComponent("noc_iface", "mordred.mordredNIC")
+
+                lcl_ep_iface.addParam("input_buf_size", "1kB")
+                lcl_ep_iface.addParam("output_buf_size", "2kiB")
+
                 rtr.addLink(getLink("rtr_%d_%d"%(x, y), ep_name), lcl_portname, "800ps")
                 lcl_ep_iface.addLink(getLink("rtr_%d_%d"%(x, y), ep_name), "port", "800ps")
 

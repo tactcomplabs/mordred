@@ -71,15 +71,36 @@ private:
   uint32_t connectedRtrId{UINT32_MAX};
   uint32_t connectedPortId{UINT32_MAX};
   uint32_t numVcs{};
-  uint32_t flitWidth{};
-  uint32_t channelBusWidth{};
+  uint32_t flitSize{}; // in bits
+  uint32_t channelBusWidth{}; // in bits
 
 
   UnitAlgebra param_link_bw;
   UnitAlgebra param_flit_size;
 
-  enum RtrInitStateE {REPORT_RTR_ID, RECV_ID, SEND_ENDPT_IDS, NUM_STATES};
-  RtrInitStateE initState{REPORT_RTR_ID};
+  // These are in bits
+  uint32_t inbuf_size;
+  uint32_t outbuf_size;
+
+  // Packet buffers
+  std::vector<std::queue<MordredFlit*>> in_buf; // from router/endpt
+  std::vector<std::queue<MordredFlit*>> out_buf; // to router/endpt - NEED?
+
+  // Credit counters; 1 credit = 1 flit
+  // credits received from destination; initialized to non-zero in init (dest sounds a count)
+  // (dec on send to dest, inc when credit packet comes from dest)
+  std::vector<int32_t> dest_credits;
+
+  // credits for space in the out_buf (decrement as flits inserted,
+  // increment when put on link) - purely internal (and
+  // unnecessary if out_buf is removed)
+  // initialize to outbuf size
+  std::vector<int32_t> outbuf_credits;
+
+  // credits to return to the sender as the in_buf is emptied out
+  // init to zero
+  std::vector<int32_t> in_ret_credits;
+
 
 };
 

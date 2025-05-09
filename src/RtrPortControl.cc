@@ -32,8 +32,45 @@ RtrPortControl::RtrPortControl( ComponentId_t id, Params& params, TopologyAPI* t
   output = new SST::Output("RtrPortControl[" + getName() + ":@p:@t]: ", verbosity, 0, Output::STDOUT);
 
   numVcs = params.find<uint32_t>( "num_vcs", 1 );
-  flitWidth = params.find<uint32_t>( "flit_width", 32 );
-  channelBusWidth = params.find<uint32_t>( "channel_bus_width", 32 );
+  auto flit_size_ua = params.find<UnitAlgebra>( "flit_size", "32b" );
+  if ( !flit_size_ua.hasUnits("b") && !flit_size_ua.hasUnits("B") ) {
+    output->fatal(CALL_INFO,-1,"PortControl: flit_size must be specified in either "
+                       "bits (b) or bytes (B): %s\n",flit_size_ua.toStringBestSI().c_str());
+  }
+  if ( flit_size_ua.hasUnits("B") ) {
+    flit_size_ua *= UnitAlgebra("8b");
+  }
+  flitSize = static_cast<uint32_t>( flit_size_ua.getRoundedValue() );
+  channelBusWidth = params.find<uint32_t>( "channel_bus_width", flitSize );
+
+  // Get buffer sizes
+  bool found = false;
+  auto buf_size_ua = params.find<UnitAlgebra>("input_buf_size",found);
+  if ( !found ) {
+    output->fatal(CALL_INFO_LONG, 1, "RtrPortControl: input_buf_size must be specified\n");
+  }
+  if ( !buf_size_ua.hasUnits("b") && !buf_size_ua.hasUnits("B") ) {
+    output->fatal(CALL_INFO,-1,"RtrPortControl: input_buf_size must be specified in either "
+                       "bits (b) or bytes (B): %s\n",buf_size_ua.toStringBestSI().c_str());
+  }
+  if ( buf_size_ua.hasUnits("B") ) {
+    buf_size_ua *= UnitAlgebra("8b/B");
+  }
+  inbuf_size = static_cast<uint32_t>( buf_size_ua.getRoundedValue() );
+
+  buf_size_ua = params.find<UnitAlgebra>("output_buf_size",found);
+  if ( !found ) {
+    output->fatal(CALL_INFO_LONG, 1, "RtrPortControl: output_buf_size must be specified\n");
+  }
+  if ( !buf_size_ua.hasUnits("b") && !buf_size_ua.hasUnits("B") ) {
+    output->fatal(CALL_INFO,-1,"RtrPortControl: inbuf_size must be specified in either "
+                       "bits (b) or bytes (B): %s\n",buf_size_ua.toStringBestSI().c_str());
+  }
+  if ( buf_size_ua.hasUnits("B") ) {
+    buf_size_ua *= UnitAlgebra("8b/B");
+  }
+  outbuf_size = static_cast<uint32_t>( buf_size_ua.getRoundedValue() );
+
 
   // This constructor should only ever be activated for connected ports (per SimpleRtr constructor)
   // so not checking connectedness here
@@ -44,8 +81,18 @@ RtrPortControl::RtrPortControl( ComponentId_t id, Params& params, TopologyAPI* t
   else
     output->verbose( CALL_INFO, 9, 0, "Configured link %s\n", pname.c_str() );
 
+  // Size perVC structures
+  auto credits = outbuf_size / flitSize ;
+  in_buf.resize( numVcs );
+  out_buf.resize( numVcs );
+  dest_credits.resize( numVcs, 0 );
+  outbuf_credits.resize( numVcs, static_cast<int32_t>( credits ) );
+  in_ret_credits.resize( numVcs, 0 );
+
   output->verbose( CALL_INFO, 1, 0, "Constructor complete; rtr_id=%" PRIu32 ", port_num=%" PRIu32 "\n",
     rtrId, portId);
+  output->verbose( CALL_INFO, 1, 0, "inbuf_size=%" PRIu32 ", outbuf_size=%" PRIu32 "\n",
+    inbuf_size, outbuf_size );
 }
 
 void RtrPortControl::init( unsigned int phase ) {
@@ -68,7 +115,6 @@ void RtrPortControl::init( unsigned int phase ) {
     init_ev->command = MordredInitEvent::PORT_NUM;
     init_ev->value = portId;
     link->sendUntimedData( init_ev );
-    initState = RECV_ID;
     output->verbose( CALL_INFO, 5, 0, " REPORT_PORT_NUM init phase=%" PRIu32 "\n", phase );
     break;
     }
@@ -120,7 +166,7 @@ void RtrPortControl::init( unsigned int phase ) {
 
       init_ev = new MordredInitEvent();
       init_ev->command = MordredInitEvent::FLIT_WIDTH;
-      init_ev->value = flitWidth;
+      init_ev->value = flitSize;
       link->sendUntimedData( init_ev );
 
       init_ev = new MordredInitEvent();
@@ -147,15 +193,38 @@ void RtrPortControl::init( unsigned int phase ) {
     break;
   }
 
-  default:
-    break;
+  case 3: {
+    // Send router credits equal to num_flits in_buf can hold
+    auto credits = static_cast<int32_t>( inbuf_size / flitSize );
+    for( uint32_t i = 0; i < numVcs; i++ ) {
+      auto* credit_ev = new MordredCreditEvent( i, credits );
+      link->sendUntimedData( credit_ev );
+    }
+  }
+
+  default: {
+    // receive credits and anything else
+    Event* ev = nullptr;
+    while( ( ev = link->recvUntimedData() ) != nullptr ) {
+      auto base_ev = static_cast<baseMordredEvent*>( ev );
+      if( base_ev->getType() == baseMordredEvent::CREDIT ) {
+        auto credit_ev = static_cast<MordredCreditEvent*>( ev );
+        dest_credits.at( credit_ev->vc ) += credit_ev->credits;
+        output->verbose( CALL_INFO, 5, 0, "Received credit event vc=%d, credits=%d; cur_credits=%d\n", credit_ev->vc, credit_ev->credits, dest_credits.at( credit_ev->vc ) );
+      } else {
+        output->verbose( CALL_INFO, 5, 0, "Received unexpected event type=%d\n", (int) base_ev->getType() );
+      }
+      delete ev;
+      ev = nullptr;
+    }
+  }  // end default
   }
 }
 
 void RtrPortControl::setup() {
   output->verbose(CALL_INFO, 5, 0, "RtrPortControl SETUP rtrId=%" PRIu32 ", rtrPort=%" PRIu32 ", connected Rtr ID=%" PRIu32 ", connected Port ID=%" PRIu32 "\n",
     rtrId, portId, connectedRtrId, connectedPortId);
-  output->verbose( CALL_INFO, 5, 0, "flitWidth=%" PRIu32 ", channelBusWidth=%" PRIu32 "\n", flitWidth, channelBusWidth );
+  output->verbose( CALL_INFO, 5, 0, "flitWidth=%" PRIu32 ", channelBusWidth=%" PRIu32 "\n", flitSize, channelBusWidth );
   output->flush();
 }
 

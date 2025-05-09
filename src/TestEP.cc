@@ -56,8 +56,8 @@ void TestEP::finish() {
 }
 
 bool TestEP::clockTick( Cycle_t cycle ) {
-  output.verbose( CALL_INFO, 3, 0, "Cycle=%" PRIu64 "\n", cycle );
   if ( cycle == 10 ) {
+    output.verbose( CALL_INFO, 3, 0, "Cycle=%" PRIu64 "\n", cycle );
     primaryComponentOKToEndSim();
   }
   return false;
