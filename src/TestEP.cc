@@ -32,13 +32,16 @@ TestEP::TestEP( ComponentId_t cid, Params& params ) : Component( cid ) {
   if ( !nocIface )
     output.fatal( CALL_INFO, -1, "Failed to load nocIface\n" );
 
-  output.verbose( CALL_INFO, 5, 0, "Constructor complete for %s with cid=%" PRIu64 ".\n", getName().c_str(), cid );
+  // TODO: Add parameters to configure as needed
+  //output.setVerboseMask( DEBUG_INIT_PHASE );
+
+
+  output.verbose( CALL_INFO, 5, 0, "Constructor complete for %s \n", getName().c_str() );
   output.flush();
 }
 
 void TestEP::init( uint32_t phase ) {
-  output.verbose( CALL_INFO, 5, 0, "TestEP::init(%" PRIu32 ")\n", phase );
-  output.flush();
+  output.verbose( CALL_INFO, 5, DEBUG_INIT_PHASE, "TestEP::init(%" PRIu32 ")\n", phase );
 
   nocIface->init( phase );
 }

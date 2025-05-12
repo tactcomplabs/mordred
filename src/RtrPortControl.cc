@@ -89,33 +89,28 @@ RtrPortControl::RtrPortControl( ComponentId_t id, Params& params, TopologyAPI* t
   outbuf_credits.resize( numVcs, static_cast<int32_t>( credits ) );
   in_ret_credits.resize( numVcs, 0 );
 
-  output->verbose( CALL_INFO, 1, 0, "Constructor complete; rtr_id=%" PRIu32 ", port_num=%" PRIu32 "\n",
-    rtrId, portId);
-  output->verbose( CALL_INFO, 1, 0, "inbuf_size=%" PRIu32 ", outbuf_size=%" PRIu32 "\n",
-    inbuf_size, outbuf_size );
+  output->verbose( CALL_INFO, 1, 0, "Constructor complete; [Rtr.Port]=[%" PRIu32 ".%" PRIu32 "], inbuf_size=%" PRIu32 ", outbuf_size=%" PRIu32 "\n",
+    rtrId, portId, inbuf_size, outbuf_size);
 }
 
 void RtrPortControl::init( unsigned int phase ) {
-  output->verbose( CALL_INFO, 5, 0, " init phase=%" PRIu32 "\n", phase );
+  //output->verbose( CALL_INFO, 5, 0, " init phase=%" PRIu32 "\n", phase );
 
   switch( phase ) {
   case 0: {
     auto *init_ev = new MordredInitEvent();
     init_ev->command = MordredInitEvent::REPORT_ROUTER;
     link->sendUntimedData( init_ev );
-    output->verbose( CALL_INFO, 5, 0, " REPORT_ROUTER init phase=%" PRIu32 "\n", phase );
 
     init_ev = new MordredInitEvent();
     init_ev->command = MordredInitEvent::ROUTER_ID;
     init_ev->value = rtrId;
     link->sendUntimedData( init_ev );
-    output->verbose( CALL_INFO, 5, 0, " REPORT_RTR_ID init phase=%" PRIu32 "\n", phase );
 
     init_ev = new MordredInitEvent();
     init_ev->command = MordredInitEvent::PORT_NUM;
     init_ev->value = portId;
     link->sendUntimedData( init_ev );
-    output->verbose( CALL_INFO, 5, 0, " REPORT_PORT_NUM init phase=%" PRIu32 "\n", phase );
     break;
     }
 
@@ -135,29 +130,14 @@ void RtrPortControl::init( unsigned int phase ) {
     delete ev;
 
     if ( connectionType == ROUTER ) {
-      ev = link->recvUntimedData();
-      if ( ev == nullptr ) {
-        output->fatal( CALL_INFO, -1, "Error in %s: unable to recv init event\n", getName().c_str() );
-      }
-      init_ev = static_cast<MordredInitEvent*>(ev);
-      if ( init_ev->command != MordredInitEvent::ROUTER_ID ) {
-        output->fatal( CALL_INFO, -1, "Incoming init event command != ROUTER_ID; =%d\n", (int)init_ev->command );
-      }
+      init_ev = getInitEvent( MordredInitEvent::ROUTER_ID );
       connectedRtrId = init_ev->value;
-      output->verbose( CALL_INFO, 5, 0, "Received packet with router_id=%" PRIu32 ", phase=%u\n", connectedRtrId, phase );
-      delete ev;
+      delete init_ev;
 
-      ev = link->recvUntimedData();
-      if ( ev == nullptr ) {
-        output->fatal( CALL_INFO, -1, "Error in %s: unable to recv second init event\n", getName().c_str() );
-      }
-      init_ev = static_cast<MordredInitEvent*>(ev);
-      if ( init_ev->command != MordredInitEvent::PORT_NUM ) {
-        output->fatal( CALL_INFO, -1, "Incoming init event command != PORT_NUM; =%d\n", (int)init_ev->command );
-      }
+      init_ev = getInitEvent( MordredInitEvent::PORT_NUM );
       connectedPortId = init_ev->value;
-      output->verbose( CALL_INFO, 5, 0, "Received packet with router_port=%" PRIu32 ", phase=%u\n", connectedPortId, phase );
-      delete ev;
+      output->verbose( CALL_INFO, 5, 0, "Received init packets from [Rtr.Port]=[%" PRIu32 ".%" PRIu32 "]\n", connectedRtrId, connectedPortId );
+      delete init_ev;
     } else if ( connectionType == ENDPT ) {
       init_ev = new MordredInitEvent();
       init_ev->command = MordredInitEvent::NUM_VCS;
@@ -174,22 +154,21 @@ void RtrPortControl::init( unsigned int phase ) {
       init_ev->value = channelBusWidth;
       link->sendUntimedData( init_ev );
 
-      output->verbose( CALL_INFO, 5, 0, " Send flit and bus widths init_phase=%" PRIu32 "\n", phase );
+      output->verbose( CALL_INFO, 5, DEBUG_INIT_PHASE, " Send flit and bus widths init_phase=%" PRIu32 "\n", phase );
     }
-
     break;
   }
 
   case 2: {
     if ( connectionType != ENDPT ) {
-      output->verbose( CALL_INFO, 5, 0, " connected to non-endpoint; init_phase=%" PRIu32 "\n", phase );
+      output->verbose( CALL_INFO, 5, DEBUG_INIT_PHASE, " connected to non-endpoint; init_phase=%" PRIu32 "\n", phase );
       break;
     }
     auto *init_ev = new MordredInitEvent();
     init_ev->command = MordredInitEvent::ENDPOINT_ID;
     init_ev->value = (uint32_t)topo->getEndpointId( portId );
     link->sendUntimedData( init_ev );
-    output->verbose( CALL_INFO, 5, 0, " SEND IDs init phase=%" PRIu32 "\n", phase );
+    output->verbose( CALL_INFO, 5, DEBUG_INIT_PHASE, " SEND IDs init phase=%" PRIu32 "\n", phase );
     break;
   }
 
@@ -215,17 +194,16 @@ void RtrPortControl::init( unsigned int phase ) {
         output->verbose( CALL_INFO, 5, 0, "Received unexpected event type=%d\n", (int) base_ev->getType() );
       }
       delete ev;
-      ev = nullptr;
     }
   }  // end default
   }
 }
 
 void RtrPortControl::setup() {
-  output->verbose(CALL_INFO, 5, 0, "RtrPortControl SETUP rtrId=%" PRIu32 ", rtrPort=%" PRIu32 ", connected Rtr ID=%" PRIu32 ", connected Port ID=%" PRIu32 "\n",
-    rtrId, portId, connectedRtrId, connectedPortId);
-  output->verbose( CALL_INFO, 5, 0, "flitWidth=%" PRIu32 ", channelBusWidth=%" PRIu32 "\n", flitSize, channelBusWidth );
-  output->flush();
+  //output->verbose(CALL_INFO, 5, 0, "RtrPortControl SETUP rtrId=%" PRIu32 ", rtrPort=%" PRIu32 ", connected Rtr ID=%" PRIu32 ", connected Port ID=%" PRIu32 "\n",
+  //  rtrId, portId, connectedRtrId, connectedPortId);
+  //output->verbose( CALL_INFO, 5, 0, "flitWidth=%" PRIu32 ", channelBusWidth=%" PRIu32 "\n", flitSize, channelBusWidth );
+  //output->flush();
 }
 
 void RtrPortControl::sendUntimedData( Event* ev ) {
@@ -239,4 +217,21 @@ SST::Event* RtrPortControl::recvUntimedData() {
 
 void RtrPortControl::inHandler( SST::Event* ev ) {
   output->fatal( CALL_INFO, -1, "Not yet implemented\n" );
+}
+
+MordredInitEvent* RtrPortControl::getInitEvent( MordredInitEvent::Commands cmd ) {
+  Event *ev;
+  ev = link->recvUntimedData();
+  if ( ev == nullptr ) {
+    output->fatal( CALL_INFO, -1, "Error in %s: unable to recv init event\n", getName().c_str() );
+  }
+  auto init_ev = static_cast<MordredInitEvent*>(ev);
+  if ( init_ev->getType() != baseMordredEvent::INITIALIZATION ) {
+    output->fatal( CALL_INFO, -1, "Incoming event type != %d; =%d\n",
+      baseMordredEvent::INITIALIZATION, (int)init_ev->getType() );
+  }
+  if ( init_ev->command != cmd ) {
+    output->fatal( CALL_INFO, -1, "Incoming init event command != %d; =%d\n", (int)cmd, (int)init_ev->command );
+  }
+  return init_ev;
 }

@@ -135,6 +135,7 @@ public:
 
 private:
   void resizeVectors();
+  MordredInitEvent* getInitEvent( MordredInitEvent::Commands cmd );
 
   // event handlers
   void handleIncomingPacket( SST::Event* ev );

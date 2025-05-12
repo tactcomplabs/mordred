@@ -24,6 +24,11 @@
 
 namespace SST::Mordred {
 
+// Use for setting up output masks
+constexpr uint32_t DEBUG_CONSTRUCTORS = (1UL << 0);
+constexpr uint32_t DEBUG_INIT_PHASE   = (1UL << 1);
+
+
 class baseMordredEvent : public Event {
 public:
   enum MordredEventType { HEAD_FLIT, BODY_FLIT, TAIL_FLIT, CREDIT, INITIALIZATION };

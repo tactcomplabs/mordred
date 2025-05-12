@@ -75,78 +75,36 @@ void MordredNIC::init( uint32_t phase ) {
     break;
 
   case 1:
-    ev = link->recvUntimedData();
-    if ( ev == nullptr ) {
-      output->fatal( CALL_INFO, -1, "Error in %s: unable to recv init event\n", getName().c_str() );
-    }
-    init_ev = static_cast<MordredInitEvent*>(ev);
-    if ( init_ev->command != MordredInitEvent::REPORT_ROUTER ) {
-      output->fatal( CALL_INFO, -1, "Incoming init event command != REPORT_ROUTER; =%d\n", (int)init_ev->command );
-    }
-    output->verbose( CALL_INFO, 5, 0, "Received Report router phase=%u\n", phase );
-    delete ev;
+    init_ev = getInitEvent( MordredInitEvent::Commands::REPORT_ROUTER );
+    // Nothing expected from the endpoint when receiving this packet; routers are broadcasting this in phase 0
+    // much like the endpoints are doing REPORT_ENDPOINT sends in phase 0.
+    delete init_ev;
 
-    ev = link->recvUntimedData();
-    if ( ev == nullptr ) {
-      output->fatal( CALL_INFO, -1, "Error in %s: unable to recv init event\n", getName().c_str() );
-    }
-    init_ev = static_cast<MordredInitEvent*>(ev);
-    if ( init_ev->command != MordredInitEvent::ROUTER_ID ) {
-      output->fatal( CALL_INFO, -1, "Incoming init event command != ROUTER_ID; =%d\n", (int)init_ev->command );
-    }
+    init_ev = getInitEvent( MordredInitEvent::Commands::ROUTER_ID );
     rtrId = init_ev->value;
-    output->verbose( CALL_INFO, 5, 0, "Received packet with router_id=%" PRIu32 ", phase=%u\n", rtrId, phase );
-    delete ev;
+    delete init_ev;
 
-    ev = link->recvUntimedData();
-    if ( ev == nullptr ) {
-      output->fatal( CALL_INFO, -1, "Error in %s: unable to recv second init event\n", getName().c_str() );
-    }
-    init_ev = static_cast<MordredInitEvent*>(ev);
-    if ( init_ev->command != MordredInitEvent::PORT_NUM ) {
-      output->fatal( CALL_INFO, -1, "Incoming init event command != PORT_NUM; =%d\n", (int)init_ev->command );
-    }
+    init_ev = getInitEvent( MordredInitEvent::Commands::PORT_NUM );
     rtrPort = init_ev->value;
-    output->verbose( CALL_INFO, 5, 0, "Received packet with router_port=%" PRIu32 ", phase=%u\n", rtrPort, phase );
-    delete ev;
+    delete init_ev;
+    output->verbose( CALL_INFO, 5, 0, "Received init phase=%" PRIu32 " packets from [Rtr.Port]=[%" PRIu32 ".%" PRIu32 "]\n",
+      phase, rtrId, rtrPort );
     break;
 
   case 2: {
-    ev = link->recvUntimedData();
-    if ( ev == nullptr ) {
-      output->fatal( CALL_INFO, -1, "Error in %s: unable to recv init event\n", getName().c_str() );
-    }
-    init_ev = static_cast<MordredInitEvent*>(ev);
-    if ( init_ev->command != MordredInitEvent::NUM_VCS ) {
-      output->fatal( CALL_INFO, -1, "Incoming init event command != NUM_VCS; =%d\n", (int)init_ev->command );
-    }
+    init_ev = getInitEvent( MordredInitEvent::Commands::NUM_VCS );
     numVcs = init_ev->value;
-    output->verbose( CALL_INFO, 5, 0, "Received packet with numVCs=%" PRIu32 ", phase=%u\n", numVcs, phase );
-    delete ev;
+    delete init_ev;
 
-    ev = link->recvUntimedData();
-    if ( ev == nullptr ) {
-      output->fatal( CALL_INFO, -1, "Error in %s: unable to recv init event\n", getName().c_str() );
-    }
-    init_ev = static_cast<MordredInitEvent*>(ev);
-    if ( init_ev->command != MordredInitEvent::FLIT_WIDTH ) {
-      output->fatal( CALL_INFO, -1, "Incoming init event command != FLIT_SIZE; =%d\n", (int)init_ev->command );
-    }
+    init_ev = getInitEvent( MordredInitEvent::Commands::FLIT_WIDTH );
     flitSize = init_ev->value;
-    output->verbose( CALL_INFO, 5, 0, "Received packet with flit_width=%" PRIu32 ", phase=%u\n", flitSize, phase );
-    delete ev;
+    delete init_ev;
 
-    ev = link->recvUntimedData();
-    if ( ev == nullptr ) {
-      output->fatal( CALL_INFO, -1, "Error in %s: unable to recv init event\n", getName().c_str() );
-    }
-    init_ev = static_cast<MordredInitEvent*>(ev);
-    if ( init_ev->command != MordredInitEvent::BUS_WIDTH ) {
-      output->fatal( CALL_INFO, -1, "Incoming init event command != BUS_WIDTH; =%d\n", (int)init_ev->command );
-    }
+    init_ev = getInitEvent( MordredInitEvent::Commands::BUS_WIDTH );
     channelBusWidth = init_ev->value;
-    output->verbose( CALL_INFO, 5, 0, "Received packet with channel_bus_width=%" PRIu32 ", phase=%u\n", channelBusWidth, phase );
-    delete ev;
+    delete init_ev;
+    output->verbose( CALL_INFO, 5, 0, "Received init phase=%" PRIu32 " packets with numVCs=%" PRIu32 ", flit_width=%" PRIu32 ", channel_bus_width=%" PRIu32 "\n",
+      phase, numVcs, flitSize, channelBusWidth );
     break;
 
 #if 0 // from Kingsley
@@ -168,16 +126,11 @@ void MordredNIC::init( uint32_t phase ) {
   }
 
   case 3: {
-    ev = link->recvUntimedData();
-    if( ev == nullptr )
-      break;
-    init_ev = static_cast<MordredInitEvent*>( ev );
-    if( init_ev->command == MordredInitEvent::ENDPOINT_ID ) {
-      initialized = true;
-      netID       = init_ev->value;
-      output->verbose( CALL_INFO, 5, 0, "Received endpoint id = %" PRId64 "\n", netID );
-      delete ev;
-    }
+    init_ev = getInitEvent( MordredInitEvent::Commands::ENDPOINT_ID );
+    netID = init_ev->value;
+    initialized = true;
+    output->verbose( CALL_INFO, 5, 0, "Received endpoint id = %" PRId64 "\n", netID );
+    delete init_ev;
 
     // Setup/send credit info
     resizeVectors();
@@ -191,7 +144,7 @@ void MordredNIC::init( uint32_t phase ) {
   }
 
   default:
-    output->verbose( CALL_INFO, 5, 0, "Init phase = %" PRIu32 "\n", phase );
+    output->verbose( CALL_INFO, 5, DEBUG_INIT_PHASE, "Init phase = %" PRIu32 "\n", phase );
     while ( ( ev = link->recvUntimedData() ) != nullptr ) {
       auto base_ev = static_cast<baseMordredEvent*>( ev );
       if( base_ev->getType() == baseMordredEvent::CREDIT ) {
@@ -203,7 +156,6 @@ void MordredNIC::init( uint32_t phase ) {
         output->verbose( CALL_INFO, 5, 0, "Received unexpected event type=%d\n", (int) base_ev->getType() );
       }
       delete ev;
-      ev = nullptr;
     }
     break;
 
@@ -247,9 +199,9 @@ void MordredNIC::init( uint32_t phase ) {
 }
 
 void MordredNIC::setup() {
-  output->verbose(CALL_INFO, 5, 0, "MordredNIC SETUP nid=%" PRId64 ", rtrId=%" PRIu32 ", rtrPort=%" PRIu32 "\n", netID, rtrId, rtrPort);
-  output->verbose( CALL_INFO, 5, 0, "MordredNIC SETUP numVCs=%" PRIu32 ", flitWidth=%" PRIu32 ", channelBusWidth=%" PRIu32 "\n", numVcs, flitSize, channelBusWidth );
-  output->flush();
+  //output->verbose(CALL_INFO, 5, 0, "MordredNIC SETUP nid=%" PRId64 ", rtrId=%" PRIu32 ", rtrPort=%" PRIu32 "\n", netID, rtrId, rtrPort);
+  //output->verbose( CALL_INFO, 5, 0, "MordredNIC SETUP numVCs=%" PRIu32 ", flitWidth=%" PRIu32 ", channelBusWidth=%" PRIu32 "\n", numVcs, flitSize, channelBusWidth );
+  //output->flush();
 }
 
 void MordredNIC::complete( uint32_t phase ) {
@@ -305,6 +257,23 @@ void MordredNIC::resizeVectors() {
   rtr_credits.resize( numVcs, 0 );
   outbuf_credits.resize( numVcs, static_cast<int32_t>( credits ) );
   in_ret_credits.resize( numVcs, 0 );
+}
+
+MordredInitEvent* MordredNIC::getInitEvent( MordredInitEvent::Commands cmd ) {
+  Event *ev;
+  ev = link->recvUntimedData();
+  if ( ev == nullptr ) {
+    output->fatal( CALL_INFO, -1, "Error in %s: unable to recv init event\n", getName().c_str() );
+  }
+  auto init_ev = static_cast<MordredInitEvent*>(ev);
+  if ( init_ev->getType() != baseMordredEvent::INITIALIZATION ) {
+    output->fatal( CALL_INFO, -1, "Incoming event type != %d; =%d\n",
+      baseMordredEvent::INITIALIZATION, (int)init_ev->getType() );
+  }
+  if ( init_ev->command != cmd ) {
+    output->fatal( CALL_INFO, -1, "Incoming init event command != %d; =%d\n", (int)cmd, (int)init_ev->command );
+  }
+  return init_ev;
 }
 
 void MordredNIC::handleIncomingPacket( SST::Event* ev ) {

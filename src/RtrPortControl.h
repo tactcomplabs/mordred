@@ -62,6 +62,8 @@ public:
   void inHandler(SST::Event* ev);
 
 private:
+  MordredInitEvent* getInitEvent( MordredInitEvent::Commands cmd );
+
   Output* output;
   Link*   link{};
   TopologyAPI *topo{};
@@ -100,7 +102,6 @@ private:
   // credits to return to the sender as the in_buf is emptied out
   // init to zero
   std::vector<int32_t> in_ret_credits;
-
 
 };
 

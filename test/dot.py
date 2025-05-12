@@ -8,7 +8,7 @@ def getLink(name1, name2):
     name = "link.%s_%s"%(name1, name2)
     if name not in links:
         links[name] = sst.Link(name)
-        print("New link: %s"%name)
+        #print("New link: %s"%name)
     return links[name]
 
 rtr_port_nums = dict()
@@ -23,6 +23,7 @@ def getNextTopoPort(name):
 # There is a simple endpoint connected to a local port of the routers
 # rtr_id is expected to go linearly from 0-((x*y)-1)
 # rtr_id is also expected to be x-dominant (e.g, router id xDim has location x=0,y=1)
+# links are expected to be ordered as n,e,s,w
 def createMesh(x_size, y_size, local_ports, concentration):
     # Create the routers
     rtr_id = 0
@@ -50,28 +51,28 @@ def createMesh(x_size, y_size, local_ports, concentration):
             # north links
             if y != y_size - 1:
                 rtr.addLink(getLink("rtr_%d_%d"%(x,y), "rtr_%d_%d"%(x,y+1)), rtr_portname, "800ps")
-                print("Add north link with portname=%s to x,y=%d_%d"%(rtr_portname,x,y))
+                #print("Add north link with portname=%s to x,y=%d_%d"%(rtr_portname,x,y))
             rtr_portnum += 1
             rtr_portname = "port" + str(rtr_portnum)
 
             # east links
             if x != x_size - 1:
                 rtr.addLink(getLink("rtr_%d_%d"%(x,y), "rtr_%d_%d"%(x+1,y)), rtr_portname, "800ps")
-                print("Add east link with portname=%s to x,y=%d_%d"%(rtr_portname,x,y))
+                #print("Add east link with portname=%s to x,y=%d_%d"%(rtr_portname,x,y))
             rtr_portnum += 1
             rtr_portname = "port" + str(rtr_portnum)
 
             # south links
             if y != 0:
                 rtr.addLink(getLink("rtr_%d_%d"%(x,y-1), "rtr_%d_%d"%(x,y)), rtr_portname, "800ps")
-                print("Add south link with portname=%s to x,y=%d_%d"%(rtr_portname,x,y))
+                #print("Add south link with portname=%s to x,y=%d_%d"%(rtr_portname,x,y))
             rtr_portnum += 1
             rtr_portname = "port" + str(rtr_portnum)
 
             # west links
             if x != 0:
                 rtr.addLink(getLink("rtr_%d_%d"%(x-1,y), "rtr_%d_%d"%(x,y)), rtr_portname, "800ps")
-                print("Add west link with portname=%s to x,y=%d_%d"%(rtr_portname,x,y))
+                #print("Add west link with portname=%s to x,y=%d_%d"%(rtr_portname,x,y))
             rtr_portnum += 1
 
         # local ports

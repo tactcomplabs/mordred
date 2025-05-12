@@ -64,8 +64,8 @@ SimpleRTR::SimpleRTR( ComponentId_t cid, Params& params ) : Component( cid ) {
 }
 
 void SimpleRTR::init( uint32_t phase ) {
-  output.verbose(CALL_INFO, 5, 0, "SimpleRTR::init(%" PRIu32 ")\n", phase);
-  output.flush();
+  //output.verbose(CALL_INFO, 5, 0, "SimpleRTR::init(%" PRIu32 ")\n", phase);
+  //output.flush();
 
   topology->init( phase );
   for ( auto &port : portsVec )
@@ -89,7 +89,7 @@ void SimpleRTR::finish() {
 }
 
 bool SimpleRTR::clockTick( Cycle_t cycle ) {
-  output.verbose( CALL_INFO, 3, 0, "Cycle=%" PRIu64 "\n", cycle );
+  //output.verbose( CALL_INFO, 3, 0, "Cycle=%" PRIu64 "\n", cycle );
   return false;
 }
 
