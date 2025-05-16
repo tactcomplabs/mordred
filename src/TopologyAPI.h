@@ -24,10 +24,6 @@
  * In Merlin, the Topology API is in router.h; the API generally maintains a set of routing
  * functions and an enum tracking what each port of the router is connected to;
  * a subset of the routing functions is processing and handling untimed functions
- *
- *
- * TODO: Remove the send/process InitMessage functions - these should be doing strictly
- * routing
  */
 
 namespace SST::Mordred {
@@ -45,6 +41,9 @@ public:
 
   /// Computed endpoint ID
   virtual int32_t getEndpointId( uint32_t portnum ) { return -1; }
+
+  /// Get the output port for a flit
+  virtual uint32_t routePacket( uint32_t dest ) = 0;
 
 };  // class TopologyAPI
 

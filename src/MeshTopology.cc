@@ -43,8 +43,6 @@ MeshTopology::MeshTopology( ComponentId_t id, Params& params,
     );
   }
 
-  dir_topo_port_vec.assign( 4, -1 );
-
   output->verbose( CALL_INFO, 1, 0, "MeshTopology constructed; rtr_id=%" PRIu32 ", num_ports=%" PRIu32 ", local_ports=%" PRIu32 "\n",
     rtrId, numPorts, numLocalPorts);
 }
@@ -55,4 +53,30 @@ int32_t MeshTopology::getEndpointId( uint32_t portnum ) {
   uint32_t base_id = rtrId * numLocalPorts;
   uint32_t local_id = portnum-4;
   return static_cast<int32_t>( base_id + local_id );
+}
+
+uint32_t MeshTopology::routePacket( uint32_t dest ) {
+  uint32_t dest_x = dest % xDim;
+  uint32_t dest_y = dest / xDim;
+
+  // Currently just going along x until we hit the proper y
+  // then we'll route along the y.
+  if ( dest_x < xId )
+    return PortDirE::WEST;
+  if ( dest_x > xId )
+    return PortDirE::EAST;
+  if ( dest_y < yId )
+    return PortDirE::SOUTH;
+  if ( dest_y > yId )
+    return PortDirE::NORTH;
+
+  // TODO: Account for multiple local ports
+  if ( numPorts >= 4 )
+    return 4;
+
+  output->fatal( CALL_INFO, -1, "Error! Invalid destination for packet; dest_x=%" PRIu32 ", dest_y=%" PRIu32 "\n",
+    dest_x, dest_y);
+
+  return UINT32_MAX;
+
 }

@@ -59,7 +59,22 @@ void TestEP::finish() {
 }
 
 bool TestEP::clockTick( Cycle_t cycle ) {
-  if ( cycle == 10 ) {
+
+  if ( ( nocIface->getEndpointID() == 0 ) && ( cycle == 10 ) ) {
+    output.verbose( CALL_INFO, 3, 0, "Sending packet. Cycle=%" PRIu64 "\n", cycle );
+    auto pkt = new simpleTestEvent( "howdy");
+
+    auto *req = new Interfaces::SimpleNetwork::Request();
+    req->src = nocIface->getEndpointID();
+    req->dest = 1;
+    req->size_in_bits = 8*(sizeof(simpleTestEvent) + pkt->str.size());
+    req->vn = 0;
+    req->givePayload( pkt );
+
+    nocIface->send( req, 0 );
+  }
+
+  if ( cycle == 100 ) {
     output.verbose( CALL_INFO, 3, 0, "Cycle=%" PRIu64 "\n", cycle );
     primaryComponentOKToEndSim();
   }

@@ -16,10 +16,7 @@
 #include "MordredNIC.h"
 #include "sst_config.h"
 
-// TODO: Configure verbosity control
-
-namespace SST {
-namespace Mordred {
+namespace SST::Mordred {
 
 class TestEP : public SST::Component {
 
@@ -63,5 +60,4 @@ private:
   Interfaces::SimpleNetwork*  nocIface;
 };  // TestEP
 
-}  // namespace Mordred
-}  // namespace SST
+}  // namespace SST::Mordred

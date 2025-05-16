@@ -17,9 +17,12 @@
 
 #include "MordredEvents.h"
 #include "RtrPortControlAPI.h"
+#include "SharedStructs.h"
 #include "TopologyAPI.h"
 
 namespace SST::Mordred {
+
+// TODO: Consider creating/using a virtual channel struct
 
 class RtrPortControl : public RtrPortControlAPI {
 public:
@@ -46,7 +49,8 @@ public:
 
   SST_ELI_DOCUMENT_STATISTICS()
 
-  RtrPortControl( ComponentId_t id, Params& params, TopologyAPI* topology, uint32_t rtr_num, uint32_t port_num );
+  //RtrPortControl( ComponentId_t id, Params& params, TopologyAPI* topology, InVcHeads *vc_heads, uint32_t rtr_num, uint32_t port_num );
+  RtrPortControl( ComponentId_t id, Params& params, TopologyAPI* topology, std::vector<MordredFlit*>* vc_heads, uint32_t rtr_num, uint32_t port_num );
 
   ~RtrPortControl() final = default;
 
@@ -83,6 +87,12 @@ private:
   // These are in bits
   uint32_t inbuf_size;
   uint32_t outbuf_size;
+
+  //InVcHeads *vcHeads{};
+  std::vector<MordredFlit*> *vcHeads{};
+
+  std::vector<InVcStateE> inStates;
+  std::vector<OutVcStateE> outStates;
 
   // Packet buffers
   std::vector<std::queue<MordredFlit*>> in_buf; // from router/endpt

@@ -8,10 +8,6 @@
 // See LICENSE in the top level directory for licensing details
 //
 
-// NOTE: Borrowing heavily from the Kingsley sst-element library and, to a lesser extent, the
-// shogun sst-element library.
-
-
 #ifndef MORDREDEVENTS_H
 #define MORDREDEVENTS_H
 
@@ -28,12 +24,26 @@ namespace SST::Mordred {
 constexpr uint32_t DEBUG_CONSTRUCTORS = (1UL << 0);
 constexpr uint32_t DEBUG_INIT_PHASE   = (1UL << 1);
 
+class simpleTestEvent : public Event {
+public:
+  simpleTestEvent() { /* empty */ }
+  simpleTestEvent( std::string str_ ) : str( str_ ) { /* empty */ }
+
+  void serialize_order(Core::Serialization::serializer& ser) override {
+    Event::serialize_order(ser);
+    ser & str;
+  }
+
+  ImplementSerializable( SST::Mordred::simpleTestEvent );
+public:
+  std::string str;
+};
 
 class baseMordredEvent : public Event {
 public:
-  enum MordredEventType { HEAD_FLIT, BODY_FLIT, TAIL_FLIT, CREDIT, INITIALIZATION };
+  enum MordredEventType { FLIT, CREDIT, INITIALIZATION };
 
-  baseMordredEvent( MordredEventType type_ ) : SST::Event(), type( type_ ) { /* empty */ }
+  baseMordredEvent( MordredEventType type_ ) : type( type_ ) { /* empty */ }
 
   void serialize_order(Core::Serialization::serializer& ser) override {
     Event::serialize_order(ser);
@@ -65,19 +75,24 @@ private:
 
 // currently just using sst-elements/src/sst/elements/simpleElementExample/basicEvent.h
 // TODO: Inherit from baseMordredEvent
-class MordredFlit final : public SST::Event {
+class MordredFlit final : public baseMordredEvent {
 public:
-  MordredFlit() : SST::Event() { /* empty */ }
+  MordredFlit() : baseMordredEvent( FLIT ){ /* empty */ }
+  MordredFlit( Interfaces::SimpleNetwork::Request *req_ ) : baseMordredEvent( FLIT ), req( req_ ) { /* empty */ }
 
-  enum FlitTypeE { HEAD, BODY, TAIL, CREDIT, EMPTY, NUM_TYPES };
+  enum FlitTypeE { HEAD, BODY, TAIL, EMPTY, NUM_TYPES };
   FlitTypeE ftype{NUM_TYPES};
 
   // Using this as a placeholder
   std::string src_name;
-  uint64_t src;
-  uint64_t dest;
+  uint64_t src{UINT64_MAX};
+  uint64_t dest{UINT64_MAX};
 
-  uint64_t datum;
+  uint64_t                            datum{};
+  Interfaces::SimpleNetwork::Request  *req;
+
+  uint32_t next_port{};
+  //uint32_t next_vc{}; Need?
 
   // Events must provide a serialization function that serializes
   // all data members of the event
@@ -88,6 +103,7 @@ public:
     ser & src;
     ser & dest;
     ser & datum;
+    ser & req;
   }
 
   // Register this event as serializable

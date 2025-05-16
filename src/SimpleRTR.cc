@@ -34,6 +34,7 @@ SimpleRTR::SimpleRTR( ComponentId_t cid, Params& params ) : Component( cid ) {
 
   numPorts = params.find<uint32_t>("num_ports", 3);
   numLocalPorts = params.find<uint32_t>( "num_local_ports", 1 );
+  numVcs = params.find<uint32_t>( "num_vcs", 1 );
 
   if ( numPorts <= numLocalPorts )
     output.fatal( CALL_INFO, -1, "num_ports must be greater than num_local_ports\n" );
@@ -43,17 +44,24 @@ SimpleRTR::SimpleRTR( ComponentId_t cid, Params& params ) : Component( cid ) {
   if ( !topology )
     output.fatal( CALL_INFO, -1, "Couldn't load topology\n" );
 
+  inVcHeads.resize( numPorts );
   // Configure local/endpt ports -- borrowed this approach from
   // sst-elements/src/sst/elements/simpleElementExample/basicLinks.cc
   for ( uint32_t i = 0; i < numPorts; i++ ) {
     std::string linkname = "port" + std::to_string(i);
     if ( isPortConnected( linkname ) ) {
+      inVcHeads[i].resize( numVcs );
       portsVec.push_back( loadAnonymousSubComponent<RtrPortControlAPI>("mordred.rtrPortControl", "portcontrol", (int)i,
-        ComponentInfo::SHARE_PORTS, params, topology, id, i) );
+        ComponentInfo::SHARE_PORTS, params, topology, &inVcHeads[i], id, i) );
     } else {
       output.verbose( CALL_INFO, 9, 0, "Port %u with name=%s unconnected\n", i, linkname.c_str() );
       portsVec.push_back( nullptr );
     }
+  }
+
+  arbiter = loadAnonymousSubComponent<ArbAPI>( "mordred.arbRR", "arbiter", 0, ComponentInfo::SHARE_NONE, params, &inVcHeads );
+  if (arbiter == nullptr) {
+    output.fatal( CALL_INFO, -1, "arbiter is a nullptr\n" );
   }
 
   output.verbose(
@@ -61,6 +69,14 @@ SimpleRTR::SimpleRTR( ComponentId_t cid, Params& params ) : Component( cid ) {
     getName().c_str(), numLocalPorts, numPorts-numLocalPorts
   );
   output.flush();
+}
+
+SimpleRTR::~SimpleRTR() {
+  for ( auto &port : portsVec )
+    if ( port != nullptr )
+      delete port;
+  delete arbiter;
+  delete topology;
 }
 
 void SimpleRTR::init( uint32_t phase ) {
@@ -89,11 +105,11 @@ void SimpleRTR::finish() {
 }
 
 bool SimpleRTR::clockTick( Cycle_t cycle ) {
-  //output.verbose( CALL_INFO, 3, 0, "Cycle=%" PRIu64 "\n", cycle );
+  output.verbose( CALL_INFO, 3, 0, "Cycle=%" PRIu64 "\n", cycle );
+  arbiter->arbitrate();
+
   return false;
 }
-
-
 
 void SimpleRTR::handleInEvent( SST::Event* ev, int32_t linknum ) {
   MordredFlit* mev = static_cast<MordredFlit*>( ev );

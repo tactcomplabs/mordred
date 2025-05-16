@@ -14,9 +14,12 @@ set(MordredSrcs
         MeshTopology.h
         MeshTopology.cc
         RtrPortControlAPI.h
-        RtrArbitrationAPI.h
         RtrPortControl.h
         RtrPortControl.cc
+        ArbAPI.h
+        ArbRR.h
+        SharedStructs.h
+        ArbRR.cc
 )
 
 add_library(mordred SHARED ${MordredSrcs})

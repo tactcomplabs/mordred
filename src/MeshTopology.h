@@ -58,6 +58,10 @@ public:
 
   int32_t getEndpointId( uint32_t portnum ) override;
 
+  /// Get the output port for a flit
+  uint32_t routePacket( uint32_t dest ) final;
+
+
 private:
   SST::Output* output;
 
@@ -73,7 +77,8 @@ private:
   uint32_t xDim{UINT32_MAX};
   uint32_t yDim{UINT32_MAX};
 
-  std::vector<int32_t> dir_topo_port_vec; // n,e,s,w order; content of -1 is unused, otherwise it's SimpleRtr.topo_port[]
+  // Port mapping
+  enum PortDirE : uint32_t {NORTH = 0, EAST = 1, SOUTH = 2, WEST = 3};
 
   // TODO: Probably don't need the below data members
   //std::queue<MordredFlit*> init_out_queue;

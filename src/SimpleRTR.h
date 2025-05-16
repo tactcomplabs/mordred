@@ -24,9 +24,11 @@
 #include <vector>
 
 // Local SST headers
-#include "sst_config.h"
+#include "ArbAPI.h"
 #include "RtrPortControlAPI.h"
+#include "SharedStructs.h"
 #include "TopologyAPI.h"
+#include "sst_config.h"
 
 // TODO: Configure verbosity control
 
@@ -66,8 +68,8 @@ public:
   // Create a topology subcomponent
   SST_ELI_DOCUMENT_SUBCOMPONENT_SLOTS(
     {"topology", "Topology and routing subcomponent", "SST::Mordred::TopologyAPI"},
-    {"portcontrol", "PortControl blocks; loaded anonymously", "SST::Mordred::RtrPortControlAPI"}
-    //{"arbitration", "Arbitration scheme/model", "SST::Mordred::RtrArbitrationAPI"}
+    {"portcontrol", "PortControl blocks; loaded anonymously", "SST::Mordred::RtrPortControlAPI"},
+    {"arbiter", "Arbitration scheme/model", "SST::Mordred::ArbAPI"}
   )
 
   SST_ELI_DOCUMENT_PORTS(
@@ -79,7 +81,7 @@ public:
 
 public:
   SimpleRTR( ComponentId_t cid, Params& params );
-  ~SimpleRTR() { /* empty destructor */ }
+  ~SimpleRTR();
 
   /// SST Required
   void init(uint32_t phase) override;
@@ -101,10 +103,19 @@ private:
   TimeConverter*          timeConverter;
   uint32_t                numPorts{};
   uint32_t                numLocalPorts{};
+  uint32_t                numVcs{};
 
   // Major components
   TopologyAPI* topology{nullptr};
+  ArbAPI* arbiter{nullptr};
   std::vector<RtrPortControlAPI*>  portsVec;
+
+  // Shared between components
+  //std::vector<InVcHeads*> inVcHeads; // head of VC channel to be arbitrated/moved through crossbar
+  std::vector<std::vector<MordredFlit*>> inVcHeads; // head of VC channel to be arbitrated/moved through crossbar
+
+  std::vector<std::vector<RtrPortControlAPI::InVcStateE>> inVcStates; // TODO: candidate for InVcHeads?
+  std::vector<std::vector<RtrPortControlAPI::OutVcStateE>> outVcStates;
 
 };  // SimpleRTR
 

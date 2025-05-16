@@ -21,15 +21,25 @@
 
 using namespace SST::Mordred;
 
+/*
 RtrPortControl::RtrPortControl( ComponentId_t id, Params& params, TopologyAPI* topology,
-  uint32_t rtr_num, uint32_t port_num ) :
+  InVcHeads *vc_heads, uint32_t rtr_num, uint32_t port_num ) :
   RtrPortControlAPI( id ),
   topo( topology ),
   rtrId( rtr_num ),
-  portId( port_num )
+  portId( port_num ),
+  vcHeads( vc_heads )
+  */
+RtrPortControl::RtrPortControl( ComponentId_t id, Params& params, TopologyAPI* topology,
+  std::vector<MordredFlit*>* vc_heads, uint32_t rtr_num, uint32_t port_num ) :
+  RtrPortControlAPI( id ),
+  topo( topology ),
+  rtrId( rtr_num ),
+  portId( port_num ),
+  vcHeads( vc_heads )
 {
   const auto verbosity = params.find<uint32_t>("verbose", 5);
-  output = new SST::Output("RtrPortControl[" + getName() + ":@p:@t]: ", verbosity, 0, Output::STDOUT);
+  output = new SST::Output("RtrPortControl[[" + std::to_string( rtrId ) + "." + std::to_string( portId ) + "]:@p:@t]: ", verbosity, 0, Output::STDOUT);
 
   numVcs = params.find<uint32_t>( "num_vcs", 1 );
   auto flit_size_ua = params.find<UnitAlgebra>( "flit_size", "32b" );
@@ -88,6 +98,8 @@ RtrPortControl::RtrPortControl( ComponentId_t id, Params& params, TopologyAPI* t
   dest_credits.resize( numVcs, 0 );
   outbuf_credits.resize( numVcs, static_cast<int32_t>( credits ) );
   in_ret_credits.resize( numVcs, 0 );
+  inStates.resize( numVcs, IN_IDLE );
+  outStates.resize( numVcs, OUT_IDLE );
 
   output->verbose( CALL_INFO, 1, 0, "Constructor complete; [Rtr.Port]=[%" PRIu32 ".%" PRIu32 "], inbuf_size=%" PRIu32 ", outbuf_size=%" PRIu32 "\n",
     rtrId, portId, inbuf_size, outbuf_size);
@@ -216,7 +228,16 @@ SST::Event* RtrPortControl::recvUntimedData() {
 }
 
 void RtrPortControl::inHandler( SST::Event* ev ) {
-  output->fatal( CALL_INFO, -1, "Not yet implemented\n" );
+  auto *flit = static_cast<MordredFlit*>( ev );
+  if ( flit == nullptr )
+    output->fatal( CALL_INFO, -1, "Invalid flit \n" );
+
+  auto *simple = static_cast<simpleTestEvent*>( flit->req->inspectPayload() );
+  flit->next_port = topo->routePacket( (uint32_t)flit->dest );
+  output->verbose( CALL_INFO, 5, 0, "Recv Flit; str=%s, src=%" PRIu64 ", dst=%" PRIu64 ", size=%zu, dest_port=%" PRIu32 "\n",
+    simple->str.c_str(), flit->src, flit->dest, flit->req->size_in_bits, flit->next_port );
+  if ( vcHeads->at(0) == nullptr )
+    vcHeads->at(0) = flit;
 }
 
 MordredInitEvent* RtrPortControl::getInitEvent( MordredInitEvent::Commands cmd ) {

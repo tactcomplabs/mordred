@@ -57,6 +57,10 @@ MordredNIC::MordredNIC( ComponentId_t cid, Params& params, int vns = 1 ) :
   link = configureLink(port_name, std::string("1GHz"),
       new Event::Handler<MordredNIC>(this,&MordredNIC::handleIncomingPacket));
 
+  // Configure clock handler
+  std::string clock_freq("1GHz");
+  registerClock( clock_freq, new Clock::Handler2<MordredNIC, &MordredNIC::clockTick>(this) );
+
   output->verbose(CALL_INFO, 5, 0, "MordredNIC constructed\n");
   output->flush();
 }
@@ -226,9 +230,11 @@ SST::Interfaces::SimpleNetwork::Request* MordredNIC::recvUntimedData() {
 }
 
 bool MordredNIC::send( Request* req, int32_t vn ) {
-  output->flush();
-  output->fatal( CALL_INFO, -1, "Not yet implemented\n" );
-  return false;
+  // This is a gross oversimplification since it's not checking credits available, etc.
+  if ( vn != 0 )
+    output->fatal( CALL_INFO, -1, "MordredNIC only supports vn=0\n" );
+  out_buf.at(0).push( req );
+  return true;
 }
 
 SST::Interfaces::SimpleNetwork::Request* MordredNIC::recv( int32_t vn ) {
@@ -248,6 +254,19 @@ bool MordredNIC::requestToReceive( int vn ) {
   output->fatal( CALL_INFO, -1, "Not yet implemented\n" );
   return false;
 }
+
+bool MordredNIC::clockTick( Cycle_t cycle ) {
+
+  if ( !out_buf.at(0).empty() ) {
+    auto req = out_buf.at(0).front();
+    auto flit = new MordredFlit( req );
+    link->send( flit );
+    out_buf.at(0).pop();
+    output->verbose( CALL_INFO, 5, 0, "Sent flit to link\n" );
+  }
+  return false;
+}
+
 
 void MordredNIC::resizeVectors() {
   in_buf.resize( numVcs );

@@ -71,7 +71,7 @@ public:
   /**
    * Send a Request to the network.
    */
-  virtual bool send( Request* req, int vn ) override;
+  bool send( Request* req, int vn ) final;
 
   /**
    * Receive a Request from the network.
@@ -133,6 +133,8 @@ public:
   nid_t getEndpointID() const override { return netID; }
   const UnitAlgebra& getLinkBW() const override { return bw; }
 
+  bool clockTick( Cycle_t cycle );
+
 private:
   void resizeVectors();
   MordredInitEvent* getInitEvent( MordredInitEvent::Commands cmd );
@@ -168,7 +170,7 @@ private:
 
   // Packet buffers
   std::vector<std::queue<MordredFlit*>> in_buf; // from router
-  std::vector<std::queue<MordredFlit*>> out_buf; // to router
+  std::vector<std::queue<Request*>> out_buf; // to router
 
   // Credit counters; 1 credit = 1 flit
   // credits received from router; initalization comes from router in init;

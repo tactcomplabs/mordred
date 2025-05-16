@@ -17,7 +17,8 @@
 #include "sst_config.h"
 
 #include "MordredEvents.h"
-#include "TopologyAPI.h"
+//#include "TopologyAPI.h"
+//#include "SharedStructs.h"
 
 /*
  * In Merlin, the PortInterface API is in router.h; the purpose of the PortInterface is to
@@ -38,11 +39,16 @@
 
 namespace SST::Mordred {
 
+class InVcHeads; // forward declaration
+class TopologyAPI; // forward declaration
+
 class RtrPortControlAPI : public SubComponent {
 public:
-  SST_ELI_REGISTER_SUBCOMPONENT_API( SST::Mordred::RtrPortControlAPI, TopologyAPI*, uint32_t, uint32_t )
+  SST_ELI_REGISTER_SUBCOMPONENT_API( SST::Mordred::RtrPortControlAPI, TopologyAPI*, std::vector<MordredFlit*>*, uint32_t, uint32_t )
 
   enum PortConnectionE { ENDPT, ROUTER, UNKNOWN, INVALID };
+  enum InVcStateE { IN_IDLE, ROUTING, WAIT_OUTPUT, IN_BUSY }; // for the port input side - mainly for xbar arb
+  enum OutVcStateE { OUT_IDLE, OUT_BUSY, NEED_CREDITS}; // for the port output side - mainly for xbar arb
 
   /// RtrPortControlAPI: constructor
   RtrPortControlAPI( ComponentId_t id ) : SubComponent( id ) {}
@@ -53,6 +59,11 @@ public:
   /// Untimed recv/send
   virtual void sendUntimedData(Event *ev) = 0;
   virtual Event* recvUntimedData() = 0;
+
+  // Get state for a VC
+  // TODO: Uncomment and implement in derived
+  //virtual InVcStateE getInVcState( uint32_t vc ) = 0;
+  //virtual OutVcStateE getOutVcState( uint32_t vc ) = 0;
 
 };  // class RtrPortControlAPI
 
