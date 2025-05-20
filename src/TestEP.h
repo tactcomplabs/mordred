@@ -45,14 +45,14 @@ public:
   /// SST Required
   void init(uint32_t phase) override;
   void setup() override;
-  void complete(uint32_t phase) override;
-  void finish() override;
+  void complete(uint32_t phase) override { /* empty */ }
+  void finish() override { /* empty */ }
 
   bool clockTick( Cycle_t cycle );
 
 private:
   // event handlers
-  void handleIncomingPacket( SST::Event* ev );
+  //void handleIncomingPacket( SST::Event* ev );
 
 private:
   Output  output;

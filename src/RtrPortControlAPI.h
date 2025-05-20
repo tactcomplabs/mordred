@@ -60,10 +60,16 @@ public:
   virtual void sendUntimedData(Event *ev) = 0;
   virtual Event* recvUntimedData() = 0;
 
+  // No separate clock - run off the router clock
+  virtual void ClockTick( Cycle_t cycle ) = 0;
+
   // Get state for a VC
   // TODO: Uncomment and implement in derived
   //virtual InVcStateE getInVcState( uint32_t vc ) = 0;
   //virtual OutVcStateE getOutVcState( uint32_t vc ) = 0;
+
+  virtual MordredFlit* getInBufFlit( uint32_t vc ) = 0;
+  virtual void   sendOutBufFlit( MordredFlit* flit, uint32_t vc )  = 0;
 
 };  // class RtrPortControlAPI
 

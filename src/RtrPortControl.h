@@ -17,8 +17,6 @@
 
 #include "MordredEvents.h"
 #include "RtrPortControlAPI.h"
-#include "SharedStructs.h"
-#include "TopologyAPI.h"
 
 namespace SST::Mordred {
 
@@ -49,7 +47,6 @@ public:
 
   SST_ELI_DOCUMENT_STATISTICS()
 
-  //RtrPortControl( ComponentId_t id, Params& params, TopologyAPI* topology, InVcHeads *vc_heads, uint32_t rtr_num, uint32_t port_num );
   RtrPortControl( ComponentId_t id, Params& params, TopologyAPI* topology, std::vector<MordredFlit*>* vc_heads, uint32_t rtr_num, uint32_t port_num );
 
   ~RtrPortControl() final = default;
@@ -63,7 +60,14 @@ public:
   void sendUntimedData(Event* ev) final;
   Event* recvUntimedData() final;
 
+  void ClockTick(Cycle_t cycle) final;
+
   void inHandler(SST::Event* ev);
+
+  // Switch/xbar interactions
+  MordredFlit* getInBufFlit( uint32_t vc ) final;
+  void   sendOutBufFlit( MordredFlit* flit, uint32_t vc ) final; // Rename?
+
 
 private:
   MordredInitEvent* getInitEvent( MordredInitEvent::Commands cmd );
@@ -88,15 +92,16 @@ private:
   uint32_t inbuf_size;
   uint32_t outbuf_size;
 
-  //InVcHeads *vcHeads{};
   std::vector<MordredFlit*> *vcHeads{};
 
+  // Not using these, but these will probably be necessary if we don't want
+  // to rearbitrate every cycle
   std::vector<InVcStateE> inStates;
   std::vector<OutVcStateE> outStates;
 
   // Packet buffers
   std::vector<std::queue<MordredFlit*>> in_buf; // from router/endpt
-  std::vector<std::queue<MordredFlit*>> out_buf; // to router/endpt - NEED?
+  std::vector<std::queue<MordredFlit*>> out_buf; // to router/endpt; adds a delay element to the xbar switch in the router
 
   // Credit counters; 1 credit = 1 flit
   // credits received from destination; initialized to non-zero in init (dest sounds a count)

@@ -21,7 +21,7 @@
 
 namespace SST::Mordred {
 
-class MordredNIC : public SST::Interfaces::SimpleNetwork {
+class MordredNIC : public Interfaces::SimpleNetwork {
 
 public:
   SST_ELI_REGISTER_SUBCOMPONENT(
@@ -43,13 +43,14 @@ public:
 
   // TODO: Add packet types as needed
   SST_ELI_DOCUMENT_PORTS(
-    {"port", "Port that connects to a router.", { "untimedMordredEvent", "basicMordredEvent" } },
+    {"port", "Port that connects to a Mordred router.", { "untimedMordredEvent", "basicMordredEvent" } },
   )
 
+  // TODO: Add stats
   SST_ELI_DOCUMENT_STATISTICS()
 
   MordredNIC( ComponentId_t cid, Params& params, int vns );
-  ~MordredNIC() { /* empty destructor */ }
+  ~MordredNIC() override { /* empty destructor */ }
 
   /// SST Required
   void init( uint32_t phase ) override;
@@ -83,7 +84,7 @@ public:
    * @return NULL if nothing is available.
    * @return Pointer to a Request response (that should be deleted)
    */
-  virtual Request* recv( int vn ) override;
+  Request* recv( int vn ) override;
 
   /**
          * Checks if there is sufficient space to send on the specified
@@ -93,7 +94,7 @@ public:
          * to send
          * @return true if there is space in the output, false otherwise
          */
-  virtual bool spaceToSend( int vn, int num_bits ) override;
+  bool spaceToSend( int vn, int num_bits ) override;
 
   /**
          * Checks if there is a waiting network request request pending in
@@ -102,7 +103,7 @@ public:
          * @return true if a network request is pending in the specified
          * virtual network, false otherwise
          */
-  virtual bool requestToReceive( int vn ) override;
+  bool requestToReceive( int vn ) override;
 
   /**
     * Registers a functor which will fire when a new request is
@@ -150,31 +151,28 @@ private:
   bool        initialized{false};
   uint32_t    numVcs{UINT32_MAX};
   uint32_t    flitSize{};
-  uint32_t    channelBusWidth{}; // TODO: Make UnitAlgebra
+  uint32_t    channelBusWidth{}; // TODO: Make UnitAlgebra if we're going to use it
 
   HandlerBase* sendFunctor{nullptr};
   HandlerBase* recvFunctor{nullptr};
-
-  //ShogunQueue<Request*>* reqQ;
-  //int remote_input_slots;
-  //int port_count;
-
-  //void recvLinkEvent( SST::Event* ev );
-  //void reconfigureNIC( ShogunInitEvent* initEv );
-
-  //std::vector<Request*> initReqs;
 
   // in bits
   UnitAlgebra inbuf_size;
   UnitAlgebra outbuf_size;
 
+  /*
+   * Note: All of the vectors below have a length equal to the number of VCs instead of
+   * the number of VNs as is done in merlin.  TODO: The question here is should our endpoint
+   * NICs be dealing with/worrying about VNs/VCs?
+   */
+
   // Packet buffers
-  std::vector<std::queue<MordredFlit*>> in_buf; // from router
+  std::vector<std::queue<Request*>> in_buf; // from router
   std::vector<std::queue<Request*>> out_buf; // to router
 
   // Credit counters; 1 credit = 1 flit
   // credits received from router; initalization comes from router in init;
-  // (dec on send to router, inc when credit packet comes from router)
+  // (decrement on send to router, increment when credit packet comes from router)
   std::vector<int32_t> rtr_credits;
 
   // credits for space in the out_buf (decrement as msgs recv'd from endpoint,
@@ -189,9 +187,7 @@ private:
   // init to 0
   std::vector<int32_t> in_ret_credits;
 
-  UnitAlgebra bw;
-
-  // TODO: Add stats
+  UnitAlgebra bw; // Need?
 
 };  // MordredNIC
 

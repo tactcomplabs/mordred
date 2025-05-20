@@ -29,7 +29,8 @@ namespace SST::Mordred {
 
 class ArbAPI : public SubComponent {
   public:
-    SST_ELI_REGISTER_SUBCOMPONENT_API( SST::Mordred::ArbAPI, std::vector<std::vector<MordredFlit*>>* );
+    SST_ELI_REGISTER_SUBCOMPONENT_API( SST::Mordred::ArbAPI, std::vector<std::vector<MordredFlit*>>*,
+      std::vector<uint32_t>*);
 
   /// ArbAPI: constructor
   ArbAPI( ComponentId_t id ) : SubComponent( id ) {}

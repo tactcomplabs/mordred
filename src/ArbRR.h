@@ -20,7 +20,6 @@
 // Other local headers
 #include "ArbAPI.h"
 #include "MordredEvents.h"
-#include "TopologyAPI.h"
 
 namespace SST::Mordred {
 
@@ -35,13 +34,15 @@ public:
     SST::Mordred::ArbAPI
   )
 
+  // TODO: Use or delete this parameter - just auto set to 5 now in constructor
   SST_ELI_DOCUMENT_PARAMS( { "verbose", "Sets the output verbosity", "5" }, ) // currently unused
 
   SST_ELI_DOCUMENT_PORTS()
 
   SST_ELI_DOCUMENT_STATISTICS()
 
-  ArbRR( ComponentId_t id, Params &params, std::vector<std::vector<MordredFlit*>> *vc_heads  );
+  ArbRR( ComponentId_t id, Params &params, std::vector<std::vector<MordredFlit*>> *vc_heads,
+    std::vector<uint32_t> *arb_winners);
 
   ~ArbRR() final = default;
 
@@ -54,8 +55,9 @@ private:
   uint32_t numVcs{UINT32_MAX};
 
   std::vector<std::vector<MordredFlit*>> *vcHeads; // port_num.vc_num
+  std::vector<uint32_t> *arbWinners; // index is port, contents is VC of who won arbitration
 
-  uint32_t next_port{0};
+  //uint32_t next_port{0}; // use to track rr start
 };
 
 } // namespace SST::Mordred

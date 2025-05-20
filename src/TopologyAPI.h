@@ -17,9 +17,6 @@
 // Local SST header
 #include "sst_config.h"
 
-// Other local headers
-#include "MordredEvents.h"
-
 /*
  * In Merlin, the Topology API is in router.h; the API generally maintains a set of routing
  * functions and an enum tracking what each port of the router is connected to;

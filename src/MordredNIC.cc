@@ -65,10 +65,12 @@ MordredNIC::MordredNIC( ComponentId_t cid, Params& params, int vns = 1 ) :
   output->flush();
 }
 
-// TODO: This is less incomplete
 void MordredNIC::init( uint32_t phase ) {
   Event *ev;
   MordredInitEvent* init_ev;
+
+  // Note: could rewrite this function to use sendUntimedData instead of just putting messages
+  // onto the link.
 
   switch ( phase ) {
   case 0:
@@ -80,7 +82,8 @@ void MordredNIC::init( uint32_t phase ) {
 
   case 1:
     init_ev = getInitEvent( MordredInitEvent::Commands::REPORT_ROUTER );
-    // Nothing expected from the endpoint when receiving this packet; routers are broadcasting this in phase 0
+    // Nothing of interest expected from the endpoint when receiving this packet;
+    // routers are broadcasting this in phase 0
     // much like the endpoints are doing REPORT_ENDPOINT sends in phase 0.
     delete init_ev;
 
@@ -111,7 +114,8 @@ void MordredNIC::init( uint32_t phase ) {
       phase, numVcs, flitSize, channelBusWidth );
     break;
 
-#if 0 // from Kingsley
+#if 0
+    // from Kingsley
     init_ev = static_cast<MordredInitEvent*>(ev);
     UnitAlgebra flit_size_ua = init_ev->ua_value;
     flit_size = flit_size_ua.getRoundedValue();
@@ -162,43 +166,6 @@ void MordredNIC::init( uint32_t phase ) {
       delete ev;
     }
     break;
-
-#if 0 // from Kingsley
-    // For all other phases, look for credit events, any other
-    // events get passed up to containing component by adding them
-    // to init_events queue
-    while ( ( ev = rtr_link->recvUntimedData() ) != NULL ) {
-      BaseNocEvent* bev = static_cast<BaseNocEvent*>(ev);
-      switch (bev->getType()) {
-      case BaseNocEvent::CREDIT:
-      {
-        credit_event* ce = static_cast<credit_event*>(bev);
-        // output->output->"%d: Got a credit event for VN %d with %d credits\n",id,ce->vn,ce->credits);
-        if ( ce->vn < req_vns ) {  // Ignore credit events for VNs I don't have
-          rtr_credits[ce->vn] += ce->credits;
-        }
-        delete ev;
-        // if ( waiting && have_packets ) {
-        //     output->timing->send(1,NULL);
-        //     waiting = false;
-        // }
-      }
-        break;
-      case BaseNocEvent::PACKET:
-        init_events.push_back(static_cast<NocPacket*>(ev));
-        break;
-      default:
-        // This shouldn't happen.  Only NocPackets (PACKET
-        // types) should not be handled in the LinkControl
-        // object.
-        // output->fatal(CALL_INFO, 1, "Reached state where a non-NocPacket was not handled.");
-        break;
-      }
-    }
-    break;
-
-#endif
-
   }
 }
 
@@ -238,9 +205,13 @@ bool MordredNIC::send( Request* req, int32_t vn ) {
 }
 
 SST::Interfaces::SimpleNetwork::Request* MordredNIC::recv( int32_t vn ) {
-  output->flush();
-  output->fatal( CALL_INFO, -1, "Not yet implemented\n" );
-  return nullptr;
+  if ( in_buf.at(0).empty() )
+    return nullptr;
+
+  Request* req = in_buf.at(0).front();
+  in_buf.at(0).pop();
+
+  return req;
 }
 
 bool MordredNIC::spaceToSend( int vn, int num_bits ) {
@@ -266,7 +237,6 @@ bool MordredNIC::clockTick( Cycle_t cycle ) {
   }
   return false;
 }
-
 
 void MordredNIC::resizeVectors() {
   in_buf.resize( numVcs );
@@ -298,9 +268,25 @@ MordredInitEvent* MordredNIC::getInitEvent( MordredInitEvent::Commands cmd ) {
 void MordredNIC::handleIncomingPacket( SST::Event* ev ) {
   // TODO: If it's a credit, add to the credit
   // if it's a flit, add it to a buffer for the surrounding unit to reassemble, etc
+  auto bev = static_cast<baseMordredEvent*>( ev );
+  switch( bev->getType() ) {
+  case baseMordredEvent::CREDIT:
+    output->fatal( CALL_INFO, -1, "Credit handling not yet implemented\n" );
+    break;
+  case baseMordredEvent::FLIT: {
+    auto flit = static_cast<MordredFlit*>( ev );
+    Request* req = flit->getRequest();
+    if ( req == nullptr ) {
+      output->fatal( CALL_INFO, -1, "Request was nullptr!\n" );
+    }
+    in_buf.at(0).push( req );
+    delete flit;
+    break;
+    }
+  default:
+    output->fatal( CALL_INFO, -1, "Unknown/unimplemented event type=%d\n", (int) bev->getType() );
+  }  // end switch
 
-  output->flush();
-  output->fatal( CALL_INFO, -1, "Not yet implemented\n" );
 }
 
 

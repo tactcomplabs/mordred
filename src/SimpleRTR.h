@@ -26,11 +26,12 @@
 // Local SST headers
 #include "ArbAPI.h"
 #include "RtrPortControlAPI.h"
-#include "SharedStructs.h"
 #include "TopologyAPI.h"
 #include "sst_config.h"
 
-// TODO: Configure verbosity control
+// TODO: Configure verbosity control (use constants in MordredEvents)
+
+// TODO: This doesn't account for concentration yet
 
 namespace SST::Mordred {
 
@@ -86,16 +87,11 @@ public:
   /// SST Required
   void init(uint32_t phase) override;
   void setup() override;
-  void complete(uint32_t phase) override;
-  void finish() override;
+  void complete(uint32_t phase) override { /* empty */ }
+  void finish() override { /* empty */ }
 
   // Clock Handler
   bool clockTick( Cycle_t cycle );
-
-
-private:
-  // event handlers
-  void handleInEvent( SST::Event* ev, int32_t linknum );
 
 private:
   SST::Output             output;
@@ -111,8 +107,8 @@ private:
   std::vector<RtrPortControlAPI*>  portsVec;
 
   // Shared between components
-  //std::vector<InVcHeads*> inVcHeads; // head of VC channel to be arbitrated/moved through crossbar
   std::vector<std::vector<MordredFlit*>> inVcHeads; // head of VC channel to be arbitrated/moved through crossbar
+  std::vector<uint32_t> arbWinners; // use UINT32_MAX to identify idle/unassigned; id VC of port that won arbitration
 
   std::vector<std::vector<RtrPortControlAPI::InVcStateE>> inVcStates; // TODO: candidate for InVcHeads?
   std::vector<std::vector<RtrPortControlAPI::OutVcStateE>> outVcStates;

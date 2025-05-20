@@ -13,7 +13,6 @@
 
 // Standard headers
 #include <cstdint>
-#include <queue>
 
 // Local SST header
 #include "sst_config.h"
@@ -67,9 +66,7 @@ private:
 
   uint32_t rtrId;
   uint32_t numPorts;
-  uint32_t numLocalPorts;
-
-  //uint32_t init_state{0};
+  uint32_t numLocalPorts; // TODO: Routing function assumes only 1 local port
 
   // Mesh parameters
   uint32_t xId{UINT32_MAX};
@@ -79,10 +76,6 @@ private:
 
   // Port mapping
   enum PortDirE : uint32_t {NORTH = 0, EAST = 1, SOUTH = 2, WEST = 3};
-
-  // TODO: Probably don't need the below data members
-  //std::queue<MordredFlit*> init_out_queue;
-  //std::queue<std::tuple<Event*,size_t,uint32_t> > init_in_queue; // Event, port_num, vn
 
 };
 

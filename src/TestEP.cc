@@ -35,27 +35,16 @@ TestEP::TestEP( ComponentId_t cid, Params& params ) : Component( cid ) {
   // TODO: Add parameters to configure as needed
   //output.setVerboseMask( DEBUG_INIT_PHASE );
 
-
   output.verbose( CALL_INFO, 5, 0, "Constructor complete for %s \n", getName().c_str() );
-  output.flush();
 }
 
 void TestEP::init( uint32_t phase ) {
   output.verbose( CALL_INFO, 5, DEBUG_INIT_PHASE, "TestEP::init(%" PRIu32 ")\n", phase );
-
   nocIface->init( phase );
 }
 
 void TestEP::setup() {
   nocIface->setup();
-}
-
-void TestEP::complete( uint32_t phase ) {
-
-}
-
-void TestEP::finish() {
-
 }
 
 bool TestEP::clockTick( Cycle_t cycle ) {
@@ -74,14 +63,56 @@ bool TestEP::clockTick( Cycle_t cycle ) {
     nocIface->send( req, 0 );
   }
 
-  if ( cycle == 100 ) {
+#if 0
+  // Simple output testing - need at least 9 endpoints as currently written
+  // TODO: Check if the routing still works if >1 endpt per router
+  if ( ( nocIface->getEndpointID() == 0 ) && ( cycle == 20 ) ) {
+    output.verbose( CALL_INFO, 3, 0, "Sending packet. Cycle=%" PRIu64 "\n", cycle );
+    auto pkt = new simpleTestEvent( "howdy");
+
+    auto *req = new Interfaces::SimpleNetwork::Request();
+    req->src = nocIface->getEndpointID();
+    req->dest = 4;
+    req->size_in_bits = 8*(sizeof(simpleTestEvent) + pkt->str.size());
+    req->vn = 0;
+    req->givePayload( pkt );
+
+    nocIface->send( req, 0 );
+  }
+
+  if ( ( nocIface->getEndpointID() == 0 ) && ( cycle == 30 ) ) {
+    output.verbose( CALL_INFO, 3, 0, "Sending packet. Cycle=%" PRIu64 "\n", cycle );
+    auto pkt = new simpleTestEvent( "howdy");
+
+    auto *req = new Interfaces::SimpleNetwork::Request();
+    req->src = nocIface->getEndpointID();
+    req->dest = 8;
+    req->size_in_bits = 8*(sizeof(simpleTestEvent) + pkt->str.size());
+    req->vn = 0;
+    req->givePayload( pkt );
+
+    nocIface->send( req, 0 );
+  }
+#endif
+
+  // Poll NOC for requests
+  Interfaces::SimpleNetwork::Request *req = nocIface->recv( 0 );
+  if ( req ) {
+    auto *tev = static_cast<simpleTestEvent*>(req->takePayload());
+    output.verbose( CALL_INFO, 5, 0, "Processing flit at cycle=%" PRIu64 "; printing str=%s\n", cycle, tev->str.c_str() );
+    delete req; // done with request
+    delete tev; // done with event
+  }
+
+  // End simulation
+  if ( cycle == 60 ) {
     output.verbose( CALL_INFO, 3, 0, "Cycle=%" PRIu64 "\n", cycle );
     primaryComponentOKToEndSim();
   }
   return false;
 }
 
-
+#if 0
 void TestEP::handleIncomingPacket( SST::Event* ev ) {
   MordredFlit* mev = static_cast<MordredFlit*>( ev );
   if( mev ) {
@@ -91,3 +122,4 @@ void TestEP::handleIncomingPacket( SST::Event* ev ) {
     output.fatal( CALL_INFO, -1, "Error! Bad mev type received by %s\n", getName().c_str() );
   }
 }
+#endif

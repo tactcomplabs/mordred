@@ -305,8 +305,8 @@ local_ports = 1
 concentration = 1
 
 # Mesh/torus Configuration options
-x_size = 2
-y_size = 1
+x_size = 3
+y_size = 3
 
 #Xbar config
 xbar_size = 6

@@ -13,17 +13,18 @@
 
 // Standard headers
 #include <cinttypes>
-#include <vector>
 
 // Local SST header
 #include "sst_config.h"
 
 namespace SST::Mordred {
 
-// Use for setting up output masks
+// Use for setting up output masks - not really using at the moment, but may
+// be desirable in the long run
 constexpr uint32_t DEBUG_CONSTRUCTORS = (1UL << 0);
 constexpr uint32_t DEBUG_INIT_PHASE   = (1UL << 1);
 
+// This is a very simple event being sent by the TestEP.
 class simpleTestEvent : public Event {
 public:
   simpleTestEvent() { /* empty */ }
@@ -39,6 +40,7 @@ public:
   std::string str;
 };
 
+// Base event sent around the NoC.
 class baseMordredEvent : public Event {
 public:
   enum MordredEventType { FLIT, CREDIT, INITIALIZATION };
@@ -73,36 +75,31 @@ private:
   ImplementSerializable( SST::Mordred::MordredInitEvent )
 };
 
-// currently just using sst-elements/src/sst/elements/simpleElementExample/basicEvent.h
-// TODO: Inherit from baseMordredEvent
+// This is intended to be the basic Flit running around the NoC.
 class MordredFlit final : public baseMordredEvent {
 public:
   MordredFlit() : baseMordredEvent( FLIT ){ /* empty */ }
   MordredFlit( Interfaces::SimpleNetwork::Request *req_ ) : baseMordredEvent( FLIT ), req( req_ ) { /* empty */ }
 
+  Interfaces::SimpleNetwork::Request *getRequest() { return req; }
+
   enum FlitTypeE { HEAD, BODY, TAIL, EMPTY, NUM_TYPES };
   FlitTypeE ftype{NUM_TYPES};
 
-  // Using this as a placeholder
-  std::string src_name;
-  uint64_t src{UINT64_MAX};
-  uint64_t dest{UINT64_MAX};
-
-  uint64_t                            datum{};
+  // This is what the endpoint passes into the MordredNIC; within
+  // this request is the data packet (sst Event) that one endpoint
+  // wants to pass to another endpoint
   Interfaces::SimpleNetwork::Request  *req;
 
-  uint32_t next_port{};
-  //uint32_t next_vc{}; Need?
+  uint32_t next_port{UINT32_MAX};
+  //uint32_t next_vc{}; Need? Most likely
+  // uint32_t cur_vc{UINT32_MAX}; // TODO: Start using me rather than assuming 0 everywhere
 
   // Events must provide a serialization function that serializes
   // all data members of the event
   void serialize_order( SST::Core::Serialization::serializer& ser ) override {
     Event::serialize_order( ser );
     ser & ftype;
-    ser & src_name;
-    ser & src;
-    ser & dest;
-    ser & datum;
     ser & req;
   }
 
@@ -110,6 +107,8 @@ public:
   ImplementSerializable( SST::Mordred::MordredFlit );
 };
 
+// Unused at the moment, but more-or-less borrowed from merlin's
+// credit_event in router.h
 class MordredCreditEvent : public baseMordredEvent {
 public:
   uint32_t vc;

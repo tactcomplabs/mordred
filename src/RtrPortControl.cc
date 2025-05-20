@@ -21,15 +21,6 @@
 
 using namespace SST::Mordred;
 
-/*
-RtrPortControl::RtrPortControl( ComponentId_t id, Params& params, TopologyAPI* topology,
-  InVcHeads *vc_heads, uint32_t rtr_num, uint32_t port_num ) :
-  RtrPortControlAPI( id ),
-  topo( topology ),
-  rtrId( rtr_num ),
-  portId( port_num ),
-  vcHeads( vc_heads )
-  */
 RtrPortControl::RtrPortControl( ComponentId_t id, Params& params, TopologyAPI* topology,
   std::vector<MordredFlit*>* vc_heads, uint32_t rtr_num, uint32_t port_num ) :
   RtrPortControlAPI( id ),
@@ -81,7 +72,6 @@ RtrPortControl::RtrPortControl( ComponentId_t id, Params& params, TopologyAPI* t
   }
   outbuf_size = static_cast<uint32_t>( buf_size_ua.getRoundedValue() );
 
-
   // This constructor should only ever be activated for connected ports (per SimpleRtr constructor)
   // so not checking connectedness here
   const std::string pname = "port" + std::to_string(port_num);
@@ -101,6 +91,8 @@ RtrPortControl::RtrPortControl( ComponentId_t id, Params& params, TopologyAPI* t
   inStates.resize( numVcs, IN_IDLE );
   outStates.resize( numVcs, OUT_IDLE );
 
+  std::fill( vcHeads->begin(), vcHeads->end(), nullptr );
+
   output->verbose( CALL_INFO, 1, 0, "Constructor complete; [Rtr.Port]=[%" PRIu32 ".%" PRIu32 "], inbuf_size=%" PRIu32 ", outbuf_size=%" PRIu32 "\n",
     rtrId, portId, inbuf_size, outbuf_size);
 }
@@ -108,6 +100,8 @@ RtrPortControl::RtrPortControl( ComponentId_t id, Params& params, TopologyAPI* t
 void RtrPortControl::init( unsigned int phase ) {
   //output->verbose( CALL_INFO, 5, 0, " init phase=%" PRIu32 "\n", phase );
 
+  // Similar to MordredNIC, could set this up to use sendUntimedData here instead of using the
+  // link directly
   switch( phase ) {
   case 0: {
     auto *init_ev = new MordredInitEvent();
@@ -227,17 +221,70 @@ SST::Event* RtrPortControl::recvUntimedData() {
   return nullptr;
 }
 
+void RtrPortControl::ClockTick( Cycle_t cycle ) {
+  //output->verbose( CALL_INFO, 3, 0, "Tick; cycle=%" PRIu64 "\n", cycle );
+  //output->flush();
+
+  // If the vcHeads[vc] is empty, fill it
+  for ( uint32_t vc = 0; vc < numVcs; vc++ ) {
+    if ( vcHeads->at( vc ) == nullptr ) {
+      if ( !in_buf.at( vc ).empty() )
+        vcHeads->at( vc ) = in_buf.at( vc ).front();
+    }
+  }
+
+  // TODO: Configured (poorly) as a round robin (don't maintain a changing index);
+  // but really need to be checking credits
+  // Note: this is where we're pushing a flit out onto a link
+  for ( uint32_t vc = 0; vc < numVcs; vc++ ) {
+    if ( !out_buf.at( vc ).empty() ) {
+      auto flit = out_buf.at( vc ).front();
+      out_buf.at( vc ).pop();
+      link->send( flit );
+      output->verbose( CALL_INFO, 5, 0, "Sending output flit\n" );
+    }
+  }
+}
+
 void RtrPortControl::inHandler( SST::Event* ev ) {
   auto *flit = static_cast<MordredFlit*>( ev );
   if ( flit == nullptr )
     output->fatal( CALL_INFO, -1, "Invalid flit \n" );
 
-  auto *simple = static_cast<simpleTestEvent*>( flit->req->inspectPayload() );
-  flit->next_port = topo->routePacket( (uint32_t)flit->dest );
+  auto *simple = static_cast<simpleTestEvent*>( flit->req->inspectPayload() ); // only needed for the print statement
+  flit->next_port = topo->routePacket( (uint32_t)flit->req->dest );
   output->verbose( CALL_INFO, 5, 0, "Recv Flit; str=%s, src=%" PRIu64 ", dst=%" PRIu64 ", size=%zu, dest_port=%" PRIu32 "\n",
-    simple->str.c_str(), flit->src, flit->dest, flit->req->size_in_bits, flit->next_port );
-  if ( vcHeads->at(0) == nullptr )
-    vcHeads->at(0) = flit;
+    simple->str.c_str(), flit->req->src, flit->req->dest, flit->req->size_in_bits, flit->next_port );
+
+  in_buf.at( 0 ).push( flit );
+}
+
+MordredFlit* RtrPortControl::getInBufFlit( uint32_t vc ) {
+
+  // Get the flit to return
+  if ( in_buf.at( vc ).empty() ) {
+    // TODO: Make fatal; should NOT happen
+    output->verbose( CALL_INFO, 5, 0, "InBuf empty; vc=%d\n", vc );
+    output->flush();
+  }
+  MordredFlit* flit = in_buf.at( vc ).front();
+  in_buf.at( vc ).pop();
+
+  // Clear for the next packet
+  vcHeads->at( vc ) = nullptr;
+
+  // TODO: Send credit upstream
+
+  return flit;
+}
+
+void RtrPortControl::sendOutBufFlit( MordredFlit* flit, uint32_t vc ) {
+  out_buf.at( vc ).push( flit );
+  //outStates.at( vc ) = OUT_BUSY;
+  SST::Event* ev = flit->req->inspectPayload();
+  auto test_ev = static_cast<simpleTestEvent*>( ev );
+  output->verbose( CALL_INFO, 5, 0, "Send Flit; str=%s, src=%" PRIu64 ", dst=%" PRIu64 ", size=%zu, dest_port=%" PRIu32 "\n",
+    test_ev->str.c_str(), flit->req->src, flit->req->dest, flit->req->size_in_bits, flit->next_port );
 }
 
 MordredInitEvent* RtrPortControl::getInitEvent( MordredInitEvent::Commands cmd ) {

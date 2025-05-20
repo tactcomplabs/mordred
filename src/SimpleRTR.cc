@@ -44,6 +44,7 @@ SimpleRTR::SimpleRTR( ComponentId_t cid, Params& params ) : Component( cid ) {
   if ( !topology )
     output.fatal( CALL_INFO, -1, "Couldn't load topology\n" );
 
+  arbWinners.resize( numPorts, UINT32_MAX );
   inVcHeads.resize( numPorts );
   // Configure local/endpt ports -- borrowed this approach from
   // sst-elements/src/sst/elements/simpleElementExample/basicLinks.cc
@@ -59,7 +60,7 @@ SimpleRTR::SimpleRTR( ComponentId_t cid, Params& params ) : Component( cid ) {
     }
   }
 
-  arbiter = loadAnonymousSubComponent<ArbAPI>( "mordred.arbRR", "arbiter", 0, ComponentInfo::SHARE_NONE, params, &inVcHeads );
+  arbiter = loadAnonymousSubComponent<ArbAPI>( "mordred.arbRR", "arbiter", 0, ComponentInfo::SHARE_NONE, params, &inVcHeads, &arbWinners );
   if (arbiter == nullptr) {
     output.fatal( CALL_INFO, -1, "arbiter is a nullptr\n" );
   }
@@ -96,27 +97,29 @@ void SimpleRTR::setup() {
       port->setup();
 }
 
-void SimpleRTR::complete( uint32_t phase ) {
-
-}
-
-void SimpleRTR::finish() {
-
-}
-
 bool SimpleRTR::clockTick( Cycle_t cycle ) {
-  output.verbose( CALL_INFO, 3, 0, "Cycle=%" PRIu64 "\n", cycle );
+  // May want/need to look at how we want to time/order ticking the ports and running the crossbar/arbitration here
+
+  //output.verbose( CALL_INFO, 3, 0, "Cycle=%" PRIu64 "\n", cycle );
   arbiter->arbitrate();
 
-  return false;
-}
+  // For all router ports, see if we can move a flit through the "crossbar"
+  for ( uint32_t i = 0; i < numPorts; i++ ) {
+    if ( arbWinners[i] == UINT32_MAX )
+      continue;
 
-void SimpleRTR::handleInEvent( SST::Event* ev, int32_t linknum ) {
-  MordredFlit* mev = static_cast<MordredFlit*>( ev );
-  if( mev ) {
-    output.verbose( CALL_INFO, 5, 0, "SimpleRTR::handleInEvent on link %" PRId32 "\n", linknum );
-    delete mev;
-  } else {
-    output.fatal( CALL_INFO, -1, "Error! Bad mev type received by %s on link ID %" PRId32 "\n", getName().c_str(), linknum );
+    // get flit out of the input buffer of the receiving port
+    MordredFlit *flit = portsVec.at( i )->getInBufFlit( arbWinners[i] );
+
+    // send flit to the output buffer of the sending port
+    // TODO: Make sure flit->next_port exists
+    portsVec.at( flit->next_port )->sendOutBufFlit( flit, arbWinners[i] );
   }
+
+  for ( auto &port : portsVec ) {
+    if (port == nullptr) continue;
+    port->ClockTick( cycle );
+  }
+
+  return false;
 }
