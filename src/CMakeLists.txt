@@ -18,7 +18,6 @@ set(MordredSrcs
         RtrPortControl.cc
         ArbAPI.h
         ArbRR.h
-        SharedStructs.h
         ArbRR.cc
 )
 

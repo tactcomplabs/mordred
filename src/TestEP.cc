@@ -72,7 +72,7 @@ bool TestEP::clockTick( Cycle_t cycle ) {
 
     auto *req = new Interfaces::SimpleNetwork::Request();
     req->src = nocIface->getEndpointID();
-    req->dest = 4;
+    req->dest = 3;
     req->size_in_bits = 8*(sizeof(simpleTestEvent) + pkt->str.size());
     req->vn = 0;
     req->givePayload( pkt );
@@ -86,7 +86,7 @@ bool TestEP::clockTick( Cycle_t cycle ) {
 
     auto *req = new Interfaces::SimpleNetwork::Request();
     req->src = nocIface->getEndpointID();
-    req->dest = 8;
+    req->dest = 7;
     req->size_in_bits = 8*(sizeof(simpleTestEvent) + pkt->str.size());
     req->vn = 0;
     req->givePayload( pkt );

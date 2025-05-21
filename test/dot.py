@@ -29,6 +29,7 @@ def createMesh(x_size, y_size, local_ports, concentration):
     rtr_id = 0
     nports = 4 + local_ports
     rtr_params = {
+        "num_ports": nports,
         "num_local_ports" : local_ports,
         "flit_size" : "32b",
         "input_buf_size" : "32B",
@@ -38,7 +39,6 @@ def createMesh(x_size, y_size, local_ports, concentration):
         for x in range(x_size):
             rtr = sst.Component("rtr_%d_%d"%(x, y), "mordred.simple_rtr")
             rtr.addParam("id", rtr_id)
-            rtr.addParam("num_ports", nports)
             rtr.addParams(rtr_params)
             rtr_id += 1
             rtr_topo = rtr.setSubComponent( "topology", "mordred.MeshTopology" )
@@ -301,7 +301,7 @@ class Crossbar:
 
 
 # General params
-local_ports = 1
+local_ports = 1 # MeshTopology.{h,cc} doesn't account for >1 here
 concentration = 1
 
 # Mesh/torus Configuration options

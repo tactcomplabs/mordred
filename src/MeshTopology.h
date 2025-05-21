@@ -62,7 +62,7 @@ public:
 
 
 private:
-  SST::Output* output;
+  Output* output;
 
   uint32_t rtrId;
   uint32_t numPorts;

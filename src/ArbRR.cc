@@ -55,6 +55,8 @@ void ArbRR::arbitrate( ) {
 
     auto flit = vcHeads->at(i).at(0);
     if ( flit != nullptr ) {
+      if ( vcHeads->at(flit->next_port).empty() )
+        output->fatal( CALL_INFO, -1, "Flit next_port == %" PRIu32 " is unconnected\n", flit->next_port );
       auto *simple = static_cast<simpleTestEvent*>( flit->req->inspectPayload() );
       output->verbose( CALL_INFO, 5, 0, "Port %" PRIu32 " has a packet with str=%s\n", i, simple->str.c_str() );
       // only moving a single flit right now, so i can just assume it happens - clearly will need to check the output
