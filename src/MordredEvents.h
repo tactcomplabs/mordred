@@ -17,6 +17,34 @@
 // Local SST header
 #include "sst_config.h"
 
+/**
+ * For merlin, here is the "standard" approach for packet types from endpoint to endpoint:
+ * - start with an endpoint event that creates a SimpleNetwork::Request; the endpoint event
+ *    is stored into the SimpleNetwork::Request as the payload
+ * - SimpleNetwork::Request is passed into the NIC (linkControl) and the NIC creates a wrapping event,
+ *    RtrEvent.  The RtrEvent is transmitted on the SST::Link from the endpt NIC to the router
+ * - The router then creates yet another wrapping event (internal_router_event) to use while the
+ *    packet traverses the network
+ * - The router removes the outer shell (internal_router_event) when sending the packet to the endpt
+ *    NIC (thus the endpt NIC gets a RtrEvent)
+ * - Endpt NIC removes the RtrEvent shell and returns a SimpleNetwork::Request to the endpt
+ * - Endpt will remove the SimpleNetwork::Request shell and finally, we have the original endpoint event
+ */
+
+/**
+ * In comparison, what I've done here (for now anyway) is the following:
+ * - The simpleTestEvent is the endpoint event; the TestEP is the endpoint and it creates the
+ *    SimpleNetwork::Request wrapper for the simpleTestEvent. The request destination is the router
+ *    number/ID of the desired endpoint
+ * - The MordredNIC receives the SimpleNetwork::Request and creates a single MordredFlit that
+ *    wraps the SimpleNetwork::Request.  The MordredFlit is transmitted on the SST::Link to the router
+ * - The network passes around the MordredFlit until we hit the desired endpoint router; the MordredFlit
+ *    is sent to the endpt NIC.
+ * - The MordredNIC removes the MordredFlit wrapper and returns the SimpleNetwork::Request to the endpt
+ * - Endpt code (TestEP) removes the SimpleNetwork::Request shell and prints out the message stored in
+ *    the simpleTestEvent.
+ */
+
 namespace SST::Mordred {
 
 // Use for setting up output masks - not really using at the moment, but may
