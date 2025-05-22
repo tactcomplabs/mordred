@@ -129,7 +129,7 @@ void RtrPortControl::init( unsigned int phase ) {
     if ( init_ev->command == MordredInitEvent::REPORT_ROUTER ) {
       connectionType = ROUTER;
     } else if ( init_ev->command == MordredInitEvent::REPORT_ENDPOINT ) {
-      connectionType = ENDPT;
+      connectionType = ENDPOINT;
     } else {
       output->fatal( CALL_INFO, -1, "Received packet with unexpected command=%d \n", (int)connectionType );
     }
@@ -144,7 +144,7 @@ void RtrPortControl::init( unsigned int phase ) {
       connectedPortId = init_ev->value;
       output->verbose( CALL_INFO, 5, 0, "Received init packets from [Rtr.Port]=[%" PRIu32 ".%" PRIu32 "]\n", connectedRtrId, connectedPortId );
       delete init_ev;
-    } else if ( connectionType == ENDPT ) {
+    } else if ( connectionType == ENDPOINT ) {
       init_ev = new MordredInitEvent();
       init_ev->command = MordredInitEvent::NUM_VCS;
       init_ev->value = numVcs;
@@ -166,7 +166,7 @@ void RtrPortControl::init( unsigned int phase ) {
   }
 
   case 2: {
-    if ( connectionType != ENDPT ) {
+    if ( connectionType != ENDPOINT ) {
       output->verbose( CALL_INFO, 5, DEBUG_INIT_PHASE, " connected to non-endpoint; init_phase=%" PRIu32 "\n", phase );
       break;
     }
@@ -236,36 +236,71 @@ void RtrPortControl::ClockTick( Cycle_t cycle ) {
   // TODO: Configured (poorly) as a round robin (don't maintain a changing index);
   // but really need to be checking credits
   // Note: this is where we're pushing a flit out onto a link
+  bool sent = false;
   for ( uint32_t vc = 0; vc < numVcs; vc++ ) {
-    if ( !out_buf.at( vc ).empty() ) {
+    if ( !out_buf.at( vc ).empty() ) { // TODO: Check credits (or did I put that elsewhere?)
       auto flit = out_buf.at( vc ).front();
       out_buf.at( vc ).pop();
       link->send( flit );
-      output->verbose( CALL_INFO, 5, 0, "Sending output flit\n" );
+      sent = true;
+      dest_credits.at(vc)--;
+      output->verbose( CALL_INFO, 5, 0, "Sending output flit; remaining_credits=%" PRId32 "\n", dest_credits.at(vc) );
+      break; // can only send one flit out on the link
+    }
+  }
+
+  // Return credit if we haven't used the link
+  if ( !sent ) {
+    for ( uint32_t vc = 0; vc < numVcs; vc++ ) {
+      if ( in_ret_credits.at(vc) != 0 ) {
+        auto credit = new MordredCreditEvent( vc, in_ret_credits.at(vc) );
+        link->send( credit );
+        in_ret_credits.at(vc) = 0;
+        output->verbose( CALL_INFO, 5, 0, "Sending credit flit\n" );
+      }
     }
   }
 }
 
 void RtrPortControl::inHandler( SST::Event* ev ) {
-  auto *flit = static_cast<MordredFlit*>( ev );
-  if ( flit == nullptr )
-    output->fatal( CALL_INFO, -1, "Invalid flit \n" );
 
-  auto *simple = static_cast<simpleTestEvent*>( flit->req->inspectPayload() ); // only needed for the print statement
-  flit->next_port = topo->routePacket( (uint32_t)flit->req->dest );
-  output->verbose( CALL_INFO, 5, 0, "Recv Flit; str=%s, src=%" PRIu64 ", dst=%" PRIu64 ", size=%zu, dest_port=%" PRIu32 "\n",
-    simple->str.c_str(), flit->req->src, flit->req->dest, flit->req->size_in_bits, flit->next_port );
+  auto bev = static_cast<baseMordredEvent*>( ev );
+  if ( bev == nullptr ) {
+    output->fatal( CALL_INFO, -1, "Null event\n" );
+  }
+  switch( bev->getType() ) {
+  case baseMordredEvent::CREDIT: {
+    auto credit = static_cast<MordredCreditEvent*>( bev );
+    dest_credits.at( credit->vc ) += credit->credits;
+    output->verbose( CALL_INFO, 5, 0, "Received %" PRId32 " credits to vc=%" PRIu32 ", cur_credits=%" PRIu32 "\n",
+      credit->credits, credit->vc, dest_credits.at( credit->vc ) );
+    delete bev;
+    break;
+  } // end CREDIT
+  case baseMordredEvent::FLIT: {
+    auto *flit = static_cast<MordredFlit*>( ev );
+    if ( flit == nullptr )
+      output->fatal( CALL_INFO, -1, "Invalid flit \n" );
 
-  in_buf.at( 0 ).push( flit );
+    auto *simple = static_cast<simpleTestEvent*>( flit->req->inspectPayload() ); // only needed for the print statement
+    flit->next_port = topo->routePacket( (uint32_t)flit->req->dest );
+    output->verbose( CALL_INFO, 5, 0, "Recv Flit; str=%s, src=%" PRIu64 ", dst=%" PRIu64 ", size=%zu, dest_port=%" PRIu32 "\n",
+      simple->str.c_str(), flit->req->src, flit->req->dest, flit->req->size_in_bits, flit->next_port );
+
+    in_buf.at( 0 ).push( flit );
+    break;
+  } // end FLIT
+  default:
+    output->fatal( CALL_INFO, -1, "Unknown/unimplemented event type=%d\n", (int) bev->getType() );
+  }  // end switch
 }
 
 MordredFlit* RtrPortControl::getInBufFlit( uint32_t vc ) {
 
   // Get the flit to return
   if ( in_buf.at( vc ).empty() ) {
-    // TODO: Make fatal; should NOT happen
-    output->verbose( CALL_INFO, 5, 0, "InBuf empty; vc=%d\n", vc );
     output->flush();
+    output->fatal( CALL_INFO, 5, "InBuf empty; vc=%d\n", vc );
   }
   MordredFlit* flit = in_buf.at( vc ).front();
   in_buf.at( vc ).pop();
@@ -273,7 +308,8 @@ MordredFlit* RtrPortControl::getInBufFlit( uint32_t vc ) {
   // Clear for the next packet
   vcHeads->at( vc ) = nullptr;
 
-  // TODO: Send credit upstream
+  // Can return a credit to the sender
+  in_ret_credits.at( vc )++;
 
   return flit;
 }

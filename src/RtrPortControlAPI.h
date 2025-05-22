@@ -46,7 +46,7 @@ class RtrPortControlAPI : public SubComponent {
 public:
   SST_ELI_REGISTER_SUBCOMPONENT_API( SST::Mordred::RtrPortControlAPI, TopologyAPI*, std::vector<MordredFlit*>*, uint32_t, uint32_t )
 
-  enum PortConnectionE { ENDPT, ROUTER, UNKNOWN, INVALID };
+  enum PortConnectionE { ENDPOINT, ROUTER, UNKNOWN, INVALID };
   enum InVcStateE { IN_IDLE, ROUTING, WAIT_OUTPUT, IN_BUSY }; // for the port input side - mainly for xbar arb
   enum OutVcStateE { OUT_IDLE, OUT_BUSY, NEED_CREDITS}; // for the port output side - mainly for xbar arb
 

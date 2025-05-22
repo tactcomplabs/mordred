@@ -200,23 +200,31 @@ bool MordredNIC::send( Request* req, int32_t vn ) {
   // This is a gross oversimplification since it's not checking credits available, etc.
   if ( vn != 0 )
     output->fatal( CALL_INFO, -1, "MordredNIC only supports vn=0\n" );
-  out_buf.at(0).push( req );
+  uint32_t vc = 0;
+  out_buf.at(vc).push( req );
+  outbuf_credits.at(vc)--;
   return true;
 }
 
+// Have to keep the vn argument to match SimpleNetwork interface
 SST::Interfaces::SimpleNetwork::Request* MordredNIC::recv( int32_t vn ) {
-  if ( in_buf.at(0).empty() )
+  uint32_t vc = 0;
+  if ( in_buf.at(vc).empty() )
     return nullptr;
 
-  Request* req = in_buf.at(0).front();
-  in_buf.at(0).pop();
+  Request* req = in_buf.at(vc).front();
+  in_buf.at(vc).pop();
 
+  // Return credit to router
+  in_ret_credits.at( vc )++;
   return req;
 }
 
 bool MordredNIC::spaceToSend( int vn, int num_bits ) {
-  output->flush();
-  output->fatal( CALL_INFO, -1, "Not yet implemented\n" );
+  //TODO: This is assuming one flit per inquiry into this function
+  uint32_t vc = 0;
+  if ( outbuf_credits.at(vc) > 0 )
+    return true;
   return false;
 }
 
@@ -228,13 +236,35 @@ bool MordredNIC::requestToReceive( int vn ) {
 
 bool MordredNIC::clockTick( Cycle_t cycle ) {
 
-  if ( !out_buf.at(0).empty() ) {
-    auto req = out_buf.at(0).front();
-    auto flit = new MordredFlit( req );
-    link->send( flit );
-    out_buf.at(0).pop();
-    output->verbose( CALL_INFO, 5, 0, "Sent flit to link\n" );
+  bool sent = false;
+  uint32_t vc = 0;
+  if ( !out_buf.at(vc).empty() ) {
+    if ( rtr_credits.at(vc) > 0 ) {
+      auto req = out_buf.at(vc).front();
+      auto flit = new MordredFlit( req );
+      link->send( flit );
+      sent = true;
+      out_buf.at(vc).pop();
+      rtr_credits.at(vc)--;
+      outbuf_credits.at(vc)++;
+      output->verbose( CALL_INFO, 5, 0, "Sent flit to link; credits_left=%" PRId32 "\n", rtr_credits.at(0) );
+    }
   }
+
+  // This is doing all vc's
+  if ( !sent ) {
+    for ( uint32_t i = 0; i < numVcs; i++ ) {
+      if ( in_ret_credits.at(i) > 0 ) {
+        auto credit_ev = new MordredCreditEvent( i, in_ret_credits.at(i) );
+        link->send( credit_ev );
+        output->verbose( CALL_INFO, 5, 0, "Returning %" PRId32 " credits to router vc=%" PRIu32 "\n",
+          in_ret_credits.at(i), i );
+        in_ret_credits.at(i) = 0;
+        break;
+      }
+    }
+  }
+
   return false;
 }
 
@@ -270,9 +300,14 @@ void MordredNIC::handleIncomingPacket( SST::Event* ev ) {
   // if it's a flit, add it to a buffer for the surrounding unit to reassemble, etc
   auto bev = static_cast<baseMordredEvent*>( ev );
   switch( bev->getType() ) {
-  case baseMordredEvent::CREDIT:
-    output->fatal( CALL_INFO, -1, "Credit handling not yet implemented\n" );
+  case baseMordredEvent::CREDIT: {
+    auto credit = static_cast<MordredCreditEvent*>( bev );
+    rtr_credits.at( credit->vc ) += credit->credits;
+    output->verbose( CALL_INFO, 5, 0, "Received %" PRId32 " credits to vc=%" PRIu32 ", cur_credits=%" PRIu32 "\n",
+      credit->credits, credit->vc, rtr_credits.at( credit->vc ) );
+    delete bev;
     break;
+  } // end CREDIT
   case baseMordredEvent::FLIT: {
     auto flit = static_cast<MordredFlit*>( ev );
     Request* req = flit->getRequest();
@@ -282,7 +317,7 @@ void MordredNIC::handleIncomingPacket( SST::Event* ev ) {
     in_buf.at(0).push( req );
     delete flit;
     break;
-    }
+  } // end FLIT
   default:
     output->fatal( CALL_INFO, -1, "Unknown/unimplemented event type=%d\n", (int) bev->getType() );
   }  // end switch

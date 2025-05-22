@@ -171,7 +171,7 @@ private:
   std::vector<std::queue<Request*>> out_buf; // to router
 
   // Credit counters; 1 credit = 1 flit
-  // credits received from router; initalization comes from router in init;
+  // credits received from router; initialization comes from router in init;
   // (decrement on send to router, increment when credit packet comes from router)
   std::vector<int32_t> rtr_credits;
 

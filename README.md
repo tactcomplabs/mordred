@@ -22,3 +22,10 @@ The table below outlines the current initialization process. The (s) notes a sen
 | 3 | (r) Endpoint ID <br> Send credits | Send credits |
 | 4+ | Receive Credits; discard anything else | Receive Credits; discard anything else |
 
+## Open Questions
+- Do we pass in a packet to the MordredNIC and let it divide it into flits
+- Do we want to add another SST::Event wrapper similar to what Merlin does
+- Maintain a buffer on the output of router ports (currently have a small one per VC)
+- VNs?
+- Should the endpoint NIC have/use VCs?
+- 
