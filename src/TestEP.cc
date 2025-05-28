@@ -38,7 +38,7 @@ TestEP::TestEP( ComponentId_t cid, Params& params ) : Component( cid ) {
   output.verbose( CALL_INFO, 5, 0, "Constructor complete for %s \n", getName().c_str() );
 }
 
-void TestEP::init( uint32_t phase ) {
+void TestEP::init( const uint32_t phase ) {
   output.verbose( CALL_INFO, 5, DEBUG_INIT_PHASE, "TestEP::init(%" PRIu32 ")\n", phase );
   nocIface->init( phase );
 }
@@ -47,7 +47,18 @@ void TestEP::setup() {
   nocIface->setup();
 }
 
+void TestEP::complete( const uint32_t phase ) {
+  nocIface->complete( phase );
+}
+
+void TestEP::finish() {
+  nocIface->finish();
+}
+
+
 bool TestEP::clockTick( Cycle_t cycle ) {
+  //if ( nocIface->getEndpointID() == 0 )
+  //  output.verbose( CALL_INFO, 3, 0, "Tick; Cycle=%" PRIu64 "\n", cycle );
 
   if ( ( nocIface->getEndpointID() == 0 ) && ( cycle == 10 ) ) {
     output.verbose( CALL_INFO, 3, 0, "Sending packet. Cycle=%" PRIu64 "\n", cycle );

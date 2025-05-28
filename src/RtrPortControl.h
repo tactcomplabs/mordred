@@ -20,7 +20,15 @@
 
 namespace SST::Mordred {
 
-// TODO: Consider creating/using a virtual channel struct
+/**
+ * Miscellaneous Notes:
+ *  - If this is an ENDPOINT port, it really only needs one VC; we don't pass that knowledge in (although
+ *      we could if we passed it in via the constructor)
+ *  - Only connected ports should ever be created (via the SimpleRtr constructor) so we don't
+ *      do any checking for that here
+ *  - For a given clock tick, if all of the output buffers are empty/blocked from sending,
+ *      then this module will try to return credits using a round-robin approach.
+ */
 
 class RtrPortControl : public RtrPortControlAPI {
 public:
@@ -47,7 +55,7 @@ public:
 
   SST_ELI_DOCUMENT_STATISTICS()
 
-  RtrPortControl( ComponentId_t id, Params& params, TopologyAPI* topology, std::vector<MordredFlit*>* vc_heads, uint32_t rtr_num, uint32_t port_num );
+  RtrPortControl( ComponentId_t id, Params& params, TopologyAPI* topology, std::vector<RtrOwnedVnObj>* vn_objs, uint32_t rtr_num, uint32_t port_num );
 
   ~RtrPortControl() final = default;
 
@@ -65,12 +73,13 @@ public:
   void inHandler(SST::Event* ev);
 
   // Switch/xbar interactions
-  MordredFlit* getInBufFlit( uint32_t vc ) final;
-  void   sendOutBufFlit( MordredFlit* flit, uint32_t vc ) final; // Rename?
-
+  MordredFlit* getInBufFlit( std::pair<uint32_t, uint32_t> vn_vc ) final;
+  void   sendOutBufFlit( MordredFlit* flit, std::pair<uint32_t, uint32_t> vn_vc ) final; // Rename?
 
 private:
+  void allocateBuffers();
   MordredInitEvent* getInitEvent( MordredInitEvent::Commands cmd );
+  void returnCredit();
 
   Output* output;
   Link*   link{};
@@ -80,43 +89,50 @@ private:
   uint32_t portId;
   uint32_t connectedRtrId{UINT32_MAX};
   uint32_t connectedPortId{UINT32_MAX};
-  uint32_t numVcs{};
+  uint32_t numVns{UINT32_MAX}; // from size of vn_objs
+  uint32_t numVcs{UINT32_MAX}; // from size of vector in vn_objs
   uint32_t flitSize{}; // in bits
   uint32_t channelBusWidth{}; // in bits
-
+  uint32_t credit_ret_vn_rr{};
+  uint32_t credit_ret_vc_rr{};
 
   UnitAlgebra param_link_bw;
   UnitAlgebra param_flit_size;
 
   // These are in bits
-  uint32_t inbuf_size;
-  uint32_t outbuf_size;
+  uint32_t inBufSize;
+  uint32_t outBufSize;
 
-  std::vector<MordredFlit*> *vcHeads{};
+
+
+  //std::vector<std::vector<MordredFlit*>> *vcHeads{};
+  std::vector<RtrOwnedVnObj> *perVnObjs{};
+
+  // Outer dimension is VN, inner is VC
 
   // Not using these, but these will probably be necessary if we don't want
   // to rearbitrate every cycle
-  std::vector<InVcStateE> inStates;
-  std::vector<OutVcStateE> outStates;
+  std::vector<std::vector<InVcStateE>> inStates;
+  std::vector<std::vector<OutVcStateE>> outStates;
 
   // Packet buffers
-  std::vector<std::queue<MordredFlit*>> in_buf; // from router/endpt
-  std::vector<std::queue<MordredFlit*>> out_buf; // to router/endpt; adds a delay element to the xbar switch in the router
+  std::vector<std::vector<std::queue<MordredFlit*>>> inBuf; // from router/endpt
+  std::vector<std::vector<std::queue<MordredFlit*>>> outBuf; // to router/endpt; adds a delay element to the xbar switch in the router
 
   // Credit counters; 1 credit = 1 flit
   // credits received from destination; initialized to non-zero in init (dest sounds a count)
   // (dec on send to dest, inc when credit packet comes from dest)
-  std::vector<int32_t> dest_credits;
+  std::vector<std::vector<int32_t>> destCredits;
 
   // credits for space in the out_buf (decrement as flits inserted,
   // increment when put on link) - purely internal (and
   // unnecessary if out_buf is removed)
   // initialize to outbuf size
-  std::vector<int32_t> outbuf_credits;
+  std::vector<std::vector<int32_t>> outBufCredits;
 
   // credits to return to the sender as the in_buf is emptied out
   // init to zero
-  std::vector<int32_t> in_ret_credits;
+  std::vector<std::vector<int32_t>> inRetCredits;
 
 };
 

@@ -149,45 +149,42 @@ private:
   uint32_t    rtrId{UINT32_MAX};
   uint32_t    rtrPort{UINT32_MAX};
   bool        initialized{false};
-  uint32_t    numVcs{UINT32_MAX};
+  uint32_t    numVns{UINT32_MAX};
+  uint32_t    numVcs{UINT32_MAX}; // Tracked, but unused for now
   uint32_t    flitSize{};
   uint32_t    channelBusWidth{}; // TODO: Make UnitAlgebra if we're going to use it
+
+  UnitAlgebra bw; // Need? It's currently unused.
 
   HandlerBase* sendFunctor{nullptr};
   HandlerBase* recvFunctor{nullptr};
 
   // in bits
-  UnitAlgebra inbuf_size;
-  UnitAlgebra outbuf_size;
+  UnitAlgebra inbufSize;
+  UnitAlgebra outbufSize;
 
-  /*
-   * Note: All of the vectors below have a length equal to the number of VCs instead of
-   * the number of VNs as is done in merlin.  TODO: The question here is should our endpoint
-   * NICs be dealing with/worrying about VNs/VCs?
-   */
+  // Note: All of the vectors below are sized to the number of VNs
 
   // Packet buffers
-  std::vector<std::queue<Request*>> in_buf; // from router
-  std::vector<std::queue<Request*>> out_buf; // to router
+  std::vector<std::queue<Request*>> inBuf; // from router
+  std::vector<std::queue<Request*>> outBuf; // to router
 
   // Credit counters; 1 credit = 1 flit
   // credits received from router; initialization comes from router in init;
   // (decrement on send to router, increment when credit packet comes from router)
-  std::vector<int32_t> rtr_credits;
+  std::vector<int32_t> rtrCredits;
 
-  // credits for space in the out_buf (decrement as msgs recv'd from endpoint,
+  // credits for space in the outBuf (decrement as msgs recv'd from endpoint,
   // increment when put on network))
-  std::vector<int32_t> outbuf_credits;
+  std::vector<int32_t> outbufCredits;
 
   // Notes to self: NIC can accept a packet from the endpoint when there are
-  // outbuf_credits; this gets broken up into flits and stays in the outbuf
-  // until there are rtr_credits available so we can send the packet
+  // outbufCredits; this gets broken up into flits and stays in the outBuf
+  // until there are rtrCredits available so we can send the packet
 
-  // credits to return to the router as the in_buf is emptied out
+  // credits to return to the router as the inBuf is emptied out
   // init to 0
-  std::vector<int32_t> in_ret_credits;
-
-  UnitAlgebra bw; // Need?
+  std::vector<int32_t> inReturnCredits;
 
 };  // MordredNIC
 

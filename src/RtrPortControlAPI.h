@@ -44,7 +44,7 @@ class TopologyAPI; // forward declaration
 
 class RtrPortControlAPI : public SubComponent {
 public:
-  SST_ELI_REGISTER_SUBCOMPONENT_API( SST::Mordred::RtrPortControlAPI, TopologyAPI*, std::vector<MordredFlit*>*, uint32_t, uint32_t )
+  SST_ELI_REGISTER_SUBCOMPONENT_API( SST::Mordred::RtrPortControlAPI, TopologyAPI*, std::vector<RtrOwnedVnObj>*, uint32_t, uint32_t )
 
   enum PortConnectionE { ENDPOINT, ROUTER, UNKNOWN, INVALID };
   enum InVcStateE { IN_IDLE, ROUTING, WAIT_OUTPUT, IN_BUSY }; // for the port input side - mainly for xbar arb
@@ -65,11 +65,12 @@ public:
 
   // Get state for a VC
   // TODO: Uncomment and implement in derived
+  // Intended to mark the status of a port for the xbar arbitration
   //virtual InVcStateE getInVcState( uint32_t vc ) = 0;
   //virtual OutVcStateE getOutVcState( uint32_t vc ) = 0;
 
-  virtual MordredFlit* getInBufFlit( uint32_t vc ) = 0;
-  virtual void   sendOutBufFlit( MordredFlit* flit, uint32_t vc )  = 0;
+  virtual MordredFlit* getInBufFlit( std::pair<uint32_t, uint32_t> vn_vc ) = 0;
+  virtual void   sendOutBufFlit( MordredFlit* flit, std::pair<uint32_t, uint32_t> vn_vc )  = 0;
 
 };  // class RtrPortControlAPI
 

@@ -34,6 +34,7 @@ SimpleRTR::SimpleRTR( ComponentId_t cid, Params& params ) : Component( cid ) {
 
   numPorts = params.find<uint32_t>("num_ports", 3);
   numLocalPorts = params.find<uint32_t>( "num_local_ports", 1 );
+  numVns = params.find<uint32_t>( "num_vns", 1 ); // commented out as an ELI param for now
   numVcs = params.find<uint32_t>( "num_vcs", 1 );
 
   if ( numPorts <= numLocalPorts )
@@ -44,23 +45,27 @@ SimpleRTR::SimpleRTR( ComponentId_t cid, Params& params ) : Component( cid ) {
   if ( !topology )
     output.fatal( CALL_INFO, -1, "Couldn't load topology\n" );
 
-  arbWinners.resize( numPorts, UINT32_MAX );
-  inVcHeads.resize( numPorts );
+  arbWinners.resize( numPorts, std::make_pair( UINT32_MAX, UINT32_MAX ) );
+  perPortVnObjs.resize( numPorts );
   // Configure local/endpt ports -- borrowed this approach from
   // sst-elements/src/sst/elements/simpleElementExample/basicLinks.cc
   for ( uint32_t i = 0; i < numPorts; i++ ) {
     std::string linkname = "port" + std::to_string(i);
     if ( isPortConnected( linkname ) ) {
-      inVcHeads[i].resize( numVcs );
+      perPortVnObjs.at(i).resize( numVns ); // TODO: This may want to vary based on if the port is a local endpoint or a router connection
+      for ( uint32_t j = 0; j < numVns; j++ ) {
+        perPortVnObjs.at(i).at(j).allocateVecs( numVcs ); // TODO: This may want to vary based on if the port is a local endpoint or a router connection
+        perPortVnObjs.at(i).at(j).initVecs();
+      }
       portsVec.push_back( loadAnonymousSubComponent<RtrPortControlAPI>("mordred.rtrPortControl", "portcontrol", (int)i,
-        ComponentInfo::SHARE_PORTS, params, topology, &inVcHeads[i], id, i) );
+        ComponentInfo::SHARE_PORTS, params, topology, &perPortVnObjs[i], id, i) );
     } else {
-      output.verbose( CALL_INFO, 9, 0, "Port %u with name=%s unconnected\n", i, linkname.c_str() );
+      output.verbose( CALL_INFO, 5, 0, "Port %u with name=%s unconnected\n", i, linkname.c_str() );
       portsVec.push_back( nullptr );
     }
   }
 
-  arbiter = loadAnonymousSubComponent<ArbAPI>( "mordred.arbRR", "arbiter", 0, ComponentInfo::SHARE_NONE, params, &inVcHeads, &arbWinners );
+  arbiter = loadAnonymousSubComponent<ArbAPI>( "mordred.arbRR", "arbiter", 0, ComponentInfo::SHARE_NONE, params, &perPortVnObjs, &arbWinners );
   if (arbiter == nullptr) {
     output.fatal( CALL_INFO, -1, "arbiter is a nullptr\n" );
   }
@@ -105,7 +110,7 @@ bool SimpleRTR::clockTick( Cycle_t cycle ) {
 
   // For all router ports, see if we can move a flit through the "crossbar"
   for ( uint32_t i = 0; i < numPorts; i++ ) {
-    if ( arbWinners[i] == UINT32_MAX )
+    if ( arbWinners[i].first == UINT32_MAX )
       continue;
 
     // get flit out of the input buffer of the receiving port

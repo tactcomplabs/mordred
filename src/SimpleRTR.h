@@ -53,6 +53,7 @@ public:
     {"clock", "Clock frequency of the router", "1GHz"},
     {"num_ports", "Number of ports on the router", "3"},
     {"num_local_ports", "Number of local ports", "1"},
+    //{"num_vns", "Number of virtual networks", "1"},
     {"num_vcs",            "Number of virtual channels.", "1"},
     {"flit_size",          "Flit size specified in either b or B (can include SI prefix).", "32b"},
     {"input_buf_size",     "Size of input buffers specified in b or B (can include SI prefix).", nullptr},
@@ -99,6 +100,7 @@ private:
   TimeConverter*          timeConverter;
   uint32_t                numPorts{};
   uint32_t                numLocalPorts{};
+  uint32_t                numVns{};
   uint32_t                numVcs{};
 
   // Major components
@@ -107,9 +109,12 @@ private:
   std::vector<RtrPortControlAPI*>  portsVec;
 
   // Shared between components
-  std::vector<std::vector<MordredFlit*>> inVcHeads; // head of VC channel to be arbitrated/moved through crossbar
-  std::vector<uint32_t> arbWinners; // use UINT32_MAX to identify idle/unassigned; id VC of port that won arbitration
+  // perPortVnObjs[port_id][vn]
+  std::vector<std::vector<RtrOwnedVnObj>> perPortVnObjs;
 
+  std::vector<std::pair<uint32_t,uint32_t>> arbWinners; // use UINT32_MAX to identify idle/unassigned; id VN,VC of port that won arbitration
+
+  // These would need to be 3D - port.vn.vc
   std::vector<std::vector<RtrPortControlAPI::InVcStateE>> inVcStates; // TODO: candidate for InVcHeads?
   std::vector<std::vector<RtrPortControlAPI::OutVcStateE>> outVcStates;
 

@@ -24,7 +24,7 @@
  * - SimpleNetwork::Request is passed into the NIC (linkControl) and the NIC creates a wrapping event,
  *    RtrEvent.  The RtrEvent is transmitted on the SST::Link from the endpt NIC to the router
  * - The router then creates yet another wrapping event (internal_router_event) to use while the
- *    packet traverses the network
+ *    packet traverses the network (this transition happens in topology->proecess_input() ).
  * - The router removes the outer shell (internal_router_event) when sending the packet to the endpt
  *    NIC (thus the endpt NIC gets a RtrEvent)
  * - Endpt NIC removes the RtrEvent shell and returns a SimpleNetwork::Request to the endpt
@@ -51,6 +51,8 @@ namespace SST::Mordred {
 // be desirable in the long run
 constexpr uint32_t DEBUG_CONSTRUCTORS = (1UL << 0);
 constexpr uint32_t DEBUG_INIT_PHASE   = (1UL << 1);
+
+// TODO: Add a mask for debugging credits
 
 // This is a very simple event being sent by the TestEP.
 class simpleTestEvent : public Event {
@@ -92,7 +94,7 @@ private:
 // Used to initialize the network
 class MordredInitEvent : public baseMordredEvent {
 public:
-  enum Commands { REPORT_ENDPOINT, REPORT_ROUTER, ROUTER_ID, PORT_NUM, ENDPOINT_ID, NUM_VCS, FLIT_WIDTH, BUS_WIDTH, NUM_COMMANDS };
+  enum Commands { REPORT_ENDPOINT, REPORT_ROUTER, ROUTER_ID, PORT_NUM, ENDPOINT_ID, NUM_VNS, NUM_VCS, FLIT_WIDTH, BUS_WIDTH, NUM_COMMANDS };
   MordredInitEvent() : baseMordredEvent( INITIALIZATION ) {}
 
   Commands command;
@@ -115,13 +117,14 @@ public:
   FlitTypeE ftype{NUM_TYPES};
 
   // This is what the endpoint passes into the MordredNIC; within
-  // this request is the data packet (sst Event) that one endpoint
+  // this request is the data packet (SST::Event) that one endpoint
   // wants to pass to another endpoint
   Interfaces::SimpleNetwork::Request  *req;
 
+  uint32_t vn{0};
   uint32_t next_port{UINT32_MAX};
-  //uint32_t next_vc{}; Need? Most likely
-  // uint32_t cur_vc{UINT32_MAX}; // TODO: Start using me rather than assuming 0 everywhere
+  uint32_t next_vc{UINT32_MAX};
+  uint32_t cur_vc{0}; // TODO: Start using me rather than assuming 0 everywhere
 
   // Events must provide a serialization function that serializes
   // all data members of the event
@@ -129,6 +132,10 @@ public:
     Event::serialize_order( ser );
     ser & ftype;
     ser & req;
+    ser & vn;
+    ser & next_port;
+    ser & next_vc;
+    ser & cur_vc;
   }
 
   // Register this event as serializable
@@ -139,13 +146,18 @@ public:
 // credit_event in router.h
 class MordredCreditEvent : public baseMordredEvent {
 public:
+  uint32_t vn;
   uint32_t vc;
   int32_t credits;
 
   MordredCreditEvent() : baseMordredEvent( CREDIT ) {}
 
-  MordredCreditEvent( uint32_t vc_, int32_t credits_ ) :
-  baseMordredEvent( CREDIT ), vc( vc_ ), credits( credits_ ) {}
+  // TODO: Delete this constructor
+  //MordredCreditEvent( uint32_t vc_, int32_t credits_ ) :
+  //baseMordredEvent( CREDIT ), vc( vc_ ), credits( credits_ ) {}
+
+  MordredCreditEvent( uint32_t vn_, uint32_t vc_, int32_t credits_ ) :
+  baseMordredEvent( CREDIT ), vn( vn_ ), vc( vc_ ), credits( credits_ ) { /* empty */ }
 
   void serialize_order(Core::Serialization::serializer& ser) override {
     baseMordredEvent::serialize_order(ser);
@@ -156,6 +168,30 @@ public:
 private:
   ImplementSerializable( SST::Mordred::MordredCreditEvent );
 };
+
+
+/**
+ * So the naming here is probably horrible, but this is a collection of
+ * per-VN data structures that the router owns.  Most everything in
+ * this structure is going to be a vector because we many of the things
+ * are needed for each VC as well.
+ */
+struct RtrOwnedVnObj {
+
+  std::vector<MordredFlit*> vcHeads;
+
+  void allocateVecs( uint32_t num_vcs ) {
+    vcHeads.resize( num_vcs );
+  }
+
+  void initVecs() {
+    for( auto &vc_head : vcHeads ) {
+      vc_head = nullptr;
+    }
+  }
+
+};
+
 
 } // namespace SST::Mordred
 

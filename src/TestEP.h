@@ -45,8 +45,8 @@ public:
   /// SST Required
   void init(uint32_t phase) override;
   void setup() override;
-  void complete(uint32_t phase) override { /* empty */ }
-  void finish() override { /* empty */ }
+  void complete(uint32_t phase) override;
+  void finish() override;
 
   bool clockTick( Cycle_t cycle );
 

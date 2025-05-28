@@ -55,6 +55,7 @@ int32_t MeshTopology::getEndpointId( uint32_t portnum ) {
   return static_cast<int32_t>( base_id + local_id );
 }
 
+// TODO: Set up which VC to use; local port always uses VC==0
 uint32_t MeshTopology::routePacket( uint32_t dest ) {
   uint32_t dest_x = dest % xDim;
   uint32_t dest_y = dest / xDim;
