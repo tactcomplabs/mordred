@@ -108,14 +108,16 @@ private:
 // This is intended to be the basic Flit running around the NoC.
 class MordredFlit final : public baseMordredEvent {
 public:
+  enum FlitTypeE { HEAD, BODY, TAIL, EMPTY, NUM_TYPES };
+
   MordredFlit() : baseMordredEvent( FLIT ){ /* empty */ }
   MordredFlit( Interfaces::SimpleNetwork::Request *req_ ) : baseMordredEvent( FLIT ), req( req_ ) { /* empty */ }
+  MordredFlit( Interfaces::SimpleNetwork::Request *req_, FlitTypeE ftype_, int32_t id ) :
+    baseMordredEvent( FLIT ), ftype( ftype_ ), req( req_ ), flit_id( (uint32_t)id ) { /* empty */ }
 
   Interfaces::SimpleNetwork::Request *getRequest() { return req; }
 
-  enum FlitTypeE { HEAD, BODY, TAIL, EMPTY, NUM_TYPES };
   FlitTypeE ftype{NUM_TYPES};
-
   // This is what the endpoint passes into the MordredNIC; within
   // this request is the data packet (SST::Event) that one endpoint
   // wants to pass to another endpoint
@@ -124,7 +126,18 @@ public:
   uint32_t vn{0};
   uint32_t next_port{UINT32_MAX};
   uint32_t next_vc{UINT32_MAX};
-  uint32_t cur_vc{0}; // TODO: Start using me rather than assuming 0 everywhere
+  uint32_t cur_vc{0}; // TODO: Start using this rather than assuming 0 everywhere
+  uint32_t flit_id{};
+
+  std::string getFtypeStr() {
+    switch( ftype ) {
+      case HEAD: return "HEAD";
+      case BODY: return "BODY";
+      case TAIL: return "TAIL";
+      case EMPTY: return "EMPTY";
+      default: return "UNKNOWN";
+    }
+  }
 
   // Events must provide a serialization function that serializes
   // all data members of the event
@@ -136,6 +149,7 @@ public:
     ser & next_port;
     ser & next_vc;
     ser & cur_vc;
+    ser & flit_id;
   }
 
   // Register this event as serializable
@@ -179,6 +193,10 @@ private:
 struct RtrOwnedVnObj {
 
   std::vector<MordredFlit*> vcHeads;
+  // vc state
+  // next vn -- packets shouldn't really be changing vns, but maybe they could if bridging networks
+  // next vc -- this gets maintained from HEAD to TAIL flit
+
 
   void allocateVecs( uint32_t num_vcs ) {
     vcHeads.resize( num_vcs );

@@ -139,6 +139,7 @@ public:
 private:
   void resizeVectors();
   MordredInitEvent* getInitEvent( MordredInitEvent::Commands cmd );
+  int32_t           calcNumFlits( uint32_t num_bits );
 
   // event handlers
   void handleIncomingPacket( SST::Event* ev );
@@ -167,7 +168,7 @@ private:
 
   // Packet buffers
   std::vector<std::queue<Request*>> inBuf; // from router
-  std::vector<std::queue<Request*>> outBuf; // to router
+  std::vector<std::queue<MordredFlit*>> outBuf; // to router
 
   // Credit counters; 1 credit = 1 flit
   // credits received from router; initialization comes from router in init;

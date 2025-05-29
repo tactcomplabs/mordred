@@ -44,7 +44,8 @@ class TopologyAPI; // forward declaration
 
 class RtrPortControlAPI : public SubComponent {
 public:
-  SST_ELI_REGISTER_SUBCOMPONENT_API( SST::Mordred::RtrPortControlAPI, TopologyAPI*, std::vector<RtrOwnedVnObj>*, uint32_t, uint32_t )
+  SST_ELI_REGISTER_SUBCOMPONENT_API( SST::Mordred::RtrPortControlAPI, TopologyAPI*,
+    std::vector<RtrOwnedVnObj>*, uint32_t, uint32_t )
 
   enum PortConnectionE { ENDPOINT, ROUTER, UNKNOWN, INVALID };
   enum InVcStateE { IN_IDLE, ROUTING, WAIT_OUTPUT, IN_BUSY }; // for the port input side - mainly for xbar arb
@@ -62,6 +63,8 @@ public:
 
   // No separate clock - run off the router clock
   virtual void ClockTick( Cycle_t cycle ) = 0;
+
+  virtual int32_t getOutBufCreditCount( std::pair<uint32_t, uint32_t> vn_vc ) = 0;
 
   // Get state for a VC
   // TODO: Uncomment and implement in derived

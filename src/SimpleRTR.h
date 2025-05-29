@@ -114,9 +114,8 @@ private:
 
   std::vector<std::pair<uint32_t,uint32_t>> arbWinners; // use UINT32_MAX to identify idle/unassigned; id VN,VC of port that won arbitration
 
-  // These would need to be 3D - port.vn.vc
   std::vector<std::vector<RtrPortControlAPI::InVcStateE>> inVcStates; // TODO: candidate for InVcHeads?
-  std::vector<std::vector<RtrPortControlAPI::OutVcStateE>> outVcStates;
+  std::vector<RtrPortControlAPI::OutVcStateE> outVcStates; // per port
 
 };  // SimpleRTR
 

@@ -73,6 +73,9 @@ public:
   void inHandler(SST::Event* ev);
 
   // Switch/xbar interactions
+  int32_t getOutBufCreditCount( std::pair<uint32_t, uint32_t> vn_vc ) final {
+    return outBufCredits[vn_vc.first][vn_vc.second];
+  }
   MordredFlit* getInBufFlit( std::pair<uint32_t, uint32_t> vn_vc ) final;
   void   sendOutBufFlit( MordredFlit* flit, std::pair<uint32_t, uint32_t> vn_vc ) final; // Rename?
 
@@ -103,9 +106,6 @@ private:
   uint32_t inBufSize;
   uint32_t outBufSize;
 
-
-
-  //std::vector<std::vector<MordredFlit*>> *vcHeads{};
   std::vector<RtrOwnedVnObj> *perVnObjs{};
 
   // Outer dimension is VN, inner is VC

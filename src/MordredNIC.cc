@@ -8,6 +8,8 @@
 // See LICENSE in the top level directory for licensing details
 //
 
+#include <cmath>
+
 #include "MordredNIC.h"
 
 #include "MordredEvents.h"
@@ -200,15 +202,39 @@ SST::Interfaces::SimpleNetwork::Request* MordredNIC::recvUntimedData() {
   return nullptr;
 }
 
+int32_t MordredNIC::calcNumFlits( uint32_t num_bits ) {
+  // Need to see if we have enough credits to send this
+  int32_t num_flits = static_cast<int32_t>(ceil( num_bits / flitSize ));
+  output->verbose( CALL_INFO, 5, 0, "Sending request of size=%" PRIu32 " bits; num_flits=%" PRId32 "\n", num_bits, num_flits );
+  if ( num_flits < 2 ) // per current docs, at least 2 flits per packet
+    num_flits = 2;
+  return num_flits;
+}
+
 bool MordredNIC::send( Request* req, int32_t vn ) {
   if ( vn != 0 )
     output->fatal( CALL_INFO, -1, "MordredNIC only supports vn=0\n" );
   auto u_vn = static_cast<uint32_t>( vn );
-  if ( outbufCredits.at(u_vn) <= 0 )
+
+  int32_t num_flits = calcNumFlits( req->size_in_bits );
+  if ( outbufCredits.at(u_vn) <= num_flits )
     return false;
 
-  outBuf.at(u_vn).push( req );
-  outbufCredits.at(u_vn)--;
+  // Update credits
+  outbufCredits.at(u_vn) -= num_flits;
+
+  // Create head flit
+  auto flit = new MordredFlit( req, MordredFlit::HEAD, 0 );
+  outBuf.at(u_vn).push( flit );
+  flit = nullptr;
+  for ( int32_t i = 1; i < num_flits-1; i++ ) {
+    flit = new MordredFlit( req, MordredFlit::BODY, i );
+    outBuf.at(u_vn).push( flit );
+    flit = nullptr;
+  }
+  flit = new MordredFlit( req, MordredFlit::TAIL, num_flits-1 );
+  outBuf.at(u_vn).push( flit );
+
   return true;
 }
 
@@ -223,17 +249,15 @@ SST::Interfaces::SimpleNetwork::Request* MordredNIC::recv( int32_t vn ) {
   Request* req = inBuf.at(u_vn).front();
   inBuf.at(u_vn).pop();
 
-  // Return credit to router
-  inReturnCredits.at( u_vn )++;
   return req;
 }
 
 bool MordredNIC::spaceToSend( int vn, int num_bits ) {
   if ( vn != 0 )
     output->fatal( CALL_INFO, -1, "MordredNIC only supports vn=0\n" );
+  int32_t num_flits = calcNumFlits( static_cast<uint32_t>(num_bits) );
   auto u_vn = static_cast<uint32_t>( vn );
-  //TODO: This is assuming one flit per inquiry into this function
-  if ( outbufCredits.at(u_vn) > 0 )
+  if ( outbufCredits.at(u_vn) >= num_flits )
     return true;
   return false;
 }
@@ -251,14 +275,13 @@ bool MordredNIC::clockTick( Cycle_t cycle ) {
 
   if ( !outBuf.at(vn).empty() ) {
     if ( rtrCredits.at(vn) > 0 ) {
-      auto req = outBuf.at(vn).front();
-      auto flit = new MordredFlit( req );
+      auto flit = outBuf.at(vn).front();
       link->send( flit );
       sent = true;
       outBuf.at(vn).pop();
       rtrCredits.at(vn)--;
       outbufCredits.at(vn)++;
-      output->verbose( CALL_INFO, 5, 0, "Sent flit to link; credits_left=%" PRId32 "\n", rtrCredits.at(0) );
+      output->verbose( CALL_INFO, 5, 0, "Sent flit to link at cycle=%" PRIu64 "; credits_left=%" PRId32 "\n", cycle, rtrCredits.at(0) );
     }
   }
 
@@ -320,11 +343,16 @@ void MordredNIC::handleIncomingPacket( SST::Event* ev ) {
   } // end CREDIT
   case baseMordredEvent::FLIT: {
     auto flit = static_cast<MordredFlit*>( ev );
-    Request* req = flit->getRequest();
-    if ( req == nullptr ) {
-      output->fatal( CALL_INFO, -1, "Request was nullptr!\n" );
+    output->verbose( CALL_INFO, 5, 0, "Received flit vn=%" PRIu32 ", type=%s\n", flit->vn, flit->getFtypeStr().c_str() );
+    if ( flit->ftype == MordredFlit::TAIL) {
+      Request* req = flit->getRequest();
+      if ( req == nullptr ) {
+        output->fatal( CALL_INFO, -1, "Request was nullptr!\n" );
+      }
+      inBuf.at(flit->vn).push( req );
     }
-    inBuf.at(flit->vn).push( req );
+    // Return credit to router
+    inReturnCredits.at( flit->vn )++;
     delete flit;
     break;
   } // end FLIT

@@ -12,8 +12,9 @@
 #include <cinttypes>
 #include <cstdint>
 
-#include "SimpleRTR.h"
 #include "MordredEvents.h"
+#include "RtrPortControlAPI.h"
+#include "SimpleRTR.h"
 
 using namespace SST;
 using namespace SST::Mordred;
@@ -46,6 +47,7 @@ SimpleRTR::SimpleRTR( ComponentId_t cid, Params& params ) : Component( cid ) {
     output.fatal( CALL_INFO, -1, "Couldn't load topology\n" );
 
   arbWinners.resize( numPorts, std::make_pair( UINT32_MAX, UINT32_MAX ) );
+  outVcStates.resize( numPorts, RtrPortControlAPI::OutVcStateE::OUT_IDLE );
   perPortVnObjs.resize( numPorts );
   // Configure local/endpt ports -- borrowed this approach from
   // sst-elements/src/sst/elements/simpleElementExample/basicLinks.cc
@@ -65,7 +67,8 @@ SimpleRTR::SimpleRTR( ComponentId_t cid, Params& params ) : Component( cid ) {
     }
   }
 
-  arbiter = loadAnonymousSubComponent<ArbAPI>( "mordred.arbRR", "arbiter", 0, ComponentInfo::SHARE_NONE, params, &perPortVnObjs, &arbWinners );
+  arbiter = loadAnonymousSubComponent<ArbAPI>( "mordred.arbRR", "arbiter", 0,
+    ComponentInfo::SHARE_NONE, params, &perPortVnObjs, &arbWinners, &outVcStates );
   if (arbiter == nullptr) {
     output.fatal( CALL_INFO, -1, "arbiter is a nullptr\n" );
   }
@@ -79,7 +82,6 @@ SimpleRTR::SimpleRTR( ComponentId_t cid, Params& params ) : Component( cid ) {
 
 SimpleRTR::~SimpleRTR() {
   for ( auto &port : portsVec )
-    if ( port != nullptr )
       delete port;
   delete arbiter;
   delete topology;
@@ -106,21 +108,41 @@ bool SimpleRTR::clockTick( Cycle_t cycle ) {
   // May want/need to look at how we want to time/order ticking the ports and running the crossbar/arbitration here
 
   //output.verbose( CALL_INFO, 3, 0, "Cycle=%" PRIu64 "\n", cycle );
+  //output.flush();
   arbiter->arbitrate();
 
   // For all router ports, see if we can move a flit through the "crossbar"
   for ( uint32_t i = 0; i < numPorts; i++ ) {
+
+    if ( (id == 0) && ( cycle >= 20 ) && ( cycle <= 24 ) ) {
+      output.verbose( CALL_INFO, 5, 0, "Cycle=%" PRIu64 "; arbWinners[%u]=(%u,%u)\n",
+        cycle, i, arbWinners[i].first, arbWinners[i].second );
+    }
+
     if ( arbWinners[i].first == UINT32_MAX )
       continue;
+
+    if ( portsVec.at(i)->getOutBufCreditCount( arbWinners[i] ) <= 0 ) {
+      outVcStates.at( i ) = RtrPortControlAPI::OutVcStateE::NEED_CREDITS;
+      continue;
+    }
 
     // get flit out of the input buffer of the receiving port
     MordredFlit *flit = portsVec.at( i )->getInBufFlit( arbWinners[i] );
 
     // send flit to the output buffer of the sending port
-    // TODO: Make sure flit->next_port exists
     portsVec.at( flit->next_port )->sendOutBufFlit( flit, arbWinners[i] );
+    if ( flit->ftype == MordredFlit::TAIL ) {
+      if ( portsVec.at(flit->next_port)->getOutBufCreditCount( arbWinners[i] ) > 0 ) {
+        outVcStates.at( flit->next_port ) = RtrPortControlAPI::OutVcStateE::OUT_IDLE;
+        output.verbose( CALL_INFO, 5, 0, "Cycle=%" PRIu64 "; reset outVcState=%u\n", cycle, flit->next_port );
+      }
+      arbWinners[i] = std::make_pair( UINT32_MAX, UINT32_MAX ); // reset arbWinner for the sending port
+      output.verbose( CALL_INFO, 5, 0, "Cycle=%" PRIu64 "; reset arbWinners=%u\n", cycle, i );
+    }
   }
 
+  // Let the port do its work
   for ( auto &port : portsVec ) {
     if (port == nullptr) continue;
     port->ClockTick( cycle );

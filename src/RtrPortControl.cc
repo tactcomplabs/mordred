@@ -258,17 +258,19 @@ void RtrPortControl::ClockTick( Cycle_t cycle ) {
   //output->verbose( CALL_INFO, 3, 0, "Tick; cycle=%" PRIu64 "\n", cycle );
   //output->flush();
 
-  // Fill all possible vcHeads
+  // Fill all possible vcHeads from the input buffer
   for ( uint32_t vn = 0; vn < numVns; vn++ ) {
     for ( uint32_t vc = 0; vc < numVcs; vc++ ) {
-      if ( ( perVnObjs->at(vn).vcHeads[vc] == nullptr ) && ( !inBuf.at( vn ).at( vc ).empty() ) )
+      if ( ( perVnObjs->at(vn).vcHeads[vc] == nullptr ) && ( !inBuf.at( vn ).at( vc ).empty() ) ) {
         perVnObjs->at(vn).vcHeads[vc] = inBuf.at( vn ). at( vc ).front();
+        output->verbose( CALL_INFO, 5, 0, "Filling vcHeads[vc=%d] for vn=%d\n", vc, vn );
+      }
     }
   }
 
   // TODO: Configured (poorly) as a round robin (don't maintain a changing index);
   // but really need to be checking credits
-  // Note: this is where we're pushing a flit out onto a link
+  // Send a flit on the link from the output buffer
   bool sent = false;
   for ( uint32_t vn = 0; vn < numVns; vn++) {
     for ( uint32_t vc = 0; vc < numVcs; vc++ ) {
@@ -291,6 +293,8 @@ void RtrPortControl::ClockTick( Cycle_t cycle ) {
 
 void RtrPortControl::inHandler( SST::Event* ev ) {
 
+  //output->verbose( CALL_INFO, 5, 0, "Handling an input event" );
+  //output->flush();
   auto bev = static_cast<baseMordredEvent*>( ev );
   if ( bev == nullptr ) {
     output->fatal( CALL_INFO, -1, "Null event\n" );
@@ -334,11 +338,22 @@ MordredFlit* RtrPortControl::getInBufFlit( std::pair<uint32_t, uint32_t> vn_vc )
   MordredFlit* flit = inBuf.at( vn ).at( vc ).front();
   inBuf.at( vn ).at( vc ).pop();
 
-  // Clear for the next packet
-  perVnObjs->at( vn ).vcHeads[ vc ] = nullptr;
+  if ( flit == nullptr )
+    output->fatal( CALL_INFO, -1, "Invalid flit \n" );
+
+  // If we're at the tail, clear for the next packet
+  if ( flit->ftype == MordredFlit::TAIL ) {
+    perVnObjs->at( vn ).vcHeads[ vc ] = nullptr;
+    //TODO: Reset output state
+    output->verbose( CALL_INFO, 5, 0, "Clearing vcHeads[vc=%d] for vn=%d\n", vc, vn );
+  }
 
   // Can return a credit to the sender
   inRetCredits.at( vn ).at( vc )++;
+
+  auto test_ev = static_cast<simpleTestEvent*>( flit->req->inspectPayload() );
+  output->verbose( CALL_INFO, 5, 0, "Send Flit; str=%s, src=%" PRIu64 ", dst=%" PRIu64 ", size=%zu, dest_port=%" PRIu32 "\n",
+    test_ev->str.c_str(), flit->req->src, flit->req->dest, flit->req->size_in_bits, flit->next_port );
 
   return flit;
 }

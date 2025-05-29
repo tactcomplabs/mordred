@@ -59,6 +59,7 @@ void TestEP::finish() {
 bool TestEP::clockTick( Cycle_t cycle ) {
   //if ( nocIface->getEndpointID() == 0 )
   //  output.verbose( CALL_INFO, 3, 0, "Tick; Cycle=%" PRIu64 "\n", cycle );
+  //output.flush();
 
   if ( ( nocIface->getEndpointID() == 0 ) && ( cycle == 10 ) ) {
     output.verbose( CALL_INFO, 3, 0, "Sending packet. Cycle=%" PRIu64 "\n", cycle );
@@ -67,19 +68,35 @@ bool TestEP::clockTick( Cycle_t cycle ) {
     auto *req = new Interfaces::SimpleNetwork::Request();
     req->src = nocIface->getEndpointID();
     req->dest = 1;
-    req->size_in_bits = 8*(sizeof(simpleTestEvent) + pkt->str.size());
+    req->size_in_bits = 8*pkt->str.size();
     req->vn = 0;
     req->givePayload( pkt );
 
-    nocIface->send( req, 0 );
+    if ( !nocIface->send( req, 0 ) )
+      output.fatal( CALL_INFO, -1, "Failed to send packet\n" );
   }
 
-#if 0
+  if ( ( nocIface->getEndpointID() == 0 ) && ( cycle == 20 ) ) {
+    output.verbose( CALL_INFO, 3, 0, "Sending packet. Cycle=%" PRIu64 "\n", cycle );
+    auto pkt = new simpleTestEvent( "give me coffee pretty please");
+
+    auto *req = new Interfaces::SimpleNetwork::Request();
+    req->src = nocIface->getEndpointID();
+    req->dest = 1;
+    req->size_in_bits = 8*pkt->str.size();
+    req->vn = 0;
+    req->givePayload( pkt );
+
+    if ( !nocIface->send( req, 0 ) )
+      output.fatal( CALL_INFO, -1, "Failed to send packet\n" );
+  }
+
+#if 1
   // Simple output testing - need at least 9 endpoints as currently written
   // TODO: Check if the routing still works if >1 endpt per router
   if ( ( nocIface->getEndpointID() == 0 ) && ( cycle == 20 ) ) {
     output.verbose( CALL_INFO, 3, 0, "Sending packet. Cycle=%" PRIu64 "\n", cycle );
-    auto pkt = new simpleTestEvent( "howdy");
+    auto pkt = new simpleTestEvent( "howdy, how are you?");
 
     auto *req = new Interfaces::SimpleNetwork::Request();
     req->src = nocIface->getEndpointID();
@@ -93,7 +110,7 @@ bool TestEP::clockTick( Cycle_t cycle ) {
 
   if ( ( nocIface->getEndpointID() == 0 ) && ( cycle == 30 ) ) {
     output.verbose( CALL_INFO, 3, 0, "Sending packet. Cycle=%" PRIu64 "\n", cycle );
-    auto pkt = new simpleTestEvent( "howdy");
+    auto pkt = new simpleTestEvent( "oh my bad decaf");
 
     auto *req = new Interfaces::SimpleNetwork::Request();
     req->src = nocIface->getEndpointID();
@@ -116,7 +133,7 @@ bool TestEP::clockTick( Cycle_t cycle ) {
   }
 
   // End simulation
-  if ( cycle == 60 ) {
+  if ( cycle == 80 ) {
     output.verbose( CALL_INFO, 3, 0, "Cycle=%" PRIu64 "\n", cycle );
     primaryComponentOKToEndSim();
   }

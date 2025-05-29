@@ -41,8 +41,8 @@ public:
 
   SST_ELI_DOCUMENT_STATISTICS()
 
-  ArbRR( ComponentId_t id, Params &params, std::vector<std::vector<RtrOwnedVnObj>>* vn_objs,
-    std::vector<std::pair<uint32_t,uint32_t>> *arb_winners);
+  ArbRR( ComponentId_t id, Params &params, std::vector<std::vector<RtrOwnedVnObj>> *vn_objs,
+    std::vector<std::pair<uint32_t,uint32_t>> *arb_winners, std::vector<RtrPortControlAPI::OutVcStateE> *out_vc_states );
 
   ~ArbRR() final = default;
 
@@ -55,6 +55,7 @@ private:
 
   std::vector<std::vector<RtrOwnedVnObj>>* vnObjs;
   std::vector<std::pair<uint32_t,uint32_t>> *arbWinners; // index is port, pair is VN,VC of who won arbitration
+  std::vector<RtrPortControlAPI::OutVcStateE> *outVcStates;
 
   //uint32_t next_port{0}; // use to track rr start
 };
