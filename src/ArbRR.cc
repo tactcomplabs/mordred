@@ -66,8 +66,8 @@ void ArbRR::arbitrate( ) {
       for ( uint32_t k = 0; k < vcHeads.size(); k++ ) {
         auto flit = vcHeads.at( k );
         if ( flit != nullptr ) {
-          output->verbose( CALL_INFO, 5, 0, "Port %" PRIu32 " has a flit of type=%s; outstate=%d\n",
-              i, flit->getFtypeStr().c_str(), outVcStates->at( flit->next_port ) );
+          //output->verbose( CALL_INFO, 5, 0, "Port %" PRIu32 " has a flit of type=%s; outstate=%d\n",
+          //    i, flit->getFtypeStr().c_str(), outVcStates->at( flit->next_port ) );
           if ( flit->next_port >= numPorts )
             output->fatal( CALL_INFO, -1, "Flit next_port == %" PRIu32 " is invalid\n", flit->next_port );
           if ( vnObjs->at( flit->next_port ).empty() )

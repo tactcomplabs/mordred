@@ -29,12 +29,11 @@ class TopologyAPI : public SubComponent {
 public:
   SST_ELI_REGISTER_SUBCOMPONENT_API( SST::Mordred::TopologyAPI, ComponentId_t, uint32_t, uint32_t )
 
-
   /// TopologyAPI: constructor
   TopologyAPI( ComponentId_t id ) : SubComponent( id ) {}
 
   /// TopologyAPI: default destructor
-  ~TopologyAPI() override                                                         = default;
+  ~TopologyAPI() override  = default;
 
   /// Computed endpoint ID
   virtual int32_t getEndpointId( uint32_t portnum ) { return -1; }

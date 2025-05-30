@@ -301,7 +301,7 @@ class Crossbar:
 
 
 # General params
-local_ports = 1 # MeshTopology.{h,cc} doesn't account for >1 here
+local_ports = 1
 concentration = 1
 
 # Mesh/torus Configuration options

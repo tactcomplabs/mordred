@@ -93,7 +93,7 @@ RtrPortControl::RtrPortControl( ComponentId_t id, Params& params, TopologyAPI* t
     rtrId, portId, inBufSize, outBufSize);
 }
 
-// Note: It may be sensible to do this in the init phase once we know what the other end of the link is
+// Note: It may be "better" to do this in the init phase once we know what the other end of the link is
 void RtrPortControl::allocateBuffers() {
   auto credits = outBufSize / flitSize ;
 
@@ -116,7 +116,6 @@ void RtrPortControl::allocateBuffers() {
     inRetCredits.at(i).resize( numVcs, 0 );
   }
 }
-
 
 void RtrPortControl::init( unsigned int phase ) {
   //output->verbose( CALL_INFO, 5, 0, " init phase=%" PRIu32 "\n", phase );
@@ -263,28 +262,29 @@ void RtrPortControl::ClockTick( Cycle_t cycle ) {
     for ( uint32_t vc = 0; vc < numVcs; vc++ ) {
       if ( ( perVnObjs->at(vn).vcHeads[vc] == nullptr ) && ( !inBuf.at( vn ).at( vc ).empty() ) ) {
         perVnObjs->at(vn).vcHeads[vc] = inBuf.at( vn ). at( vc ).front();
-        output->verbose( CALL_INFO, 5, 0, "Filling vcHeads[vc=%d] for vn=%d\n", vc, vn );
+        //output->verbose( CALL_INFO, 5, 0, "Filling vcHeads[vc=%d] for vn=%d\n", vc, vn );
       }
     }
   }
 
-  // TODO: Configured (poorly) as a round robin (don't maintain a changing index);
-  // but really need to be checking credits
   // Send a flit on the link from the output buffer
   bool sent = false;
-  for ( uint32_t vn = 0; vn < numVns; vn++) {
-    for ( uint32_t vc = 0; vc < numVcs; vc++ ) {
-      if ( !outBuf.at( vn ).at( vc ).empty() ) { // TODO: Check credits (or did I put that elsewhere?)
+  for( uint32_t i = 0, vn = flit_vn_rr; i < numVns; i++, vn = ( ( vn != ( numVns - 1 ) ) ? vn + 1 : 0 ) ) {
+    for( uint32_t j = 0, vc = flit_vc_rr; j < numVcs; j++, vc = ( ( vc != ( numVcs - 1 ) ) ? vc + 1 : 0 ) ) {
+      if ( ( !outBuf.at( vn ).at( vc ).empty() ) &&
+           ( destCredits.at( vn ).at( vc ) > 0 ) ) { // ensure there are dest credits
         auto flit = outBuf.at( vn ).at( vc ).front();
         outBuf.at( vn ).at( vc ).pop();
         link->send( flit );
         sent = true;
         destCredits.at( vn ).at( vc )--;
-        output->verbose( CALL_INFO, 5, 0, "Sending output flit; remaining_credits=%" PRId32 "\n", destCredits.at( vn ).at(vc) );
+        //output->verbose( CALL_INFO, 5, 0, "Sending output flit; remaining_credits=%" PRId32 "\n", destCredits.at( vn ).at(vc) );
         break; // can only send one flit out on the link
       }
     }
   }
+  flit_vc_rr = ( flit_vc_rr + 1 ) % numVcs;
+  flit_vn_rr = ( flit_vn_rr + 1 ) % numVns;
 
   // Try returning credits if we haven't used the link
   if ( !sent )
@@ -344,15 +344,14 @@ MordredFlit* RtrPortControl::getInBufFlit( std::pair<uint32_t, uint32_t> vn_vc )
   // If we're at the tail, clear for the next packet
   if ( flit->ftype == MordredFlit::TAIL ) {
     perVnObjs->at( vn ).vcHeads[ vc ] = nullptr;
-    //TODO: Reset output state
-    output->verbose( CALL_INFO, 5, 0, "Clearing vcHeads[vc=%d] for vn=%d\n", vc, vn );
+    // The output state for this port is reset in SimpleRTR rather than here
   }
 
   // Can return a credit to the sender
   inRetCredits.at( vn ).at( vc )++;
 
   auto test_ev = static_cast<simpleTestEvent*>( flit->req->inspectPayload() );
-  output->verbose( CALL_INFO, 5, 0, "Send Flit; str=%s, src=%" PRIu64 ", dst=%" PRIu64 ", size=%zu, dest_port=%" PRIu32 "\n",
+  output->verbose( CALL_INFO, 5, 0, "Get Flit from inBuf; str=%s, src=%" PRIu64 ", dst=%" PRIu64 ", size=%zu, dest_port=%" PRIu32 "\n",
     test_ev->str.c_str(), flit->req->src, flit->req->dest, flit->req->size_in_bits, flit->next_port );
 
   return flit;
@@ -362,9 +361,10 @@ void RtrPortControl::sendOutBufFlit( MordredFlit* flit, std::pair<uint32_t, uint
   uint32_t vn = vn_vc.first;
   uint32_t vc = vn_vc.second;
   outBuf.at( vn ).at( vc ).push( flit );
+  // Below here is for debug purposes
   SST::Event* ev = flit->req->inspectPayload();
   auto test_ev = static_cast<simpleTestEvent*>( ev );
-  output->verbose( CALL_INFO, 5, 0, "Send Flit; str=%s, src=%" PRIu64 ", dst=%" PRIu64 ", size=%zu, dest_port=%" PRIu32 "\n",
+  output->verbose( CALL_INFO, 5, 0, "Put Flit in outBuf; str=%s, src=%" PRIu64 ", dst=%" PRIu64 ", size=%zu, dest_port=%" PRIu32 "\n",
     test_ev->str.c_str(), flit->req->src, flit->req->dest, flit->req->size_in_bits, flit->next_port );
 }
 
@@ -392,11 +392,11 @@ void RtrPortControl::returnCredit() {
         auto credit = new MordredCreditEvent( vn, vc, inRetCredits.at( vn ).at( vc ) );
         link->send( credit );
         inRetCredits.at( vn ).at( vc ) = 0;
-        output->verbose( CALL_INFO, 5, 0, "Sending credit flit\n" );
+        //output->verbose( CALL_INFO, 5, 0, "Sending credit event\n" );
         break;  // only send one packet on the link
       }
     }
-    credit_ret_vc_rr = ( credit_ret_vc_rr + 1 ) % numVcs;
   }
+  credit_ret_vc_rr = ( credit_ret_vc_rr + 1 ) % numVcs;
   credit_ret_vn_rr = ( credit_ret_vn_rr + 1 ) % numVns;
 }

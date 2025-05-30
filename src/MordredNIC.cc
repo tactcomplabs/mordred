@@ -146,7 +146,7 @@ void MordredNIC::init( uint32_t phase ) {
 
     // Setup/send credit info
     resizeVectors();
-    // Send router credits equal to num_flits in_buf can hold
+    // Send router credits equal to num_flits inBuf can hold
     auto credits = static_cast<int32_t>( inbufSize.getRoundedValue() / flitSize );
     for ( uint32_t i = 0; i < numVns; i++ ) {
       auto* credit_ev = new MordredCreditEvent( i, 0, credits );
@@ -204,8 +204,8 @@ SST::Interfaces::SimpleNetwork::Request* MordredNIC::recvUntimedData() {
 
 int32_t MordredNIC::calcNumFlits( uint32_t num_bits ) {
   // Need to see if we have enough credits to send this
-  int32_t num_flits = static_cast<int32_t>(ceil( num_bits / flitSize ));
-  output->verbose( CALL_INFO, 5, 0, "Sending request of size=%" PRIu32 " bits; num_flits=%" PRId32 "\n", num_bits, num_flits );
+  auto num_flits = static_cast<int32_t>(ceil( num_bits / flitSize ));
+  //output->verbose( CALL_INFO, 5, 0, "Sending request of size=%" PRIu32 " bits; num_flits=%" PRId32 "\n", num_bits, num_flits );
   if ( num_flits < 2 ) // per current docs, at least 2 flits per packet
     num_flits = 2;
   return num_flits;
@@ -223,15 +223,19 @@ bool MordredNIC::send( Request* req, int32_t vn ) {
   // Update credits
   outbufCredits.at(u_vn) -= num_flits;
 
+  /* One thing to note here, we send the SimpleNetwork Request with every flit (useful for debugging
+   * purposes).  When the dest NIC receives a TAIL flit, then we pull the Request out */
+
   // Create head flit
   auto flit = new MordredFlit( req, MordredFlit::HEAD, 0 );
   outBuf.at(u_vn).push( flit );
-  flit = nullptr;
+  // Body flits
   for ( int32_t i = 1; i < num_flits-1; i++ ) {
     flit = new MordredFlit( req, MordredFlit::BODY, i );
     outBuf.at(u_vn).push( flit );
     flit = nullptr;
   }
+  // Tail flit
   flit = new MordredFlit( req, MordredFlit::TAIL, num_flits-1 );
   outBuf.at(u_vn).push( flit );
 
@@ -273,32 +277,36 @@ bool MordredNIC::clockTick( Cycle_t cycle ) {
   bool sent = false;
   uint32_t vn = 0; // TODO: Fix if multiple VNs
 
+  // Send a flit to the router (if credit available)
   if ( !outBuf.at(vn).empty() ) {
     if ( rtrCredits.at(vn) > 0 ) {
       auto flit = outBuf.at(vn).front();
+      outBuf.at(vn).pop();
       link->send( flit );
       sent = true;
-      outBuf.at(vn).pop();
       rtrCredits.at(vn)--;
       outbufCredits.at(vn)++;
-      output->verbose( CALL_INFO, 5, 0, "Sent flit to link at cycle=%" PRIu64 "; credits_left=%" PRId32 "\n", cycle, rtrCredits.at(0) );
+      output->verbose( CALL_INFO, 5, 0, "Sent flit type=%s to link at cycle=%" PRIu64 "; rtrCredits=%" PRId32 "\n",
+        flit->getFtypeStr().c_str(), cycle, rtrCredits.at(vn) );
     }
   }
 
-  // This is doing all VNs
-  if ( !sent ) {
-    for ( uint32_t i = 0; i < numVns; i++ ) {
-      if ( inReturnCredits.at(i) > 0 ) {
-        auto credit_ev = new MordredCreditEvent( i, 0, inReturnCredits.at(i) );
-        link->send( credit_ev );
-        output->verbose( CALL_INFO, 5, 0, "Returning %" PRId32 " credits to router vn=%" PRIu32 "\n",
-          inReturnCredits.at(i), i );
-        inReturnCredits.at(i) = 0;
-        break;
-      }
+  if (sent)
+    return false;
+
+  // Didn't send a flit, try returning credits
+  // Once we send a credit packet out, we're done for this cycle
+  // Could remove the for loop since we're only using 1 vn
+  for ( vn = 0; vn < numVns; vn++ ) {
+    if ( inReturnCredits.at(vn) > 0 ) {
+      auto credit_ev = new MordredCreditEvent( vn, 0, inReturnCredits.at(vn) );
+      link->send( credit_ev );
+      output->verbose( CALL_INFO, 5, 0, "Returning %" PRId32 " credits to router vn=%" PRIu32 "\n",
+        inReturnCredits.at(vn), vn );
+      inReturnCredits.at(vn) = 0;
+      break;
     }
   }
-
   return false;
 }
 
@@ -313,8 +321,7 @@ void MordredNIC::resizeVectors() {
 }
 
 MordredInitEvent* MordredNIC::getInitEvent( MordredInitEvent::Commands cmd ) {
-  Event *ev;
-  ev = link->recvUntimedData();
+  Event *ev = link->recvUntimedData();
   if ( ev == nullptr ) {
     output->fatal( CALL_INFO, -1, "Error in %s: unable to recv init event\n", getName().c_str() );
   }
@@ -343,7 +350,7 @@ void MordredNIC::handleIncomingPacket( SST::Event* ev ) {
   } // end CREDIT
   case baseMordredEvent::FLIT: {
     auto flit = static_cast<MordredFlit*>( ev );
-    output->verbose( CALL_INFO, 5, 0, "Received flit vn=%" PRIu32 ", type=%s\n", flit->vn, flit->getFtypeStr().c_str() );
+    //output->verbose( CALL_INFO, 5, 0, "Received flit vn=%" PRIu32 ", type=%s\n", flit->vn, flit->getFtypeStr().c_str() );
     if ( flit->ftype == MordredFlit::TAIL) {
       Request* req = flit->getRequest();
       if ( req == nullptr ) {
@@ -351,7 +358,7 @@ void MordredNIC::handleIncomingPacket( SST::Event* ev ) {
       }
       inBuf.at(flit->vn).push( req );
     }
-    // Return credit to router
+    // Update num of credits to return to router
     inReturnCredits.at( flit->vn )++;
     delete flit;
     break;

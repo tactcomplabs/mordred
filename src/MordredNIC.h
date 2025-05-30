@@ -8,6 +8,18 @@
 // See LICENSE in the top level directory for licensing details
 //
 
+/**
+ * The NIC is designed to get most of its configuration information from the SimpleRtr
+ * rather than as outside parameters.  If we modify this behavior, then we'll need to
+ * change the initialization procedure to match.
+ *
+ * The endpoint is expected to poll the NIC to get messages out of it. Haven't written/tested
+ * the code yet to do it via event handlers
+ *
+ * Uses the SST SimpleNetwork interface
+ */
+
+
 // Standard headers
 #include <cinttypes>
 #include <vector>
@@ -64,9 +76,8 @@ public:
   void sendUntimedData( Request* req ) override;
 
   /**
-               * Receive any data during the init() phase.
-               * @see SST::Link::recvInitData()
-  */
+   * Receive any data during the init() phase.
+   */
   Request* recvUntimedData() override;
 
   /**
@@ -151,7 +162,7 @@ private:
   uint32_t    rtrPort{UINT32_MAX};
   bool        initialized{false};
   uint32_t    numVns{UINT32_MAX};
-  uint32_t    numVcs{UINT32_MAX}; // Tracked, but unused for now
+  uint32_t    numVcs{UINT32_MAX}; // Tracked, but unused
   uint32_t    flitSize{};
   uint32_t    channelBusWidth{}; // TODO: Make UnitAlgebra if we're going to use it
 
@@ -171,6 +182,9 @@ private:
   std::vector<std::queue<MordredFlit*>> outBuf; // to router
 
   // Credit counters; 1 credit = 1 flit
+  // Note on credits: we send the router a number of credits equal to the number of flits
+  // that the inBuf can hold.
+
   // credits received from router; initialization comes from router in init;
   // (decrement on send to router, increment when credit packet comes from router)
   std::vector<int32_t> rtrCredits;

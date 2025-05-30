@@ -53,10 +53,12 @@ private:
   Output   *output;
   uint32_t numPorts{UINT32_MAX};
 
+  // These structures are all owned by SimpleRtr and used/checked here
   std::vector<std::vector<RtrOwnedVnObj>>* vnObjs;
   std::vector<std::pair<uint32_t,uint32_t>> *arbWinners; // index is port, pair is VN,VC of who won arbitration
   std::vector<RtrPortControlAPI::OutVcStateE> *outVcStates;
 
+  // TODO: Do actual round-robin behavior
   //uint32_t next_port{0}; // use to track rr start
 };
 

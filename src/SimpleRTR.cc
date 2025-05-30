@@ -113,12 +113,6 @@ bool SimpleRTR::clockTick( Cycle_t cycle ) {
 
   // For all router ports, see if we can move a flit through the "crossbar"
   for ( uint32_t i = 0; i < numPorts; i++ ) {
-
-    if ( (id == 0) && ( cycle >= 20 ) && ( cycle <= 24 ) ) {
-      output.verbose( CALL_INFO, 5, 0, "Cycle=%" PRIu64 "; arbWinners[%u]=(%u,%u)\n",
-        cycle, i, arbWinners[i].first, arbWinners[i].second );
-    }
-
     if ( arbWinners[i].first == UINT32_MAX )
       continue;
 
@@ -135,10 +129,10 @@ bool SimpleRTR::clockTick( Cycle_t cycle ) {
     if ( flit->ftype == MordredFlit::TAIL ) {
       if ( portsVec.at(flit->next_port)->getOutBufCreditCount( arbWinners[i] ) > 0 ) {
         outVcStates.at( flit->next_port ) = RtrPortControlAPI::OutVcStateE::OUT_IDLE;
-        output.verbose( CALL_INFO, 5, 0, "Cycle=%" PRIu64 "; reset outVcState=%u\n", cycle, flit->next_port );
+        //output.verbose( CALL_INFO, 5, 0, "Cycle=%" PRIu64 "; reset outVcState=%u\n", cycle, flit->next_port );
       }
       arbWinners[i] = std::make_pair( UINT32_MAX, UINT32_MAX ); // reset arbWinner for the sending port
-      output.verbose( CALL_INFO, 5, 0, "Cycle=%" PRIu64 "; reset arbWinners=%u\n", cycle, i );
+      //output.verbose( CALL_INFO, 5, 0, "Cycle=%" PRIu64 "; reset arbWinners=%u\n", cycle, i );
     }
   }
 

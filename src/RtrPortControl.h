@@ -22,8 +22,8 @@ namespace SST::Mordred {
 
 /**
  * Miscellaneous Notes:
- *  - If this is an ENDPOINT port, it really only needs one VC; we don't pass that knowledge in (although
- *      we could if we passed it in via the constructor)
+ *  - If this is an ENDPOINT port, it really only needs one VC; we don't pass that knowledge into
+ *    the object and configure it that way though (would likely require changes to SimpleRTR)
  *  - Only connected ports should ever be created (via the SimpleRtr constructor) so we don't
  *      do any checking for that here
  *  - For a given clock tick, if all of the output buffers are empty/blocked from sending,
@@ -41,8 +41,9 @@ public:
     SST::Mordred::RtrPortControlAPI
   )
 
+  // All of the parameters are handled/passed in from the SimpleRtr
   SST_ELI_DOCUMENT_PARAMS(
-    { "verbose", "Sets the output verbsoity", "5" },
+    //{ "verbose", "Sets the output verbsoity", "5" },
     //{"link_bw",       "Bandwidth of the links specified in either b/s or B/s (can include SI prefix)."},
     //{"flit_size",     "Size of a flit in either b or B (can include SI prefix)."},
     //{ "link_bw",        "Bandwidth of the links specified in either b/s or B/s (can include SI prefix)."},
@@ -70,7 +71,7 @@ public:
 
   void ClockTick(Cycle_t cycle) final;
 
-  void inHandler(SST::Event* ev);
+  void inHandler(Event* ev);
 
   // Switch/xbar interactions
   int32_t getOutBufCreditCount( std::pair<uint32_t, uint32_t> vn_vc ) final {
@@ -96,6 +97,8 @@ private:
   uint32_t numVcs{UINT32_MAX}; // from size of vector in vn_objs
   uint32_t flitSize{}; // in bits
   uint32_t channelBusWidth{}; // in bits
+  uint32_t flit_vn_rr{};
+  uint32_t flit_vc_rr{};
   uint32_t credit_ret_vn_rr{};
   uint32_t credit_ret_vc_rr{};
 
@@ -106,9 +109,12 @@ private:
   uint32_t inBufSize;
   uint32_t outBufSize;
 
+  // Each element is for a VN
   std::vector<RtrOwnedVnObj> *perVnObjs{};
 
-  // Outer dimension is VN, inner is VC
+  /**
+   * For the structures below, the outer dimension is VN, inner is VC
+   */
 
   // Not using these, but these will probably be necessary if we don't want
   // to rearbitrate every cycle
@@ -116,21 +122,23 @@ private:
   std::vector<std::vector<OutVcStateE>> outStates;
 
   // Packet buffers
+  // Note: For now, we have a separate output buffer for each VN/VC combo; this
+  // would allow for us to
   std::vector<std::vector<std::queue<MordredFlit*>>> inBuf; // from router/endpt
-  std::vector<std::vector<std::queue<MordredFlit*>>> outBuf; // to router/endpt; adds a delay element to the xbar switch in the router
+  std::vector<std::vector<std::queue<MordredFlit*>>> outBuf; // to router/endpt
 
   // Credit counters; 1 credit = 1 flit
-  // credits received from destination; initialized to non-zero in init (dest sounds a count)
+  // credits received from destination; initialized to non-zero in init (dest sends a count)
   // (dec on send to dest, inc when credit packet comes from dest)
   std::vector<std::vector<int32_t>> destCredits;
 
-  // credits for space in the out_buf (decrement as flits inserted,
+  // credits for space in the outBuf (decrement as flits inserted,
   // increment when put on link) - purely internal (and
-  // unnecessary if out_buf is removed)
-  // initialize to outbuf size
+  // unnecessary if outBuf is removed)
+  // initialize to outBufSize
   std::vector<std::vector<int32_t>> outBufCredits;
 
-  // credits to return to the sender as the in_buf is emptied out
+  // credits to return to the sender as the inBuf is emptied out
   // init to zero
   std::vector<std::vector<int32_t>> inRetCredits;
 

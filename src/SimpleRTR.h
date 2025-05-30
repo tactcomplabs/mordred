@@ -33,6 +33,12 @@
 
 // TODO: This doesn't account for concentration yet
 
+/**
+ * Currently, we assume that all ports linked to the router (so both from endpoints and other routers),
+ * have the same number of virtual networks and virtual channels.  Since we're only using 1 of each for
+ * now, we can get away with this.
+ */
+
 namespace SST::Mordred {
 
 class SimpleRTR : public SST::Component {
@@ -48,7 +54,7 @@ public:
   )
 
   SST_ELI_DOCUMENT_PARAMS(
-    { "verbose",       "Sets the output verbsoity",                    "5" },
+    { "verbose",       "Sets the output verbosity",                    "5" },
     {"id", "ID of the router", nullptr},
     {"clock", "Clock frequency of the router", "1GHz"},
     {"num_ports", "Number of ports on the router", "3"},
@@ -81,7 +87,6 @@ public:
 
   SST_ELI_DOCUMENT_STATISTICS()
 
-public:
   SimpleRTR( ComponentId_t cid, Params& params );
   ~SimpleRTR();
 
@@ -95,7 +100,7 @@ public:
   bool clockTick( Cycle_t cycle );
 
 private:
-  SST::Output             output;
+  Output                  output;
   uint32_t                id;
   TimeConverter*          timeConverter;
   uint32_t                numPorts{};
@@ -106,16 +111,25 @@ private:
   // Major components
   TopologyAPI* topology{nullptr};
   ArbAPI* arbiter{nullptr};
+  // If a port is unconnected, we push_back a nullptr for that port index
   std::vector<RtrPortControlAPI*>  portsVec;
 
   // Shared between components
   // perPortVnObjs[port_id][vn]
+  // Doing this rather than maintaining a 3D structure
   std::vector<std::vector<RtrOwnedVnObj>> perPortVnObjs;
 
-  std::vector<std::pair<uint32_t,uint32_t>> arbWinners; // use UINT32_MAX to identify idle/unassigned; id VN,VC of port that won arbitration
+  // Per (input) port structure; the pair is the VN,VC input pair that won arbitration
+  // to send something through the crossbar to an output port
+  // use UINT32_MAX, UINT32_MAX to identify idle/unassigned;
+  std::vector<std::pair<uint32_t,uint32_t>> arbWinners;
 
-  std::vector<std::vector<RtrPortControlAPI::InVcStateE>> inVcStates; // TODO: candidate for InVcHeads?
-  std::vector<RtrPortControlAPI::OutVcStateE> outVcStates; // per port
+  //std::vector<RtrPortControlAPI::InVcStateE>  inVcStates; // currently unused
+
+  // Per port structure, the output state is used to identify if a port is already
+  // sending to this output port
+  // TODO: Rename - this is per port, not per vn/vc (unless we allow per-flit switching)
+  std::vector<RtrPortControlAPI::OutVcStateE> outVcStates;
 
 };  // SimpleRTR
 

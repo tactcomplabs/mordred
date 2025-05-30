@@ -57,8 +57,12 @@ int32_t MeshTopology::getEndpointId( uint32_t portnum ) {
 
 // TODO: Set up which VC to use; local port always uses VC==0
 uint32_t MeshTopology::routePacket( uint32_t dest ) {
-  uint32_t dest_x = dest % xDim;
-  uint32_t dest_y = dest / xDim;
+  uint32_t dest_rtr_id = dest / numLocalPorts;
+  uint32_t dest_x = dest_rtr_id % xDim;
+  uint32_t dest_y = dest_rtr_id / xDim;
+
+  output->verbose( CALL_INFO, 5, 0, "Routing: dest_rtr_id=%" PRIu32 ", dest_x=%" PRIu32 ", dest_y=%" PRIu32 "\n",
+    dest_rtr_id, dest_x, dest_y );
 
   // Currently just going along x until we hit the proper y
   // then we'll route along the y.
@@ -71,13 +75,11 @@ uint32_t MeshTopology::routePacket( uint32_t dest ) {
   if ( dest_y > yId )
     return PortDirE::NORTH;
 
-  // TODO: Account for multiple local ports
-  if ( numPorts >= 4 )
-    return 4;
-
-  output->fatal( CALL_INFO, -1, "Error! Invalid destination for packet; dest_x=%" PRIu32 ", dest_y=%" PRIu32 "\n",
-    dest_x, dest_y);
-
-  return UINT32_MAX;
-
+  uint32_t base_id = rtrId * numLocalPorts;
+  uint32_t dest_port = dest - base_id; // this should be the number of the local port
+  dest_port += 4; // add 4 to account for router ports
+  if ( dest_port >= numPorts )
+    output->fatal( CALL_INFO, -1, "Error! Invalid destination for packet; numPorts=%" PRIu32 ", dest_port=%" PRIu32 "\n",
+      numPorts, dest_port);
+  return dest_port;
 }

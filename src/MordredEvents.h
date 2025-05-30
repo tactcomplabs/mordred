@@ -13,6 +13,7 @@
 
 // Standard headers
 #include <cinttypes>
+#include <utility>
 
 // Local SST header
 #include "sst_config.h"
@@ -58,7 +59,7 @@ constexpr uint32_t DEBUG_INIT_PHASE   = (1UL << 1);
 class simpleTestEvent : public Event {
 public:
   simpleTestEvent() { /* empty */ }
-  simpleTestEvent( std::string str_ ) : str( str_ ) { /* empty */ }
+  simpleTestEvent( std::string str_ ) : str( std::move(str_) ) { /* empty */ }
 
   void serialize_order(Core::Serialization::serializer& ser) override {
     Event::serialize_order(ser);
@@ -94,7 +95,8 @@ private:
 // Used to initialize the network
 class MordredInitEvent : public baseMordredEvent {
 public:
-  enum Commands { REPORT_ENDPOINT, REPORT_ROUTER, ROUTER_ID, PORT_NUM, ENDPOINT_ID, NUM_VNS, NUM_VCS, FLIT_WIDTH, BUS_WIDTH, NUM_COMMANDS };
+  enum Commands { REPORT_ENDPOINT, REPORT_ROUTER, ROUTER_ID, PORT_NUM, ENDPOINT_ID, NUM_VNS,
+                  NUM_VCS, FLIT_WIDTH, BUS_WIDTH, NUM_COMMANDS };
   MordredInitEvent() : baseMordredEvent( INITIALIZATION ) {}
 
   Commands command;
@@ -106,6 +108,7 @@ private:
 };
 
 // This is intended to be the basic Flit running around the NoC.
+// TODO: Add some kind of ID to allow for easier tracking of these through the NOC
 class MordredFlit final : public baseMordredEvent {
 public:
   enum FlitTypeE { HEAD, BODY, TAIL, EMPTY, NUM_TYPES };
@@ -117,7 +120,9 @@ public:
 
   Interfaces::SimpleNetwork::Request *getRequest() { return req; }
 
+  /** START: Data members of the flit **/
   FlitTypeE ftype{NUM_TYPES};
+
   // This is what the endpoint passes into the MordredNIC; within
   // this request is the data packet (SST::Event) that one endpoint
   // wants to pass to another endpoint
@@ -128,6 +133,7 @@ public:
   uint32_t next_vc{UINT32_MAX};
   uint32_t cur_vc{0}; // TODO: Start using this rather than assuming 0 everywhere
   uint32_t flit_id{};
+  /** END: Data members of the flit **/
 
   std::string getFtypeStr() {
     switch( ftype ) {
@@ -192,12 +198,15 @@ private:
  */
 struct RtrOwnedVnObj {
 
+  // For each VC, the HEAD flit of the input buffer; this flit is used for making routing/arbitration decisions
   std::vector<MordredFlit*> vcHeads;
+
+  // Other fields to add?
   // vc state
   // next vn -- packets shouldn't really be changing vns, but maybe they could if bridging networks
   // next vc -- this gets maintained from HEAD to TAIL flit
 
-
+  // TODO: May want to combine these functions, esp if we always use them together
   void allocateVecs( uint32_t num_vcs ) {
     vcHeads.resize( num_vcs );
   }

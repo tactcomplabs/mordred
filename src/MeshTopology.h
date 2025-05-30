@@ -38,7 +38,7 @@ public:
 
   // register the parameters
   SST_ELI_DOCUMENT_PARAMS(
-    { "verbose",       "Sets the output verbsoity",                    "5" },
+    { "verbose", "Sets the output verbsoity", "5" },
     { "xDim", "Number of points in the X dimension", "1"},
      {"yDim", "Number of points in the Y dimension", "1"}
   )

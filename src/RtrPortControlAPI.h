@@ -48,6 +48,7 @@ public:
     std::vector<RtrOwnedVnObj>*, uint32_t, uint32_t )
 
   enum PortConnectionE { ENDPOINT, ROUTER, UNKNOWN, INVALID };
+  // Not using the InVcStateE right now
   enum InVcStateE { IN_IDLE, ROUTING, WAIT_OUTPUT, IN_BUSY }; // for the port input side - mainly for xbar arb
   enum OutVcStateE { OUT_IDLE, OUT_BUSY, NEED_CREDITS}; // for the port output side - mainly for xbar arb
 
@@ -67,7 +68,6 @@ public:
   virtual int32_t getOutBufCreditCount( std::pair<uint32_t, uint32_t> vn_vc ) = 0;
 
   // Get state for a VC
-  // TODO: Uncomment and implement in derived
   // Intended to mark the status of a port for the xbar arbitration
   //virtual InVcStateE getInVcState( uint32_t vc ) = 0;
   //virtual OutVcStateE getOutVcState( uint32_t vc ) = 0;
