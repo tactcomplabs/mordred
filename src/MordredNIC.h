@@ -165,6 +165,7 @@ private:
   uint32_t    numVcs{UINT32_MAX}; // Tracked, but unused
   uint32_t    flitSize{};
   uint32_t    channelBusWidth{}; // TODO: Make UnitAlgebra if we're going to use it
+  uint64_t    packetId{};
 
   UnitAlgebra bw; // Need? It's currently unused.
 

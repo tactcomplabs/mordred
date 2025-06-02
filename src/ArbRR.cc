@@ -75,9 +75,8 @@ void ArbRR::arbitrate( ) {
           if ( outVcStates->at( flit->next_port ) != RtrPortControlAPI::OutVcStateE::OUT_IDLE)
             continue;
 
-          auto *simple = static_cast<simpleTestEvent*>( flit->req->inspectPayload() );
-          output->verbose( CALL_INFO, 5, 0, "Port %" PRIu32 " has a flit of type=%s, packet with str=%s\n",
-            i, flit->getFtypeStr().c_str(), simple->str.c_str() );
+          output->verbose( CALL_INFO, 5, 0, "Port %" PRIu32 " has flit %s\n",
+            i, flit->pktIdStr().c_str() );
           // only moving a single flit right now, so i can just assume it happens - clearly will need to check the output
           // side of the dest port to ensure it can move through
           // TODO: get VN,VC from packet

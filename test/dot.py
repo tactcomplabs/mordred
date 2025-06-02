@@ -24,7 +24,7 @@ def getNextTopoPort(name):
 # rtr_id is expected to go linearly from 0-((x*y)-1)
 # rtr_id is also expected to be x-dominant (e.g, router id xDim has location x=0,y=1)
 # links are expected to be ordered as n,e,s,w
-def createMesh(x_size, y_size, local_ports, concentration):
+def createMesh(x_size, y_size, local_ports):
     # Create the routers
     rtr_id = 0
     nports = 4 + local_ports
@@ -93,7 +93,7 @@ def createMesh(x_size, y_size, local_ports, concentration):
 # so that all routers have all four ports connected; this is not
 # compatible with mordred.MeshTopology
 # There is a simple endpoint connected to a local port of the routers
-def createMeshWithEndpts(x_size, y_size, local_ports, concentration):
+def createMeshWithEndpts(x_size, y_size, local_ports):
     # Create the routers
     for y in range(y_size):
         for x in range(x_size):
@@ -160,7 +160,7 @@ def createMeshWithEndpts(x_size, y_size, local_ports, concentration):
 
 
 # Now, let's do another topology...
-def createSimpleTorus(x_size, y_size, local_ports, concentration):
+def createSimpleTorus(x_size, y_size, local_ports):
     # Create the routers
     for y in range(y_size):
         for x in range(x_size):
@@ -301,8 +301,7 @@ class Crossbar:
 
 
 # General params
-local_ports = 1
-concentration = 1
+local_ports = 1 # == concentration
 
 # Mesh/torus Configuration options
 x_size = 3
@@ -312,16 +311,16 @@ y_size = 3
 xbar_size = 6
 
 print("Do mesh")
-createMesh(x_size, y_size, local_ports, concentration)
+createMesh(x_size, y_size, local_ports)
 
 ## TODO: THE OTHER TOPOLOGIES HAVE NOT BEEN FIXED FOR THE NEW NAMING
-## IN THE ROUTER COMPONENT
+## IN THE ROUTER COMPONENT (nor do we have matching subcomponents)
 
 #print("Do simple torus")
-#createSimpleTorus(x_size, y_size, local_ports, concentration)
+#createSimpleTorus(x_size, y_size, local_ports)
 
 #print("Do crossbar")
-#xbar_net = Crossbar(xbar_size, local_ports, concentration)
+#xbar_net = Crossbar(xbar_size, local_ports)
 
 # Flattened Butterfly Paper
 # Flattened Butterfly : A Cost-Efficient Topology for

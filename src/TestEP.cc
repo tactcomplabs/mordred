@@ -78,7 +78,7 @@ bool TestEP::clockTick( Cycle_t cycle ) {
   }
 #endif
 
-#if 0
+#if 1
   if ( ( nocIface->getEndpointID() == 0 ) && ( cycle == 20 ) ) {
     output.verbose( CALL_INFO, 3, 0, "Sending packet. Cycle=%" PRIu64 "\n", cycle );
     auto pkt = new simpleTestEvent( "give me coffee pretty please");
@@ -97,7 +97,6 @@ bool TestEP::clockTick( Cycle_t cycle ) {
 
 #if 0
   // Simple output testing - need at least 9 endpoints as currently written
-  // TODO: Check if the routing still works if >1 endpt per router
   if ( ( nocIface->getEndpointID() == 0 ) && ( cycle == 20 ) ) {
     output.verbose( CALL_INFO, 3, 0, "Sending packet. Cycle=%" PRIu64 "\n", cycle );
     auto pkt = new simpleTestEvent( "howdy, how are you?");

@@ -32,7 +32,7 @@
  *
  * While the MordredNIC inherits from SimpleNetwork::Interface (as does Merlin::linkControl),
  * the Merlin::PortInterface and Merlin::PortControl are a subcomponent API and subcomponent
- * with no inheritance from SimpleNetwork.  That written, the PortInterface has many (all?) of
+ * with no inheritance from SimpleNetwork.  That written, the PortInterface has many of
  * the same functions as a SimpleNetwork::Interface.
  *
  */

@@ -61,8 +61,8 @@ uint32_t MeshTopology::routePacket( uint32_t dest ) {
   uint32_t dest_x = dest_rtr_id % xDim;
   uint32_t dest_y = dest_rtr_id / xDim;
 
-  output->verbose( CALL_INFO, 5, 0, "Routing: dest_rtr_id=%" PRIu32 ", dest_x=%" PRIu32 ", dest_y=%" PRIu32 "\n",
-    dest_rtr_id, dest_x, dest_y );
+  //output->verbose( CALL_INFO, 5, 0, "Routing: dest=%" PRIu32 ", dest_rtr_id=%" PRIu32 ", dest_x=%" PRIu32 ", dest_y=%" PRIu32 "\n",
+  //  dest, dest_rtr_id, dest_x, dest_y );
 
   // Currently just going along x until we hit the proper y
   // then we'll route along the y.

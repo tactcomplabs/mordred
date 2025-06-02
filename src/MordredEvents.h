@@ -108,15 +108,14 @@ private:
 };
 
 // This is intended to be the basic Flit running around the NoC.
-// TODO: Add some kind of ID to allow for easier tracking of these through the NOC
 class MordredFlit final : public baseMordredEvent {
 public:
   enum FlitTypeE { HEAD, BODY, TAIL, EMPTY, NUM_TYPES };
 
   MordredFlit() : baseMordredEvent( FLIT ){ /* empty */ }
   MordredFlit( Interfaces::SimpleNetwork::Request *req_ ) : baseMordredEvent( FLIT ), req( req_ ) { /* empty */ }
-  MordredFlit( Interfaces::SimpleNetwork::Request *req_, FlitTypeE ftype_, int32_t id ) :
-    baseMordredEvent( FLIT ), ftype( ftype_ ), req( req_ ), flit_id( (uint32_t)id ) { /* empty */ }
+  MordredFlit( Interfaces::SimpleNetwork::Request *req_, FlitTypeE ftype_, uint64_t pkt_id, uint32_t flit_id_ ) :
+    baseMordredEvent( FLIT ), ftype( ftype_ ), req( req_ ), packet_id( pkt_id ), flit_id( flit_id_ ) { /* empty */ }
 
   Interfaces::SimpleNetwork::Request *getRequest() { return req; }
 
@@ -132,6 +131,7 @@ public:
   uint32_t next_port{UINT32_MAX};
   uint32_t next_vc{UINT32_MAX};
   uint32_t cur_vc{0}; // TODO: Start using this rather than assuming 0 everywhere
+  uint64_t packet_id{};
   uint32_t flit_id{};
   /** END: Data members of the flit **/
 
@@ -145,6 +145,11 @@ public:
     }
   }
 
+  std::string pktIdStr() {
+    std::string ss = "[Src.PktId.FlitId]=[" + std::to_string( req->src ) + "." + std::to_string( packet_id ) + "." + std::to_string( flit_id ) + "]";
+    return ss;
+  }
+
   // Events must provide a serialization function that serializes
   // all data members of the event
   void serialize_order( SST::Core::Serialization::serializer& ser ) override {
@@ -155,6 +160,7 @@ public:
     ser & next_port;
     ser & next_vc;
     ser & cur_vc;
+    ser & packet_id;
     ser & flit_id;
   }
 

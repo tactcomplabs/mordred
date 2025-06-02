@@ -216,7 +216,7 @@ bool MordredNIC::send( Request* req, int32_t vn ) {
     output->fatal( CALL_INFO, -1, "MordredNIC only supports vn=0\n" );
   auto u_vn = static_cast<uint32_t>( vn );
 
-  int32_t num_flits = calcNumFlits( req->size_in_bits );
+  auto num_flits = calcNumFlits( req->size_in_bits );
   if ( outbufCredits.at(u_vn) <= num_flits )
     return false;
 
@@ -226,17 +226,22 @@ bool MordredNIC::send( Request* req, int32_t vn ) {
   /* One thing to note here, we send the SimpleNetwork Request with every flit (useful for debugging
    * purposes).  When the dest NIC receives a TAIL flit, then we pull the Request out */
 
-  // Create head flit
-  auto flit = new MordredFlit( req, MordredFlit::HEAD, 0 );
+  // Create flits
+  // Consider making this a separate function if we find a need for it elsewhere
+  auto u_num_flits = static_cast<uint32_t>( num_flits );
+  // Head flit
+  auto flit = new MordredFlit( req, MordredFlit::HEAD, packetId, 0 );
   outBuf.at(u_vn).push( flit );
+
   // Body flits
-  for ( int32_t i = 1; i < num_flits-1; i++ ) {
-    flit = new MordredFlit( req, MordredFlit::BODY, i );
+  for ( uint32_t i = 1; i < u_num_flits-1; i++ ) {
+    flit = new MordredFlit( req, MordredFlit::BODY, packetId, i );
     outBuf.at(u_vn).push( flit );
     flit = nullptr;
   }
+
   // Tail flit
-  flit = new MordredFlit( req, MordredFlit::TAIL, num_flits-1 );
+  flit = new MordredFlit( req, MordredFlit::TAIL, packetId++, u_num_flits-1 );
   outBuf.at(u_vn).push( flit );
 
   return true;
@@ -275,19 +280,24 @@ bool MordredNIC::requestToReceive( int vn ) {
 bool MordredNIC::clockTick( Cycle_t cycle ) {
 
   bool sent = false;
-  uint32_t vn = 0; // TODO: Fix if multiple VNs
+  uint32_t vn;
+
+  // Since we're only doing 1 VN for now, we could remove the for vn loops
+  // No use of VCs here
 
   // Send a flit to the router (if credit available)
-  if ( !outBuf.at(vn).empty() ) {
-    if ( rtrCredits.at(vn) > 0 ) {
-      auto flit = outBuf.at(vn).front();
-      outBuf.at(vn).pop();
-      link->send( flit );
-      sent = true;
-      rtrCredits.at(vn)--;
-      outbufCredits.at(vn)++;
-      output->verbose( CALL_INFO, 5, 0, "Sent flit type=%s to link at cycle=%" PRIu64 "; rtrCredits=%" PRId32 "\n",
-        flit->getFtypeStr().c_str(), cycle, rtrCredits.at(vn) );
+  for ( vn = 0; vn < numVns; vn++ ) {
+    if ( !outBuf.at(vn).empty() ) {
+      if ( rtrCredits.at(vn) > 0 ) {
+        auto flit = outBuf.at(vn).front();
+        outBuf.at(vn).pop();
+        link->send( flit );
+        sent = true;
+        rtrCredits.at(vn)--;
+        outbufCredits.at(vn)++;
+        output->verbose( CALL_INFO, 5, 0, "Sent flit %s to link at cycle=%" PRIu64 "; rtrCredits=%" PRId32 "\n",
+          flit->pktIdStr().c_str(), cycle, rtrCredits.at(vn) );
+      }
     }
   }
 
@@ -296,7 +306,6 @@ bool MordredNIC::clockTick( Cycle_t cycle ) {
 
   // Didn't send a flit, try returning credits
   // Once we send a credit packet out, we're done for this cycle
-  // Could remove the for loop since we're only using 1 vn
   for ( vn = 0; vn < numVns; vn++ ) {
     if ( inReturnCredits.at(vn) > 0 ) {
       auto credit_ev = new MordredCreditEvent( vn, 0, inReturnCredits.at(vn) );
@@ -357,6 +366,7 @@ void MordredNIC::handleIncomingPacket( SST::Event* ev ) {
         output->fatal( CALL_INFO, -1, "Request was nullptr!\n" );
       }
       inBuf.at(flit->vn).push( req );
+      output->verbose( CALL_INFO, 5, 0, "Finished receiving %s\n", flit->pktIdStr().c_str() );
     }
     // Update num of credits to return to router
     inReturnCredits.at( flit->vn )++;

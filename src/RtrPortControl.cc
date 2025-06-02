@@ -313,10 +313,9 @@ void RtrPortControl::inHandler( SST::Event* ev ) {
     if ( flit == nullptr )
       output->fatal( CALL_INFO, -1, "Invalid flit \n" );
 
-    auto *simple = static_cast<simpleTestEvent*>( flit->req->inspectPayload() ); // only needed for the print statement
     flit->next_port = topo->routePacket( (uint32_t)flit->req->dest );
-    output->verbose( CALL_INFO, 5, 0, "Recv Flit; str=%s, src=%" PRIu64 ", dst=%" PRIu64 ", size=%zu, dest_port=%" PRIu32 "\n",
-      simple->str.c_str(), flit->req->src, flit->req->dest, flit->req->size_in_bits, flit->next_port );
+    output->verbose( CALL_INFO, 5, 0, "Recv flit %s, src=%" PRIu64 ", dst=%" PRIu64 ", dest_port=%" PRIu32 "\n",
+      flit->pktIdStr().c_str(), flit->req->src, flit->req->dest, flit->next_port );
 
     inBuf.at( flit->vn ).at( flit->cur_vc ).push( flit );
     break;
@@ -350,10 +349,7 @@ MordredFlit* RtrPortControl::getInBufFlit( std::pair<uint32_t, uint32_t> vn_vc )
   // Can return a credit to the sender
   inRetCredits.at( vn ).at( vc )++;
 
-  auto test_ev = static_cast<simpleTestEvent*>( flit->req->inspectPayload() );
-  output->verbose( CALL_INFO, 5, 0, "Get Flit from inBuf; str=%s, src=%" PRIu64 ", dst=%" PRIu64 ", size=%zu, dest_port=%" PRIu32 "\n",
-    test_ev->str.c_str(), flit->req->src, flit->req->dest, flit->req->size_in_bits, flit->next_port );
-
+  output->verbose( CALL_INFO, 5, 0, "Get flit %s from inBuf\n", flit->pktIdStr().c_str() );
   return flit;
 }
 
@@ -361,11 +357,7 @@ void RtrPortControl::sendOutBufFlit( MordredFlit* flit, std::pair<uint32_t, uint
   uint32_t vn = vn_vc.first;
   uint32_t vc = vn_vc.second;
   outBuf.at( vn ).at( vc ).push( flit );
-  // Below here is for debug purposes
-  SST::Event* ev = flit->req->inspectPayload();
-  auto test_ev = static_cast<simpleTestEvent*>( ev );
-  output->verbose( CALL_INFO, 5, 0, "Put Flit in outBuf; str=%s, src=%" PRIu64 ", dst=%" PRIu64 ", size=%zu, dest_port=%" PRIu32 "\n",
-    test_ev->str.c_str(), flit->req->src, flit->req->dest, flit->req->size_in_bits, flit->next_port );
+  output->verbose( CALL_INFO, 5, 0, "Put flit %s in outBuf\n", flit->pktIdStr().c_str() );
 }
 
 MordredInitEvent* RtrPortControl::getInitEvent( MordredInitEvent::Commands cmd ) {
