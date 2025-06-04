@@ -2,6 +2,9 @@
 import sst
 from math import floor
 
+#sst.setStatisticLoadLevel(7)
+#params = ( { "rate" : "0ns" } )
+#sst.setStatisticOutput("sst.statOutputCSV", { "filepath" : "./stats.csv", "separator" : ", " } )
 
 links = dict()
 def getLink(name1, name2):
@@ -74,6 +77,9 @@ def createMesh(x_size, y_size, local_ports):
                 rtr.addLink(getLink("rtr_%d_%d"%(x-1,y), "rtr_%d_%d"%(x,y)), rtr_portname, "800ps")
                 #print("Add west link with portname=%s to x,y=%d_%d"%(rtr_portname,x,y))
             rtr_portnum += 1
+
+        # router stats
+            #sst.enableAllStatisticsForComponentName("rtr_%d_%d"%(x, y), params, True )
 
         # local ports
             for k in range(local_ports):
@@ -337,5 +343,14 @@ createMesh(x_size, y_size, local_ports)
 
 #print("Fig 3 in Micro2007 FlatFly Paper")
 #flatfly3 = FlattenedButterfly(4, 3) # fig 1b in paper
+
+# Stats collection - apparently I don't know the secret handshake because I can get the dummy
+# counter in SimpleRtr to count things, but the stat in RtrPortControl is just a NullStatistic
+# Fun. Annoying.  SST documentation is clearly insufficient.
+sst.setStatisticLoadLevel(7)
+params = ( { "rate" : "0ns" } )
+sst.enableAllStatisticsForAllComponents(params)
+#sst.enableAllStatisticsForComponentType("mordred.simple_rtr.rtrPortControl", params )
+sst.setStatisticOutput("sst.statOutputCSV", { "filepath" : "./stats.csv", "separator" : ", " } )
 
 #EOF

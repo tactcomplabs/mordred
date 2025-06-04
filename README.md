@@ -43,4 +43,4 @@ Here, I've taken a different approach and created most data structures as being 
 - Arbitration isn't changing VN,VC (so there is no VC allocation/arbitration)
 - No maximum packet length (number of flits) set; packet to flit translation is happening only in MordredNIC and there is a minimum of 2 flits per packet
 - Need to review timing of the router and its subcomponents
-- 
+- Tried adding a simple stat to the RtrPortControl, but it's not working - no idea why.  Have a simple tick counter implemented in SimpleRtr.

@@ -73,6 +73,12 @@ SimpleRTR::SimpleRTR( ComponentId_t cid, Params& params ) : Component( cid ) {
     output.fatal( CALL_INFO, -1, "arbiter is a nullptr\n" );
   }
 
+  // Try registering a stat
+  std::string rtrstr = "rtr[" + std::to_string( id ) + "]";
+  tickCounter = registerStatistic<uint64_t>( "tick10_cnt", rtrstr.c_str() );
+  if ( tickCounter->isNullStatistic() )
+    output.verbose( CALL_INFO, 5, 0, "tickCounter STAT is NULL\n" );
+
   output.verbose(
     CALL_INFO, 5, 0, "Constructor complete for %s. local_ports=%" PRIu32 "; rtr_ports=%" PRIu32 "\n",
     getName().c_str(), numLocalPorts, numPorts-numLocalPorts
@@ -107,6 +113,9 @@ void SimpleRTR::setup() {
 bool SimpleRTR::clockTick( Cycle_t cycle ) {
   // May want/need to look at how we want to time/order ticking the ports and running the crossbar/arbitration here
 
+  if ( cycle % 10 == 0 )
+    tickCounter->addData( 1 );
+
   //output.verbose( CALL_INFO, 3, 0, "Cycle=%" PRIu64 "\n", cycle );
   //output.flush();
   arbiter->arbitrate();
@@ -121,10 +130,10 @@ bool SimpleRTR::clockTick( Cycle_t cycle ) {
       continue;
     }
 
-    // get flit out of the input buffer of the receiving port
+    // get flit out from an input buffer of the receiving port
     MordredFlit *flit = portsVec.at( i )->getInBufFlit( arbWinners[i] );
 
-    // send flit to the output buffer of the sending port
+    // send flit to an output buffer of the sending port
     portsVec.at( flit->next_port )->sendOutBufFlit( flit, arbWinners[i] );
     if ( flit->ftype == MordredFlit::TAIL ) {
       if ( portsVec.at(flit->next_port)->getOutBufCreditCount( arbWinners[i] ) > 0 ) {

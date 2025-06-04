@@ -85,7 +85,9 @@ public:
     { "port%(portnum)d", "Port id.", { "basicMordredEvent" } },
   )
 
-  SST_ELI_DOCUMENT_STATISTICS()
+  SST_ELI_DOCUMENT_STATISTICS(
+    {"tick10_cnt", "Number of cycles/10", "unitless", 3},
+  )
 
   SimpleRTR( ComponentId_t cid, Params& params );
   ~SimpleRTR();
@@ -130,6 +132,8 @@ private:
   // sending to this output port
   // TODO: Rename - this is per port, not per vn/vc (unless we allow per-flit switching)
   std::vector<RtrPortControlAPI::OutVcStateE> outVcStates;
+
+  Statistic<uint64_t>* tickCounter;
 
 };  // SimpleRTR
 

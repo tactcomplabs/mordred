@@ -168,8 +168,7 @@ public:
   ImplementSerializable( SST::Mordred::MordredFlit );
 };
 
-// Unused at the moment, but more-or-less borrowed from merlin's
-// credit_event in router.h
+// More-or-less borrowed from merlin's credit_event in router.h
 class MordredCreditEvent : public baseMordredEvent {
 public:
   uint32_t vn;
@@ -178,15 +177,12 @@ public:
 
   MordredCreditEvent() : baseMordredEvent( CREDIT ) {}
 
-  // TODO: Delete this constructor
-  //MordredCreditEvent( uint32_t vc_, int32_t credits_ ) :
-  //baseMordredEvent( CREDIT ), vc( vc_ ), credits( credits_ ) {}
-
   MordredCreditEvent( uint32_t vn_, uint32_t vc_, int32_t credits_ ) :
   baseMordredEvent( CREDIT ), vn( vn_ ), vc( vc_ ), credits( credits_ ) { /* empty */ }
 
   void serialize_order(Core::Serialization::serializer& ser) override {
     baseMordredEvent::serialize_order(ser);
+    ser & vn;
     ser & vc;
     ser & credits;
   }

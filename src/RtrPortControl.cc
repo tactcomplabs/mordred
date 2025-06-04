@@ -104,6 +104,7 @@ void RtrPortControl::allocateBuffers() {
   destCredits.resize( numVns );
   outBufCredits.resize( numVns );
   inRetCredits.resize( numVns );
+  inFlitCnt.resize( numVns );
 
   // Allocate/init the second dimension
   for ( uint32_t i = 0; i < numVcs; i++ ) {
@@ -114,6 +115,18 @@ void RtrPortControl::allocateBuffers() {
     destCredits.at(i).resize( numVcs, 0 );
     outBufCredits.at(i).resize( numVcs, static_cast<int32_t>( credits ) );
     inRetCredits.at(i).resize( numVcs, 0 );
+    inFlitCnt.at(i).resize( numVcs, nullptr );
+  }
+
+  // Register stats
+  for (uint32_t i = 0; i < numVns; i++ ) {
+    for (uint32_t j = 0; j < numVcs; j++ ) {
+      std::string str = std::to_string( rtrId ) + "." + std::to_string( portId ) + "." + std::to_string(i) + "." + std::to_string(j);
+      inFlitCnt.at( i ).at( j ) = registerStatistic<uint64_t>( "in_flit_cnt", str.c_str() );
+      output->verbose( CALL_INFO, 5, 0, "Register STAT subid=%s\n", str.c_str() );
+      if ( inFlitCnt.at( i ).at( j )->isNullStatistic() ) {}
+        output->verbose( CALL_INFO, 5, 0, "Reg STAT [%u][%u] IS NULL\n", i, j );
+    }
   }
 }
 
@@ -313,11 +326,15 @@ void RtrPortControl::inHandler( SST::Event* ev ) {
     if ( flit == nullptr )
       output->fatal( CALL_INFO, -1, "Invalid flit \n" );
 
-    flit->next_port = topo->routePacket( (uint32_t)flit->req->dest );
+    flit->next_port = topo->routePacket( (uint32_t)flit->req->dest ); // TODO: do routing later if we're going to change the VC during routing
     output->verbose( CALL_INFO, 5, 0, "Recv flit %s, src=%" PRIu64 ", dst=%" PRIu64 ", dest_port=%" PRIu32 "\n",
       flit->pktIdStr().c_str(), flit->req->src, flit->req->dest, flit->next_port );
 
     inBuf.at( flit->vn ).at( flit->cur_vc ).push( flit );
+    if ( flit->ftype == MordredFlit::TAIL ) {
+      inFlitCnt.at( flit->vn ).at( flit->cur_vc )->addData( flit->flit_id + 1 );
+      //output->verbose( CALL_INFO, 5, 0, "STAT UPDATE for [%u][%u]\n", flit->vn, flit->cur_vc );
+    }
     break;
   } // end FLIT
   default:

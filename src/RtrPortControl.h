@@ -54,7 +54,9 @@ public:
   // Use the parent ports -- assume anonymous loading
   SST_ELI_DOCUMENT_PORTS()
 
-  SST_ELI_DOCUMENT_STATISTICS()
+  SST_ELI_DOCUMENT_STATISTICS(
+  {"in_flit_cnt", "Number of incoming flits", "unitless", 3},
+  )
 
   RtrPortControl( ComponentId_t id, Params& params, TopologyAPI* topology, std::vector<RtrOwnedVnObj>* vn_objs, uint32_t rtr_num, uint32_t port_num );
 
@@ -122,8 +124,7 @@ private:
   std::vector<std::vector<OutVcStateE>> outStates;
 
   // Packet buffers
-  // Note: For now, we have a separate output buffer for each VN/VC combo; this
-  // would allow for us to
+  // Note: For now, we have a separate output buffer for each VN/VC combo
   std::vector<std::vector<std::queue<MordredFlit*>>> inBuf; // from router/endpt
   std::vector<std::vector<std::queue<MordredFlit*>>> outBuf; // to router/endpt
 
@@ -142,6 +143,10 @@ private:
   // init to zero
   std::vector<std::vector<int32_t>> inRetCredits;
 
+  // Statistics
+  // Soooo, this keeps showing up as a NullStatistic after I try to register
+  // it; no idea why at this point.  Seems like the SST docs are insufficient.
+  std::vector<std::vector<Statistic<uint64_t>*>> inFlitCnt;
 };
 
 } // namespace SST::Mordred
