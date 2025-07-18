@@ -27,6 +27,7 @@
 #include "ArbAPI.h"
 #include "RtrPortControlAPI.h"
 #include "TopologyAPI.h"
+#include "VcAllocAPI.h"
 #include "sst_config.h"
 
 // TODO: Configure verbosity control (use constants in MordredEvents)
@@ -53,6 +54,11 @@ public:
     COMPONENT_CATEGORY_NETWORK
   )
 
+  /*
+   * For now, the {input,output}_buf_size parameters are handed down to the ports and the ports
+   * will do some math and distribute credits equally across each of the VN,VC buffers.
+   */
+
   SST_ELI_DOCUMENT_PARAMS(
     { "verbose",       "Sets the output verbosity",                    "5" },
     {"id", "ID of the router", nullptr},
@@ -77,7 +83,8 @@ public:
   SST_ELI_DOCUMENT_SUBCOMPONENT_SLOTS(
     {"topology", "Topology and routing subcomponent", "SST::Mordred::TopologyAPI"},
     {"portcontrol", "PortControl blocks; loaded anonymously", "SST::Mordred::RtrPortControlAPI"},
-    {"arbiter", "Arbitration scheme/model", "SST::Mordred::ArbAPI"}
+    {"vc_alloc", "VC allocator", "SST::Mordred::VcAllocAPI"},
+    {"arbiter", "Arbitration scheme/model", "SST::Mordred::ArbAPI"}, // TODO: This becomes the switch allocator
   )
 
   SST_ELI_DOCUMENT_PORTS(
@@ -113,25 +120,24 @@ private:
   // Major components
   TopologyAPI* topology{nullptr};
   ArbAPI* arbiter{nullptr};
+  VcAllocAPI* vcAlloc{nullptr};
   // If a port is unconnected, we push_back a nullptr for that port index
   std::vector<RtrPortControlAPI*>  portsVec;
 
   // Shared between components
-  // perPortVnObjs[port_id][vn]
-  // Doing this rather than maintaining a 3D structure
-  std::vector<std::vector<RtrOwnedVnObj>> perPortVnObjs;
+  // perPortSharedObjs[port_id]
+  std::vector<RtrOwnedSharedObjs> perPortSharedObjs;
 
   // Per (input) port structure; the pair is the VN,VC input pair that won arbitration
   // to send something through the crossbar to an output port
   // use UINT32_MAX, UINT32_MAX to identify idle/unassigned;
+  // TODO: TBD if this will be deleted or absorbed into perPortSharedObjs
   std::vector<std::pair<uint32_t,uint32_t>> arbWinners;
-
-  //std::vector<RtrPortControlAPI::InVcStateE>  inVcStates; // currently unused
 
   // Per port structure, the output state is used to identify if a port is already
   // sending to this output port
-  // TODO: Rename - this is per port, not per vn/vc (unless we allow per-flit switching)
-  std::vector<RtrPortControlAPI::OutVcStateE> outVcStates;
+  // TODO: Delete this - look into the ports as needed
+  std::vector<OutVcStateE> outVcStates;
 
   Statistic<uint64_t>* tickCounter;
 

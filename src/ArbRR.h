@@ -41,8 +41,8 @@ public:
 
   SST_ELI_DOCUMENT_STATISTICS()
 
-  ArbRR( ComponentId_t id, Params &params, std::vector<std::vector<RtrOwnedVnObj>> *vn_objs,
-    std::vector<std::pair<uint32_t,uint32_t>> *arb_winners, std::vector<RtrPortControlAPI::OutVcStateE> *out_vc_states );
+  ArbRR( ComponentId_t id, Params &params, std::vector<std::vector<RtrOwnedSharedObjs>> *vn_objs,
+    std::vector<std::pair<uint32_t,uint32_t>> *arb_winners, std::vector<OutVcStateE> *out_vc_states );
 
   ~ArbRR() final = default;
 
@@ -54,9 +54,9 @@ private:
   uint32_t numPorts{UINT32_MAX};
 
   // These structures are all owned by SimpleRtr and used/checked here
-  std::vector<std::vector<RtrOwnedVnObj>>* vnObjs;
+  std::vector<std::vector<RtrOwnedSharedObjs>>* vnObjs;
   std::vector<std::pair<uint32_t,uint32_t>> *arbWinners; // index is port, pair is VN,VC of who won arbitration
-  std::vector<RtrPortControlAPI::OutVcStateE> *outVcStates;
+  std::vector<OutVcStateE> *outVcStates;
 
   // TODO: Do actual round-robin behavior
   //uint32_t next_port{0}; // use to track rr start

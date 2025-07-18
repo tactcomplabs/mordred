@@ -20,8 +20,8 @@
 
 using namespace SST::Mordred;
 
-ArbRR::ArbRR( ComponentId_t id, Params &params, std::vector<std::vector<RtrOwnedVnObj>> *vn_objs,
-  std::vector<std::pair<uint32_t,uint32_t>> *arb_winners, std::vector<RtrPortControlAPI::OutVcStateE> *out_vc_states) :
+ArbRR::ArbRR( ComponentId_t id, Params &params, std::vector<std::vector<RtrOwnedSharedObjs>> *vn_objs,
+  std::vector<std::pair<uint32_t,uint32_t>> *arb_winners, std::vector<OutVcStateE> *out_vc_states) :
 ArbAPI( id ),
 vnObjs( vn_objs ),
 arbWinners( arb_winners ),
@@ -72,7 +72,7 @@ void ArbRR::arbitrate( ) {
             output->fatal( CALL_INFO, -1, "Flit next_port == %" PRIu32 " is invalid\n", flit->next_port );
           if ( vnObjs->at( flit->next_port ).empty() )
             output->fatal( CALL_INFO, -1, "Flit next_port == %" PRIu32 " is unconnected\n", flit->next_port );
-          if ( outVcStates->at( flit->next_port ) != RtrPortControlAPI::OutVcStateE::OUT_IDLE)
+          if ( outVcStates->at( flit->next_port ) != OutVcStateE::OUT_IDLE)
             continue;
 
           output->verbose( CALL_INFO, 5, 0, "Port %" PRIu32 " has flit %s\n",
@@ -81,7 +81,7 @@ void ArbRR::arbitrate( ) {
           // side of the dest port to ensure it can move through
           // TODO: get VN,VC from packet
           arbWinners->at(i) = std::make_pair( 0, 0 ); // 0,0 is the VN,VC of the receiving port for the flit
-          outVcStates->at( flit->next_port ) = RtrPortControlAPI::OutVcStateE::OUT_BUSY;
+          outVcStates->at( flit->next_port ) = OutVcStateE::OUT_BUSY;
         }
       } // end k loop
     } // end j loop

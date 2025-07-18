@@ -47,20 +47,16 @@ SimpleRTR::SimpleRTR( ComponentId_t cid, Params& params ) : Component( cid ) {
     output.fatal( CALL_INFO, -1, "Couldn't load topology\n" );
 
   arbWinners.resize( numPorts, std::make_pair( UINT32_MAX, UINT32_MAX ) );
-  outVcStates.resize( numPorts, RtrPortControlAPI::OutVcStateE::OUT_IDLE );
-  perPortVnObjs.resize( numPorts );
+  outVcStates.resize( numPorts, OutVcStateE::OUT_IDLE );
+  perPortSharedObjs.resize( numPorts );
   // Configure local/endpt ports -- borrowed this approach from
   // sst-elements/src/sst/elements/simpleElementExample/basicLinks.cc
   for ( uint32_t i = 0; i < numPorts; i++ ) {
     std::string linkname = "port" + std::to_string(i);
     if ( isPortConnected( linkname ) ) {
-      perPortVnObjs.at(i).resize( numVns ); // TODO: This may want to vary based on if the port is a local endpoint or a router connection
-      for ( uint32_t j = 0; j < numVns; j++ ) {
-        perPortVnObjs.at(i).at(j).allocateVecs( numVcs ); // TODO: This may want to vary based on if the port is a local endpoint or a router connection
-        perPortVnObjs.at(i).at(j).initVecs();
-      }
+      perPortSharedObjs.at(i).allocateVecs( numVns, numVcs );
       portsVec.push_back( loadAnonymousSubComponent<RtrPortControlAPI>("mordred.rtrPortControl", "portcontrol", (int)i,
-        ComponentInfo::SHARE_PORTS, params, topology, &perPortVnObjs[i], id, i) );
+        ComponentInfo::SHARE_PORTS, params, topology, &perPortSharedObjs[i], id, i) );
     } else {
       output.verbose( CALL_INFO, 5, 0, "Port %u with name=%s unconnected\n", i, linkname.c_str() );
       portsVec.push_back( nullptr );
@@ -68,10 +64,13 @@ SimpleRTR::SimpleRTR( ComponentId_t cid, Params& params ) : Component( cid ) {
   }
 
   arbiter = loadAnonymousSubComponent<ArbAPI>( "mordred.arbRR", "arbiter", 0,
-    ComponentInfo::SHARE_NONE, params, &perPortVnObjs, &arbWinners, &outVcStates );
+    ComponentInfo::SHARE_NONE, params, &perPortSharedObjs, &arbWinners, &outVcStates );
   if (arbiter == nullptr) {
     output.fatal( CALL_INFO, -1, "arbiter is a nullptr\n" );
   }
+
+  vcAlloc = loadAnonymousSubComponent<VcAllocAPI>( "mordred.vcAllocRR", "vcAlloc", 0,
+    ComponentInfo::SHARE_NONE, params, id, numPorts, numVns, numVcs );
 
   // Try registering a stat
   std::string rtrstr = "rtr[" + std::to_string( id ) + "]";
@@ -89,6 +88,7 @@ SimpleRTR::SimpleRTR( ComponentId_t cid, Params& params ) : Component( cid ) {
 SimpleRTR::~SimpleRTR() {
   for ( auto &port : portsVec )
       delete port;
+  delete vcAlloc;
   delete arbiter;
   delete topology;
 }
@@ -98,6 +98,7 @@ void SimpleRTR::init( uint32_t phase ) {
   //output.flush();
 
   topology->init( phase );
+  vcAlloc->init( phase );
   for ( auto &port : portsVec )
     if ( port != nullptr )
       port->init( phase );
@@ -105,6 +106,7 @@ void SimpleRTR::init( uint32_t phase ) {
 
 void SimpleRTR::setup() {
   topology->setup();
+  vcAlloc->setup();
   for ( auto &port : portsVec )
     if ( port != nullptr )
       port->setup();
@@ -126,7 +128,7 @@ bool SimpleRTR::clockTick( Cycle_t cycle ) {
       continue;
 
     if ( portsVec.at(i)->getOutBufCreditCount( arbWinners[i] ) <= 0 ) {
-      outVcStates.at( i ) = RtrPortControlAPI::OutVcStateE::NEED_CREDITS;
+      outVcStates.at( i ) = OutVcStateE::NEED_CREDITS;
       continue;
     }
 
@@ -134,10 +136,10 @@ bool SimpleRTR::clockTick( Cycle_t cycle ) {
     MordredFlit *flit = portsVec.at( i )->getInBufFlit( arbWinners[i] );
 
     // send flit to an output buffer of the sending port
-    portsVec.at( flit->next_port )->sendOutBufFlit( flit, arbWinners[i] );
+    portsVec.at( flit->next_port )->recvOutBufFlit( flit, arbWinners[i] );
     if ( flit->ftype == MordredFlit::TAIL ) {
       if ( portsVec.at(flit->next_port)->getOutBufCreditCount( arbWinners[i] ) > 0 ) {
-        outVcStates.at( flit->next_port ) = RtrPortControlAPI::OutVcStateE::OUT_IDLE;
+        outVcStates.at( flit->next_port ) = OutVcStateE::OUT_IDLE;
         //output.verbose( CALL_INFO, 5, 0, "Cycle=%" PRIu64 "; reset outVcState=%u\n", cycle, flit->next_port );
       }
       arbWinners[i] = std::make_pair( UINT32_MAX, UINT32_MAX ); // reset arbWinner for the sending port

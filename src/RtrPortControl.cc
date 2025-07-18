@@ -22,24 +22,24 @@
 using namespace SST::Mordred;
 
 RtrPortControl::RtrPortControl( ComponentId_t id, Params& params, TopologyAPI* topology,
-  std::vector<RtrOwnedVnObj>* vn_objs, uint32_t rtr_num, uint32_t port_num ) :
+  RtrOwnedSharedObjs* rtr_shared_objs, uint32_t rtr_num, uint32_t port_num ) :
   RtrPortControlAPI( id ),
   topo( topology ),
   rtrId( rtr_num ),
   portId( port_num ),
-  perVnObjs( vn_objs )
+  rtrSharedObjs( rtr_shared_objs )
 {
   const auto verbosity = params.find<uint32_t>("verbose", 5);
   output = new Output("RtrPortControl[[" + std::to_string( rtrId ) + "." + std::to_string( portId ) + "]:@p:@t]: ",
     verbosity, 0, Output::STDOUT);
 
-  if ( perVnObjs == nullptr )
+  if ( rtrSharedObjs == nullptr )
     output->fatal(CALL_INFO_LONG, 1, "RtrPortControl: vn_objs must be specified\n");
 
-  numVns = perVnObjs->size();
+  numVns = rtrSharedObjs->needVcAlloc.size();
   if ( numVns != 1 )
     output->fatal(CALL_INFO_LONG, 1, "RtrPortControl: num_vns must be 1\n");
-  numVcs = perVnObjs->at(0).vcHeads.size();
+  numVcs = rtrSharedObjs->needVcAlloc.at(0).size();
 
   auto flit_size_ua = params.find<UnitAlgebra>( "flit_size", "32b" );
   if ( !flit_size_ua.hasUnits("b") && !flit_size_ua.hasUnits("B") ) {
@@ -66,6 +66,7 @@ RtrPortControl::RtrPortControl( ComponentId_t id, Params& params, TopologyAPI* t
     buf_size_ua *= UnitAlgebra("8b/B");
   }
   inBufSize = static_cast<uint32_t>( buf_size_ua.getRoundedValue() );
+  //TODO: Validate size
 
   buf_size_ua = params.find<UnitAlgebra>("output_buf_size",found);
   if ( !found ) {
@@ -79,6 +80,7 @@ RtrPortControl::RtrPortControl( ComponentId_t id, Params& params, TopologyAPI* t
     buf_size_ua *= UnitAlgebra("8b/B");
   }
   outBufSize = static_cast<uint32_t>( buf_size_ua.getRoundedValue() );
+  //TODO: Validate size
 
   const std::string pname = "port" + std::to_string(port_num);
   link = configureLink( pname, new Event::Handler2<RtrPortControl, &RtrPortControl::inHandler>( this ) );
@@ -95,36 +97,35 @@ RtrPortControl::RtrPortControl( ComponentId_t id, Params& params, TopologyAPI* t
 
 // Note: It may be "better" to do this in the init phase once we know what the other end of the link is
 void RtrPortControl::allocateBuffers() {
-  auto credits = outBufSize / flitSize ;
+  auto total_credits = outBufSize / flitSize ;
+  auto credits = total_credits / ( numVns * numVcs );
 
-  inStates.resize( numVns );
-  outStates.resize( numVns );
-  inBuf.resize( numVns );
-  outBuf.resize( numVns );
-  destCredits.resize( numVns );
-  outBufCredits.resize( numVns );
-  inRetCredits.resize( numVns );
-  inFlitCnt.resize( numVns );
+  inStateVec.resize( numVns );
+  outStateVec.resize( numVns );
+  statInFlitCnt.resize( numVns );
 
   // Allocate/init the second dimension
-  for ( uint32_t i = 0; i < numVcs; i++ ) {
-    inStates.at(i).resize( numVcs, IN_IDLE );
-    outStates.at(i).resize( numVcs, OUT_IDLE );
-    inBuf.at(i).resize( numVcs );
-    outBuf.at(i).resize( numVcs );
-    destCredits.at(i).resize( numVcs, 0 );
-    outBufCredits.at(i).resize( numVcs, static_cast<int32_t>( credits ) );
-    inRetCredits.at(i).resize( numVcs, 0 );
-    inFlitCnt.at(i).resize( numVcs, nullptr );
+  for ( uint32_t i = 0; i < numVns; i++ ) {
+    inStateVec.at( i ).resize( numVcs );
+    outStateVec.at( i ).resize( numVcs );
+    statInFlitCnt.at(i).resize( numVcs, nullptr );
+  }
+
+  // Init stuff as needed
+  for ( uint32_t i = 0; i < numVns; i++ ) {
+    for ( uint32_t j = 0; j < numVcs; j++ ) {
+      inStateVec.at(i).at(j).reset();
+      outStateVec.at(i).at(j).reset( static_cast<int16_t>( credits ) );
+    }
   }
 
   // Register stats
   for (uint32_t i = 0; i < numVns; i++ ) {
     for (uint32_t j = 0; j < numVcs; j++ ) {
       std::string str = std::to_string( rtrId ) + "." + std::to_string( portId ) + "." + std::to_string(i) + "." + std::to_string(j);
-      inFlitCnt.at( i ).at( j ) = registerStatistic<uint64_t>( "in_flit_cnt", str.c_str() );
+      statInFlitCnt.at( i ).at( j ) = registerStatistic<uint64_t>( "in_flit_cnt", str.c_str() );
       output->verbose( CALL_INFO, 5, 0, "Register STAT subid=%s\n", str.c_str() );
-      if ( inFlitCnt.at( i ).at( j )->isNullStatistic() ) {}
+      if ( statInFlitCnt.at( i ).at( j )->isNullStatistic() ) {}
         output->verbose( CALL_INFO, 5, 0, "Reg STAT [%u][%u] IS NULL\n", i, j );
     }
   }
@@ -217,8 +218,9 @@ void RtrPortControl::init( unsigned int phase ) {
   }
 
   case 3: {
-    // Send router credits equal to num_flits in_buf can hold
-    auto credits    = static_cast<int32_t>( inBufSize / flitSize );
+    // Send router credits
+    auto total_credits    = static_cast<int32_t>( inBufSize / flitSize );
+    auto credits  = total_credits / static_cast<int32_t>( numVns * numVcs );
     // Need to do things a little differently here depending on if I'm going to an endpoint or
     // another router
     uint32_t max_vc = ( connectionType == ROUTER ) ? numVcs : 1;
@@ -237,8 +239,8 @@ void RtrPortControl::init( unsigned int phase ) {
       auto base_ev = static_cast<baseMordredEvent*>( ev );
       if( base_ev->getType() == baseMordredEvent::CREDIT ) {
         auto credit_ev = static_cast<MordredCreditEvent*>( ev );
-        destCredits.at( credit_ev->vn ).at ( credit_ev->vc ) += credit_ev->credits;
-        output->verbose( CALL_INFO, 5, 0, "Received credit event vc=%d, credits=%d; cur_credits=%d\n", credit_ev->vc, credit_ev->credits, destCredits.at( credit_ev->vn ).at( credit_ev->vc ) );
+        outStateVec.at( credit_ev->vn ).at ( credit_ev->vc ).destCredits += credit_ev->credits;
+        output->verbose( CALL_INFO, 5, 0, "Received credit event vc=%d, credits=%d; cur_credits=%d\n", credit_ev->vc, credit_ev->credits, outStateVec.at( credit_ev->vn ).at ( credit_ev->vc ).destCredits );
       } else {
         output->verbose( CALL_INFO, 5, 0, "Received unexpected event type=%d\n", (int) base_ev->getType() );
       }
@@ -271,26 +273,58 @@ void RtrPortControl::ClockTick( Cycle_t cycle ) {
   //output->flush();
 
   // Fill all possible vcHeads from the input buffer
-  for ( uint32_t vn = 0; vn < numVns; vn++ ) {
-    for ( uint32_t vc = 0; vc < numVcs; vc++ ) {
-      if ( ( perVnObjs->at(vn).vcHeads[vc] == nullptr ) && ( !inBuf.at( vn ).at( vc ).empty() ) ) {
-        perVnObjs->at(vn).vcHeads[vc] = inBuf.at( vn ). at( vc ).front();
-        //output->verbose( CALL_INFO, 5, 0, "Filling vcHeads[vc=%d] for vn=%d\n", vc, vn );
+  // I'm not terribly keen on this logic as it would let us manipulate multiple VN,VC pairs in a given
+  // cycle, even if they are at the same "processing" stage.
+  // The expectation is that this would be an uncommon case over time as packets/flits end up being
+  // spread out.
+  // Anticipate putting some logic to prevent this overlapped processing into the other subcomps of
+  // the router
+
+  // TODO: This also assumes one cycle each for VC and switch allocation - might need a method for speeding that up
+  // probably going to make more sense to break this up into multiple functions, then the router can handle that
+
+  // TODO: Figure out where to do the state transition in/out of WAIT_CREDITS
+  for( uint32_t vn = 0; vn < numVns; vn++ ) {
+    for( uint32_t vc = 0; vc < numVcs; vc++ ) {
+      // Going to throw some extra sanity checks in for now
+      if ( inStateVec.at( vn ).at( vc ).inVcState == IN_IDLE ) {
+        if ( rtrSharedObjs->needVcAlloc.at(vn).at(vc) != nullptr )
+          output->fatal( CALL_INFO, -1, "Expected nullptr\n" );
+        if ( !inStateVec.at( vn ).at( vc ).inBuf.empty() ) {
+          auto *flit = inStateVec.at( vn ).at( vc ).inBuf.front();
+          if ( flit->ftype != MordredFlit::HEAD )
+            output->fatal( CALL_INFO, -1, "Expected head flit\n" );
+          inStateVec.at(vn).at(vc).inVcState = ROUTING;
+          inStateVec.at(vn).at(vc).outPort = topo->routePacket( (uint32_t)flit->req->dest );
+        }
+      } else if ( inStateVec.at( vn ).at( vc ).inVcState == ROUTING ) {
+        auto *flit = inStateVec.at( vn ).at( vc ).inBuf.front();
+        inStateVec.at(vn).at(vc).inVcState = WAIT_VC;
+        rtrSharedObjs->needVcAlloc.at(vn).at(vc) = flit;
+      } else if ( ( inStateVec.at( vn ).at( vc ).inVcState == WAIT_VC ) &&
+                  ( inStateVec.at( vn ).at( vc ).outVc != UINT16_MAX ) ) {
+        // Ready for switch allocation
+        auto *flit = inStateVec.at( vn ).at( vc ).inBuf.front();
+        inStateVec.at(vn).at(vc).inVcState = IN_ACTIVE;
+        rtrSharedObjs->needSwitchAlloc.at(vn).at(vc) = flit;
       }
     }
   }
 
   // Send a flit on the link from the output buffer
+  // - this should probably send from whichever VC is already sending since the
+  // switch allocation will hold it high
+  // - may not even need multiple vn/vc buffers here, but will maintain for now
   bool sent = false;
   for( uint32_t i = 0, vn = flit_vn_rr; i < numVns; i++, vn = ( ( vn != ( numVns - 1 ) ) ? vn + 1 : 0 ) ) {
     for( uint32_t j = 0, vc = flit_vc_rr; j < numVcs; j++, vc = ( ( vc != ( numVcs - 1 ) ) ? vc + 1 : 0 ) ) {
-      if ( ( !outBuf.at( vn ).at( vc ).empty() ) &&
-           ( destCredits.at( vn ).at( vc ) > 0 ) ) { // ensure there are dest credits
-        auto flit = outBuf.at( vn ).at( vc ).front();
-        outBuf.at( vn ).at( vc ).pop();
+      if ( ( !outStateVec.at( vn ).at( vc ).outBuf.empty() ) &&
+           ( outStateVec.at( vn ).at ( vc ).destCredits > 0 ) ) { // ensure there are dest credits
+        auto flit = outStateVec.at( vn ).at( vc ).outBuf.front();
+        outStateVec.at( vn ).at( vc ).outBuf.pop();
         link->send( flit );
         sent = true;
-        destCredits.at( vn ).at( vc )--;
+        outStateVec.at( vn ).at ( vc ).destCredits--;
         //output->verbose( CALL_INFO, 5, 0, "Sending output flit; remaining_credits=%" PRId32 "\n", destCredits.at( vn ).at(vc) );
         break; // can only send one flit out on the link
       }
@@ -315,9 +349,9 @@ void RtrPortControl::inHandler( SST::Event* ev ) {
   switch( bev->getType() ) {
   case baseMordredEvent::CREDIT: {
     auto credit = static_cast<MordredCreditEvent*>( bev );
-    destCredits.at( credit->vn ).at( credit->vc ) += credit->credits;
+    outStateVec.at( credit->vn ).at ( credit->vc ).destCredits += credit->credits;
     output->verbose( CALL_INFO, 5, 0, "Received %" PRId32 " credits to vc=%" PRIu32 ", cur_credits=%" PRIu32 "\n",
-      credit->credits, credit->vc, destCredits.at( credit->vn ).at( credit->vc ) );
+      credit->credits, credit->vc, outStateVec.at( credit->vn ).at ( credit->vc ).destCredits );
     delete bev;
     break;
   } // end CREDIT
@@ -330,9 +364,9 @@ void RtrPortControl::inHandler( SST::Event* ev ) {
     output->verbose( CALL_INFO, 5, 0, "Recv flit %s, src=%" PRIu64 ", dst=%" PRIu64 ", dest_port=%" PRIu32 "\n",
       flit->pktIdStr().c_str(), flit->req->src, flit->req->dest, flit->next_port );
 
-    inBuf.at( flit->vn ).at( flit->cur_vc ).push( flit );
+    inStateVec.at( flit->vn ).at( flit->cur_vc ).inBuf.push( flit );
     if ( flit->ftype == MordredFlit::TAIL ) {
-      inFlitCnt.at( flit->vn ).at( flit->cur_vc )->addData( flit->flit_id + 1 );
+      statInFlitCnt.at( flit->vn ).at( flit->cur_vc )->addData( flit->flit_id + 1 );
       //output->verbose( CALL_INFO, 5, 0, "STAT UPDATE for [%u][%u]\n", flit->vn, flit->cur_vc );
     }
     break;
@@ -347,33 +381,33 @@ MordredFlit* RtrPortControl::getInBufFlit( std::pair<uint32_t, uint32_t> vn_vc )
   // Get the flit to return
   uint32_t vn = vn_vc.first;
   uint32_t vc = vn_vc.second;
-  if ( inBuf.at( vn ).at( vc ).empty() ) {
+  if ( inStateVec.at( vn ).at( vc ).inBuf.empty() ) {
     output->flush();
     output->fatal( CALL_INFO, 5, "InBuf empty; vc=%d\n", vc );
   }
-  MordredFlit* flit = inBuf.at( vn ).at( vc ).front();
-  inBuf.at( vn ).at( vc ).pop();
+  MordredFlit* flit = inStateVec.at( vn ).at( vc ).inBuf.front();
+  inStateVec.at( vn ).at( vc ).inBuf.pop();
 
   if ( flit == nullptr )
     output->fatal( CALL_INFO, -1, "Invalid flit \n" );
 
   // If we're at the tail, clear for the next packet
   if ( flit->ftype == MordredFlit::TAIL ) {
-    perVnObjs->at( vn ).vcHeads[ vc ] = nullptr;
-    // The output state for this port is reset in SimpleRTR rather than here
+    // TODO: Check this -- The output state for this port is reset in SimpleRTR rather than here
+    inStateVec.at( vn ).at( vc ).inVcState = IN_IDLE;
   }
 
   // Can return a credit to the sender
-  inRetCredits.at( vn ).at( vc )++;
+  inStateVec.at( vn ).at( vc ).retCredits++;
 
   output->verbose( CALL_INFO, 5, 0, "Get flit %s from inBuf\n", flit->pktIdStr().c_str() );
   return flit;
 }
 
-void RtrPortControl::sendOutBufFlit( MordredFlit* flit, std::pair<uint32_t, uint32_t> vn_vc ) {
+void RtrPortControl::recvOutBufFlit( MordredFlit* flit, std::pair<uint32_t, uint32_t> vn_vc ) {
   uint32_t vn = vn_vc.first;
   uint32_t vc = vn_vc.second;
-  outBuf.at( vn ).at( vc ).push( flit );
+  outStateVec.at( vn ).at( vc ).outBuf.push( flit );
   output->verbose( CALL_INFO, 5, 0, "Put flit %s in outBuf\n", flit->pktIdStr().c_str() );
 }
 
@@ -397,10 +431,10 @@ MordredInitEvent* RtrPortControl::getInitEvent( MordredInitEvent::Commands cmd )
 void RtrPortControl::returnCredit() {
   for( uint32_t i = 0, vn = credit_ret_vn_rr; i < numVns; i++, vn = ( ( vn != ( numVns - 1 ) ) ? vn + 1 : 0 ) ) {
     for( uint32_t j = 0, vc = credit_ret_vc_rr; j < numVcs; j++, vc = ( ( vc != ( numVcs - 1 ) ) ? vc + 1 : 0 ) ) {
-      if( inRetCredits.at( vn ).at ( vc ) != 0 ) {
-        auto credit = new MordredCreditEvent( vn, vc, inRetCredits.at( vn ).at( vc ) );
+      if( inStateVec.at( vn ).at ( vc ).retCredits != 0 ) {
+        auto credit = new MordredCreditEvent( vn, vc, inStateVec.at( vn ).at ( vc ).retCredits );
         link->send( credit );
-        inRetCredits.at( vn ).at( vc ) = 0;
+        inStateVec.at( vn ).at ( vc ).retCredits = 0;
         //output->verbose( CALL_INFO, 5, 0, "Sending credit event\n" );
         break;  // only send one packet on the link
       }

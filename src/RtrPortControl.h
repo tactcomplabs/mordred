@@ -20,10 +20,24 @@
 
 namespace SST::Mordred {
 
+
+/**
+ * Have a per VN,VC structure in RtrPortControlAPI that mostly models an input or output
+ * unit in the Dally book.  It's owned here and we'll pass along the reference to the port
+ * vector to whichever units need it from the router
+ *
+ * For now, let's do routing when we get a head flit at the head of a queue;
+ * we're going to assume
+ * that we have enough logic so that we don't have to worry about arbitrating
+ * access to the router itself
+ *
+ */
+
 /**
  * Miscellaneous Notes:
  *  - If this is an ENDPOINT port, it really only needs one VC; we don't pass that knowledge into
- *    the object and configure it that way though (would likely require changes to SimpleRTR)
+ *    the object and configure it that way though (would be pretty easy since we're passing in the
+ *    full params struct)
  *  - Only connected ports should ever be created (via the SimpleRtr constructor) so we don't
  *      do any checking for that here
  *  - For a given clock tick, if all of the output buffers are empty/blocked from sending,
@@ -58,7 +72,7 @@ public:
   {"in_flit_cnt", "Number of incoming flits", "unitless", 3},
   )
 
-  RtrPortControl( ComponentId_t id, Params& params, TopologyAPI* topology, std::vector<RtrOwnedVnObj>* vn_objs, uint32_t rtr_num, uint32_t port_num );
+  RtrPortControl( ComponentId_t id, Params& params, TopologyAPI* topology, RtrOwnedSharedObjs* rtr_shared_objs, uint32_t rtr_num, uint32_t port_num );
 
   ~RtrPortControl() final = default;
 
@@ -75,12 +89,37 @@ public:
 
   void inHandler(Event* ev);
 
+  // VC Alloc interactions
+  uint32_t getOutPort( uint32_t vn, uint32_t vc ) final { return inStateVec.at(vn).at(vc).outPort; }
+
+  // TODO: This should be in VcAllocRR since that's the unit that should be selecting an output VC based
+  // on it's internal algo
+  uint32_t assignOutVc( uint32_t vn, uint32_t start_vc ) final {
+    for ( uint32_t i = 0, cur_vc = start_vc; i < numVcs; i++, cur_vc = ( cur_vc+1 ) % numVcs ) {
+      if ( outStateVec.at(vn).at(cur_vc).outVcState == OUT_IDLE )
+        return cur_vc;
+    }
+    return UINT32_MAX;
+  }
+
+  void inUnitSetOutputVc( uint32_t vn, uint32_t input_vc, uint32_t output_vc ) final {
+    inStateVec.at(vn).at(input_vc).outVn = vn;
+    inStateVec.at(vn).at(input_vc).outVc = output_vc;
+  }
+
+  void outUnitSetInputVc( uint32_t vn, uint32_t input_vc, uint32_t output_vc ) final {
+    outStateVec.at(vn).at(output_vc).inVn = vn;
+    outStateVec.at(vn).at(output_vc).inVc = input_vc;
+  }
+
+
   // Switch/xbar interactions
   int32_t getOutBufCreditCount( std::pair<uint32_t, uint32_t> vn_vc ) final {
-    return outBufCredits[vn_vc.first][vn_vc.second];
+    return outStateVec.at( vn_vc.first ).at( vn_vc.second ).outBufCredits;
   }
+
   MordredFlit* getInBufFlit( std::pair<uint32_t, uint32_t> vn_vc ) final;
-  void   sendOutBufFlit( MordredFlit* flit, std::pair<uint32_t, uint32_t> vn_vc ) final; // Rename?
+  void   recvOutBufFlit( MordredFlit* flit, std::pair<uint32_t, uint32_t> vn_vc ) final; // Rename?
 
 private:
   void allocateBuffers();
@@ -107,46 +146,26 @@ private:
   UnitAlgebra param_link_bw;
   UnitAlgebra param_flit_size;
 
+  // TODO: Probably want a "port" state that IDs if something is already on the
+  // move in/out of here (may be faster than searching states) - this may be
+  // better at the router level
+
   // These are in bits
   uint32_t inBufSize;
   uint32_t outBufSize;
 
+  // These are 2D - [vn][vc]
+  std::vector<std::vector<perVcInState>> inStateVec;
+  std::vector<std::vector<perVcOutState>> outStateVec;
+
   // Each element is for a VN
-  std::vector<RtrOwnedVnObj> *perVnObjs{};
-
-  /**
-   * For the structures below, the outer dimension is VN, inner is VC
-   */
-
-  // Not using these, but these will probably be necessary if we don't want
-  // to rearbitrate every cycle
-  std::vector<std::vector<InVcStateE>> inStates;
-  std::vector<std::vector<OutVcStateE>> outStates;
-
-  // Packet buffers
-  // Note: For now, we have a separate output buffer for each VN/VC combo
-  std::vector<std::vector<std::queue<MordredFlit*>>> inBuf; // from router/endpt
-  std::vector<std::vector<std::queue<MordredFlit*>>> outBuf; // to router/endpt
-
-  // Credit counters; 1 credit = 1 flit
-  // credits received from destination; initialized to non-zero in init (dest sends a count)
-  // (dec on send to dest, inc when credit packet comes from dest)
-  std::vector<std::vector<int32_t>> destCredits;
-
-  // credits for space in the outBuf (decrement as flits inserted,
-  // increment when put on link) - purely internal (and
-  // unnecessary if outBuf is removed)
-  // initialize to outBufSize
-  std::vector<std::vector<int32_t>> outBufCredits;
-
-  // credits to return to the sender as the inBuf is emptied out
-  // init to zero
-  std::vector<std::vector<int32_t>> inRetCredits;
+  RtrOwnedSharedObjs *rtrSharedObjs{};
 
   // Statistics
+  // For the 2D vectors, the outer dimension is VN, inner is VC
   // Soooo, this keeps showing up as a NullStatistic after I try to register
   // it; no idea why at this point.  Seems like the SST docs are insufficient.
-  std::vector<std::vector<Statistic<uint64_t>*>> inFlitCnt;
+  std::vector<std::vector<Statistic<uint64_t>*>> statInFlitCnt;
 };
 
 } // namespace SST::Mordred

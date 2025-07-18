@@ -19,6 +19,8 @@ set(MordredSrcs
         ArbAPI.h
         ArbRR.h
         ArbRR.cc
+        VcAllocAPI.h
+        VcAllocRR.cc
 )
 
 add_library(mordred SHARED ${MordredSrcs})
