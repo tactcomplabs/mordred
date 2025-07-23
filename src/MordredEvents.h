@@ -127,6 +127,9 @@ public:
   // wants to pass to another endpoint
   Interfaces::SimpleNetwork::Request  *req;
 
+  // TODO: Remove the next_port and all VC fields - let this be handled by the router itself; could probably remove the
+  // VN as well, but that might be useful on network entry
+
   uint32_t vn{0};
   uint32_t next_port{UINT32_MAX};
   uint32_t next_vc{UINT32_MAX};
@@ -198,16 +201,19 @@ private:
  *
  * The router will create a vector of these objects (one element per port) and then
  * the data objects within this struct will be what the ports operate on/deal with.
+ *
+ * TODO: This should be a more extendable class - may just want to use templated types
+ * for the vectors; probably can't though since these are constructed by the router
+ *
+ * Honestly, these vectors could probably be booleans
  */
 struct RtrOwnedSharedObjs {
   // Stays false if this object is for a port that is unconnected/invalid
   bool isValid{false};
 
   // May need to reconsider these once I get into coding things up a bit more
-  std::vector<std::vector<MordredFlit*>> needVcAlloc;
-  std::queue<std::pair<uint32_t,uint32_t>> vcAlloc; // vn,vc pairs that had an output vn,vc allocated; TODO: how to consume?
+  std::vector<std::vector<MordredFlit*>> needVcAlloc; // ports place into this, the VC allocator will clear entries
   std::vector<std::vector<MordredFlit*>> needSwitchAlloc;
-  std::queue<std::pair<uint32_t,uint32_t>> switchAlloc; // vn,vc pairs that had switch allocated to them; router needs these
 
   void allocateVecs( uint32_t num_vns, uint32_t num_vcs ) {
     isValid = true;

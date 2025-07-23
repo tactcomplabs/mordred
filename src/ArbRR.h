@@ -8,6 +8,9 @@
 // See LICENSE in the top level directory for licensing details
 //
 
+// Changing this file up quite a bit - it was originally doing both VC and switch alloc, but
+// now it's just going to be for switch allocation
+
 #ifndef ARBRR_H
 #define ARBRR_H
 
@@ -41,25 +44,31 @@ public:
 
   SST_ELI_DOCUMENT_STATISTICS()
 
-  ArbRR( ComponentId_t id, Params &params, std::vector<std::vector<RtrOwnedSharedObjs>> *vn_objs,
-    std::vector<std::pair<uint32_t,uint32_t>> *arb_winners, std::vector<OutVcStateE> *out_vc_states );
+  ArbRR( ComponentId_t id, Params &params, uint32_t rtr_id, uint32_t num_ports, uint32_t num_vns, uint32_t num_vcs );
 
   ~ArbRR() final = default;
 
-  // I'm sure more parameters will be necessary
-  void arbitrate( ) final;
+  // At the end of this, we want a list of input tuples [Port,VN,VC] that will be allowed to move to the output side
+  // Probably want to keep a vector/list/something to mark the packets that are actively moving
+  void arbitrate( std::vector<RtrPortControlAPI*> &ports, std::vector<RtrOwnedSharedObjs> &rtr_shared_objs ) final;
 
 private:
   Output   *output;
+  uint32_t rtrId;
   uint32_t numPorts{UINT32_MAX};
+  uint32_t numVns{UINT32_MAX};
+  uint32_t numVcs{UINT32_MAX};
 
-  // These structures are all owned by SimpleRtr and used/checked here
-  std::vector<std::vector<RtrOwnedSharedObjs>>* vnObjs;
-  std::vector<std::pair<uint32_t,uint32_t>> *arbWinners; // index is port, pair is VN,VC of who won arbitration
-  std::vector<OutVcStateE> *outVcStates;
+  uint32_t recv_rr_port{0}; // use to track rr start for receiving ports
+  uint32_t send_rr_port{0}; // use to track rr start for sending ports
+  uint32_t send_rr_vn{0};
+  uint32_t send_rr_vc{0};
+  uint32_t sending_vn;
+  uint32_t sending_vc;
 
-  // TODO: Do actual round-robin behavior
-  //uint32_t next_port{0}; // use to track rr start
+  void resetSendingVnVc() { sending_vn = sending_vc = UINT32_MAX; }
+  bool findSendableFlit( uint32_t rcvportnum, RtrPortControlAPI* &sendport, RtrOwnedSharedObjs &shared_obj );
+
 };
 
 } // namespace SST::Mordred

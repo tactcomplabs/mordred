@@ -296,6 +296,7 @@ void RtrPortControl::ClockTick( Cycle_t cycle ) {
             output->fatal( CALL_INFO, -1, "Expected head flit\n" );
           inStateVec.at(vn).at(vc).inVcState = ROUTING;
           inStateVec.at(vn).at(vc).outPort = topo->routePacket( (uint32_t)flit->req->dest );
+          // TODO: Ensure portId != outPort
         }
       } else if ( inStateVec.at( vn ).at( vc ).inVcState == ROUTING ) {
         auto *flit = inStateVec.at( vn ).at( vc ).inBuf.front();
@@ -376,38 +377,28 @@ void RtrPortControl::inHandler( SST::Event* ev ) {
   }  // end switch
 }
 
-MordredFlit* RtrPortControl::getInBufFlit( std::pair<uint32_t, uint32_t> vn_vc ) {
+MordredFlit* RtrPortControl::getInBufFlit() {
 
-  // Get the flit to return
-  uint32_t vn = vn_vc.first;
-  uint32_t vc = vn_vc.second;
-  if ( inStateVec.at( vn ).at( vc ).inBuf.empty() ) {
+  if ( inStateVec.at( switch_alloc_sendfrom_vn ).at( switch_alloc_sendfrom_vc ).inBuf.empty() ) {
     output->flush();
-    output->fatal( CALL_INFO, 5, "InBuf empty; vc=%d\n", vc );
+    output->fatal( CALL_INFO, 5, "InBuf empty; vn=%" PRIu32 ", vc=%" PRIu32 "\n", switch_alloc_sendfrom_vn, switch_alloc_sendfrom_vc );
   }
-  MordredFlit* flit = inStateVec.at( vn ).at( vc ).inBuf.front();
-  inStateVec.at( vn ).at( vc ).inBuf.pop();
+  MordredFlit* flit = inStateVec.at( switch_alloc_sendfrom_vn ).at( switch_alloc_sendfrom_vc ).inBuf.front();
+  inStateVec.at( switch_alloc_sendfrom_vn ).at( switch_alloc_sendfrom_vc ).inBuf.pop();
 
   if ( flit == nullptr )
     output->fatal( CALL_INFO, -1, "Invalid flit \n" );
 
-  // If we're at the tail, clear for the next packet
-  if ( flit->ftype == MordredFlit::TAIL ) {
-    // TODO: Check this -- The output state for this port is reset in SimpleRTR rather than here
-    inStateVec.at( vn ).at( vc ).inVcState = IN_IDLE;
-  }
-
   // Can return a credit to the sender
-  inStateVec.at( vn ).at( vc ).retCredits++;
+  inStateVec.at( switch_alloc_sendfrom_vn ).at( switch_alloc_sendfrom_vc ).retCredits++;
 
   output->verbose( CALL_INFO, 5, 0, "Get flit %s from inBuf\n", flit->pktIdStr().c_str() );
   return flit;
 }
 
-void RtrPortControl::recvOutBufFlit( MordredFlit* flit, std::pair<uint32_t, uint32_t> vn_vc ) {
-  uint32_t vn = vn_vc.first;
-  uint32_t vc = vn_vc.second;
-  outStateVec.at( vn ).at( vc ).outBuf.push( flit );
+void RtrPortControl::recvOutBufFlit( MordredFlit* flit ) {
+  outStateVec.at( switch_alloc_rcvto_vn ).at( switch_alloc_rcvto_vc ).outBuf.push( flit );
+  outStateVec.at( switch_alloc_rcvto_vn ).at( switch_alloc_rcvto_vc ).outBufCredits--;
   output->verbose( CALL_INFO, 5, 0, "Put flit %s in outBuf\n", flit->pktIdStr().c_str() );
 }
 

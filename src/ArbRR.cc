@@ -20,37 +20,71 @@
 
 using namespace SST::Mordred;
 
-ArbRR::ArbRR( ComponentId_t id, Params &params, std::vector<std::vector<RtrOwnedSharedObjs>> *vn_objs,
-  std::vector<std::pair<uint32_t,uint32_t>> *arb_winners, std::vector<OutVcStateE> *out_vc_states) :
+ArbRR::ArbRR( ComponentId_t id, Params &params, uint32_t rtr_id, uint32_t num_ports, uint32_t num_vns, uint32_t num_vcs ) :
 ArbAPI( id ),
-vnObjs( vn_objs ),
-arbWinners( arb_winners ),
-outVcStates( out_vc_states )
+rtrId( rtr_id ),
+numPorts( num_ports ),
+numVns( num_vns ),
+numVcs( num_vcs )
 {
   const auto verbosity = params.find<uint32_t>("verbose", 5);
-  output = new Output("ArbRR[" + getName() + ":@p:@t]: ", verbosity, 0, Output::STDOUT);
+  output = new Output("ArbRR[[" + std::to_string( rtrId ) + "]:@p:@t]: ", verbosity, 0, Output::STDOUT);
 
-  numPorts = params.find<uint32_t>("num_ports", 3);
-
-  if (vnObjs == nullptr) {
-    output->fatal( CALL_INFO, -1, "vn_objs is a nullptr\n" );
-  }
-
-  if (vnObjs->size() != numPorts) {
-    output->fatal(CALL_INFO, -1, "Number of ports in vn_objs does not match number of ports in router\n");
-  }
-
-  if ( outVcStates == nullptr ) {
-    output->fatal( CALL_INFO, -1, "out_vc_states is a nullptr\n" );
-  }
+  resetSendingVnVc();
 }
 
-void ArbRR::arbitrate( ) {
-  if (vnObjs == nullptr) {
-    // TODO: sanity check for now...delete eventually
-    output->fatal( CALL_INFO, -1, "vnObjs is a nullptr\n" );
+// This code is nearly vomit inducing; using continues to reduce the nesting a little bit
+void ArbRR::arbitrate( std::vector<RtrPortControlAPI*> &ports, std::vector<RtrOwnedSharedObjs> &rtr_shared_objs ) {
+  resetSendingVnVc();
+  for( uint32_t i = 0, rcvportnum = recv_rr_port; i < numPorts; ++i, rcvportnum = ( rcvportnum + 1 ) % numPorts ) {
+    if ( ports.at(rcvportnum) == nullptr )
+      continue;
+    if( ports.at( rcvportnum )->isRecvAllocatedFromSwitch() ) // already receiving from someone
+      continue;
+    // rcvportnum is not actively receiving from the switch, so RR through the ports and find the next sender
+    for( uint32_t j = 0, sendportnum = send_rr_port; j < numVns; ++j, sendportnum = ( sendportnum + 1 ) % numPorts ) {
+      if ( sendportnum == rcvportnum ) // disallow sending back to self
+        continue;
+      if ( ports.at( sendportnum ) == nullptr ) // skip invalid ports
+        continue;
+      if( ports.at( sendportnum )->isSendAllocatedToSwitch() ) // already sending to someone
+        continue;
+      if( findSendableFlit( rcvportnum, ports.at( sendportnum ), rtr_shared_objs.at( sendportnum ) ) ) {
+        // We have a sendable flit, so notify/update send/recv ports; clear flit from shared struct
+        ports.at(sendportnum)->sendAllocateToSwitch( rcvportnum, sending_vn, sending_vc );
+        auto dest_vc = ports.at( sendportnum )->getDestVc( sending_vn, sending_vc );
+        ports.at(rcvportnum)->recvAllocateFromSwitch( sendportnum, sending_vn, dest_vc );
+        rtr_shared_objs.at( sendportnum ).needSwitchAlloc.at(sending_vn).at(sending_vc) = nullptr;
+        resetSendingVnVc();
+        break; // found a matching sender, no need to do another one
+      }
+    }
   }
+  // Update start values
+  recv_rr_port = ( recv_rr_port + 1 ) % numPorts;
+  send_rr_port = ( send_rr_port + 1 ) % numPorts;
+  send_rr_vn = ( send_rr_vn + 1 ) % numVns;
+  send_rr_vc = ( send_rr_vn + 1 ) % numVcs;
+}
 
+bool ArbRR::findSendableFlit( uint32_t rcvportnum, RtrPortControlAPI* &sendport, RtrOwnedSharedObjs &shared_obj ) {
+  for ( uint32_t i = 0, vn = send_rr_vn; i < numVns; ++i, vn = (vn + 1) % numVns ) {
+    for ( uint32_t j = 0, vc = send_rr_vc; j < numVcs; ++j, vc = (vc + 1) % numVcs ) {
+      if ( shared_obj.needSwitchAlloc.at(vn).at(vc) != nullptr ) {
+        if ( rcvportnum == sendport->getDestPort( vn, vc ) ) {
+          // We have a winner!
+          sending_vn = vn;
+          sending_vc = vc;
+          return true;
+        }
+      }
+    }
+  }
+  return false;
+}
+
+
+#if 0
   for ( uint32_t i = 0; i < numPorts; i++) {
     if ( vnObjs->at(i).empty() ) // unconnected ports
       continue;
@@ -88,3 +122,4 @@ void ArbRR::arbitrate( ) {
   } // end i loop
 
 }
+#endif

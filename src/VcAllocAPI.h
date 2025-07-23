@@ -39,7 +39,7 @@ class VcAllocAPI : public SubComponent {
   ~VcAllocAPI() override = default;
 
   /// Main arbitration function
-  virtual void arbitrate( std::vector<RtrPortControlAPI> &ports, std::vector<RtrOwnedSharedObjs> &rtr_shared_objs ) = 0; // TODO: Add arguments as needed
+  virtual void arbitrate( std::vector<RtrPortControlAPI*> &ports, std::vector<RtrOwnedSharedObjs> &rtr_shared_objs ) = 0;
 
 }; // class VcAllocAPI
 

@@ -42,7 +42,7 @@ namespace SST::Mordred {
 class InVcHeads; // forward declaration
 class TopologyAPI; // forward declaration
 
-// Not using the InVcStateE right now
+// These are for the individual VCs
 enum InVcStateE { IN_IDLE, ROUTING, WAIT_VC, WAIT_CREDITS, IN_ACTIVE }; // for the port input side - match Dally book
 enum OutVcStateE { OUT_IDLE, OUT_BUSY, NEED_CREDITS}; // for the port output side - mainly for xbar arb
 
@@ -55,44 +55,39 @@ enum OutVcStateE { OUT_IDLE, OUT_BUSY, NEED_CREDITS}; // for the port output sid
  *
  * TODO: probably need to provide functions to allow for updates (or at least an update
  * mechanism)
- *
- * TODO: Make the port, vn, and vc parameters all uint32_t's (at some point we can change them all to
- * uint16_t's)
  */
 struct perVcInState {
   InVcStateE inVcState;
-  uint16_t outPort;
-  uint16_t outVn;
-  uint16_t outVc;
-  int16_t availOutCredits; // captures available credits for outPort.outVn.outVc -- may not need - might want to just check on each cycle
-  int16_t retCredits; // credits to return to sender as inBuf is emptied; init to zero
+  uint32_t outPort;
+  uint32_t outVn;
+  uint32_t outVc;
+  int32_t retCredits; // credits to return to sender as inBuf is emptied; init to zero
   std::queue<MordredFlit*> inBuf;
 
   void reset() {
     inVcState = IN_IDLE;
-    outPort = UINT16_MAX;
-    outVn = UINT16_MAX;
-    outVc = UINT16_MAX;
-    availOutCredits = 0;
+    outPort = UINT32_MAX;
+    outVn = UINT32_MAX;
+    outVc = UINT32_MAX;
     retCredits = 0;
   }
 };
 
 struct perVcOutState {
   OutVcStateE outVcState;
-  uint16_t inPort;
-  uint16_t inVn;
-  uint16_t inVc;
-  int16_t outBufCredits; // space available in outBuf; dec on write to buf, inc when flit put on link
+  uint32_t inPort;
+  uint32_t inVn;
+  uint32_t inVc;
+  int32_t outBufCredits; // space available in outBuf; dec on write to buf, inc when flit put on link
   // (dec on send to dest, inc when credit packet comes from dest)
-  int16_t destCredits; // maintains available credits for myVn.myVc downstream; initialized to non-zero in init (dest sends a count)
+  int32_t destCredits; // maintains available credits for myVn.myVc downstream; initialized to non-zero in init (dest sends a count)
   std::queue<MordredFlit*> outBuf;
 
-  void reset( int16_t ob_creds ) {
+  void reset( int32_t ob_creds ) {
     outVcState = OUT_IDLE;
-    inPort = UINT16_MAX;
-    inVn = UINT16_MAX;
-    inVc = UINT16_MAX;
+    inPort = UINT32_MAX;
+    inVn = UINT32_MAX;
+    inVc = UINT32_MAX;
     outBufCredits = ob_creds;
     destCredits = 0;
   }
@@ -121,22 +116,27 @@ public:
   // updates
   virtual void ClockTick( Cycle_t cycle ) = 0;
 
-  virtual int32_t getOutBufCreditCount( std::pair<uint32_t, uint32_t> vn_vc ) = 0;
+  virtual uint32_t getSendingPort()                                                                  = 0;
 
   // VC Allocator functions
-  virtual uint32_t getOutPort( uint32_t vn, uint32_t vc ) = 0;
-  virtual uint32_t assignOutVc( uint32_t vn, uint32_t start_vc ) = 0;
-  virtual void inUnitSetOutputVc( uint32_t vn, uint32_t input_vc, uint32_t output_vc ) = 0;
-  virtual void outUnitSetInputVc( uint32_t vn, uint32_t input_vc, uint32_t output_vc ) = 0;
+  virtual uint32_t getDestPort( uint32_t vn, uint32_t vc ) = 0;
+  virtual OutVcStateE getOutputState( uint32_t vn, uint32_t vc ) = 0;
+  virtual void inUnitSetDestVc( uint32_t vn, uint32_t input_vc, uint32_t dest_vc ) = 0;
+  virtual void outUnitSetSrcVc( uint32_t vn, uint32_t src_vc, uint32_t output_vc ) = 0;
 
-  // Get state for a VC
-  // Intended to mark the status of a port for the xbar arbitration
-  //virtual InVcStateE getInVcState( uint32_t vc ) = 0;
-  //virtual OutVcStateE getOutVcState( uint32_t vc ) = 0;
+  // Switch allocation functions
+  virtual bool isSendAllocatedToSwitch() = 0;
+  virtual void sendAllocateToSwitch( uint32_t port, uint32_t vn, uint32_t vc )                   = 0;
+  virtual void resetSwitchSendAllocation() = 0;
+  virtual uint32_t getDestVc( uint32_t vn, uint32_t vc ) = 0;
 
-  // TODO: Do I really need to be using pairs?
-  virtual MordredFlit* getInBufFlit( std::pair<uint32_t, uint32_t> vn_vc ) = 0;
-  virtual void   recvOutBufFlit( MordredFlit* flit, std::pair<uint32_t, uint32_t> vn_vc )  = 0;
+  virtual bool isRecvAllocatedFromSwitch() = 0;
+  virtual void recvAllocateFromSwitch( uint32_t sending_port, uint32_t vn, uint32_t vc ) = 0;
+  virtual void resetSwitchRecvAllocation() = 0;
+
+  // TODO: Do I really need to be using pairs? - no for getting, maybe for writing (TBD)
+  virtual MordredFlit* getInBufFlit() = 0;
+  virtual void recvOutBufFlit( MordredFlit* flit )  = 0;
 
 };  // class RtrPortControlAPI
 

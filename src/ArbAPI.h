@@ -29,8 +29,8 @@ namespace SST::Mordred {
 
 class ArbAPI : public SubComponent {
   public:
-    SST_ELI_REGISTER_SUBCOMPONENT_API( SST::Mordred::ArbAPI, std::vector<std::vector<RtrOwnedSharedObjs>>*,
-      std::vector<std::pair<uint32_t,uint32_t>>*, std::vector<OutVcStateE>*);
+  SST_ELI_REGISTER_SUBCOMPONENT_API( SST::Mordred::ArbAPI, uint32_t, uint32_t,
+    uint32_t, uint32_t ); // rtr_id, num_ports, num_vns, num_vcs
 
   /// ArbAPI: constructor
   ArbAPI( ComponentId_t id ) : SubComponent( id ) {}
@@ -39,7 +39,7 @@ class ArbAPI : public SubComponent {
   ~ArbAPI() override = default;
 
   /// Main arbitration function
-  virtual void arbitrate( ) = 0; // TODO: Add arguments as needed
+  virtual void arbitrate( std::vector<RtrPortControlAPI*> &ports, std::vector<RtrOwnedSharedObjs> &rtr_shared_objs ) = 0;
 
 }; // class ArbAPI
 

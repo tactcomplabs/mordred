@@ -8,6 +8,11 @@
 // See LICENSE in the top level directory for licensing details
 //
 
+// Notes:
+// - This will not modify the VN of any flit that goes through this allocator
+// - This allocator is just looking for an IDLE destination (output) VC; not checking
+//   credits anywhere
+
 #ifndef VCALLOCRR_H
 #define VCALLOCRR_H
 
@@ -51,10 +56,7 @@ public:
   void complete(unsigned int phase) override { /* empty */ }
   void finish() override { /* empty */ }
 
-  // TODO: Add parameters as needed
-  void arbitrate( std::vector<RtrPortControlAPI>& ports, std::vector<RtrOwnedSharedObjs>& rtr_shared_objs ) final;
-
-  MordredFlit* findWinner( RtrOwnedSharedObjs* obj );
+  void arbitrate( std::vector<RtrPortControlAPI*>& ports, std::vector<RtrOwnedSharedObjs>& rtr_shared_objs ) final;
 
 private:
   Output   *output;
@@ -63,13 +65,17 @@ private:
   uint32_t numVns{UINT32_MAX};
   uint32_t numVcs{UINT32_MAX};
 
-  uint32_t next_rr_port{0};
-  uint32_t next_rr_vn{0};
-  uint32_t next_rr_vc{0};
-  uint32_t vn_winner;
-  uint32_t vc_winner;
-  uint32_t next_out_rr_vc{0};
-  uint32_t output_vc{UINT32_MAX};
+  uint32_t rr_port{0};
+  uint32_t rr_vn{0};
+  uint32_t rr_vc{0};
+  uint32_t src_vn;
+  uint32_t src_vc;
+  uint32_t rr_dest_vc{0};
+
+  void resetSrcVnVc() { src_vn = UINT32_MAX; src_vc = UINT32_MAX; }
+  MordredFlit* findMappableFlit( RtrOwnedSharedObjs* obj );
+  uint32_t findDestVc( RtrPortControlAPI* &port ) const;
+
 };
 
 } // namespace SST::Mordred

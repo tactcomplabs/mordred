@@ -64,7 +64,7 @@ SimpleRTR::SimpleRTR( ComponentId_t cid, Params& params ) : Component( cid ) {
   }
 
   arbiter = loadAnonymousSubComponent<ArbAPI>( "mordred.arbRR", "arbiter", 0,
-    ComponentInfo::SHARE_NONE, params, &perPortSharedObjs, &arbWinners, &outVcStates );
+    ComponentInfo::SHARE_NONE, params, id, numPorts, numVns, numVcs );
   if (arbiter == nullptr) {
     output.fatal( CALL_INFO, -1, "arbiter is a nullptr\n" );
   }
@@ -118,34 +118,33 @@ bool SimpleRTR::clockTick( Cycle_t cycle ) {
   if ( cycle % 10 == 0 )
     tickCounter->addData( 1 );
 
-  //output.verbose( CALL_INFO, 3, 0, "Cycle=%" PRIu64 "\n", cycle );
-  //output.flush();
-  arbiter->arbitrate();
-
-  // For all router ports, see if we can move a flit through the "crossbar"
+  // For all router ports, see if we can receive a flit through the crossbar
   for ( uint32_t i = 0; i < numPorts; i++ ) {
-    if ( arbWinners[i].first == UINT32_MAX )
+    if ( portsVec.at( i ) == nullptr )
       continue;
 
-    if ( portsVec.at(i)->getOutBufCreditCount( arbWinners[i] ) <= 0 ) {
-      outVcStates.at( i ) = OutVcStateE::NEED_CREDITS;
+    auto sending_port = portsVec.at( i )->getSendingPort();
+    if ( sending_port == UINT32_MAX ) // can't receive a flit, move on
       continue;
-    }
 
-    // get flit out from an input buffer of the receiving port
-    MordredFlit *flit = portsVec.at( i )->getInBufFlit( arbWinners[i] );
+    // Get the flit from the sender -- multiple checks there for invalid/null concerns
+    auto flit = portsVec.at( sending_port )->getInBufFlit();
 
-    // send flit to an output buffer of the sending port
-    portsVec.at( flit->next_port )->recvOutBufFlit( flit, arbWinners[i] );
+    // Give the flit to the receiver
+    portsVec.at( i )->recvOutBufFlit( flit );
+
     if ( flit->ftype == MordredFlit::TAIL ) {
-      if ( portsVec.at(flit->next_port)->getOutBufCreditCount( arbWinners[i] ) > 0 ) {
-        outVcStates.at( flit->next_port ) = OutVcStateE::OUT_IDLE;
-        //output.verbose( CALL_INFO, 5, 0, "Cycle=%" PRIu64 "; reset outVcState=%u\n", cycle, flit->next_port );
-      }
-      arbWinners[i] = std::make_pair( UINT32_MAX, UINT32_MAX ); // reset arbWinner for the sending port
-      //output.verbose( CALL_INFO, 5, 0, "Cycle=%" PRIu64 "; reset arbWinners=%u\n", cycle, i );
+      portsVec.at(sending_port)->resetSwitchSendAllocation();
+      portsVec.at(i)->resetSwitchRecvAllocation();
     }
   }
+
+  //output.verbose( CALL_INFO, 3, 0, "Cycle=%" PRIu64 "\n", cycle );
+  //output.flush();
+  arbiter->arbitrate( portsVec, perPortSharedObjs );
+
+  vcAlloc->arbitrate( portsVec, perPortSharedObjs );
+
 
   // Let the port do its work
   for ( auto &port : portsVec ) {

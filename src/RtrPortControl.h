@@ -90,36 +90,71 @@ public:
   void inHandler(Event* ev);
 
   // VC Alloc interactions
-  uint32_t getOutPort( uint32_t vn, uint32_t vc ) final { return inStateVec.at(vn).at(vc).outPort; }
+  uint32_t getDestPort( uint32_t vn, uint32_t vc ) final { return inStateVec.at(vn).at(vc).outPort; }
+  OutVcStateE getOutputState( uint32_t vn, uint32_t vc ) final { return outStateVec.at(vn).at(vc).outVcState; }
 
-  // TODO: This should be in VcAllocRR since that's the unit that should be selecting an output VC based
-  // on it's internal algo
-  uint32_t assignOutVc( uint32_t vn, uint32_t start_vc ) final {
-    for ( uint32_t i = 0, cur_vc = start_vc; i < numVcs; i++, cur_vc = ( cur_vc+1 ) % numVcs ) {
-      if ( outStateVec.at(vn).at(cur_vc).outVcState == OUT_IDLE )
-        return cur_vc;
-    }
+  void inUnitSetDestVc( uint32_t vn, uint32_t input_vc, uint32_t dest_vc ) final {
+    inStateVec.at(vn).at(input_vc).outVn = vn;
+    inStateVec.at(vn).at(input_vc).outVc = dest_vc;
+  }
+
+  void outUnitSetSrcVc( uint32_t vn, uint32_t src_vc, uint32_t output_vc ) final {
+    outStateVec.at(vn).at(src_vc).outVcState = OUT_BUSY;
+    outStateVec.at(vn).at(output_vc).inVn = vn;
+    outStateVec.at(vn).at(output_vc).inVc = src_vc;
+  }
+
+  // Switch allocation functions
+  bool isSendAllocatedToSwitch() final {
+    // Might want to check switch_alloc_vc as well
+    if( switch_alloc_sendto_port != UINT32_MAX )
+      return true;
+    return false;
+  }
+
+  void sendAllocateToSwitch( uint32_t port, uint32_t vn, uint32_t vc ) final {
+    if ( port != inStateVec.at(vn).at(vc).outPort )
+      output->fatal( CALL_INFO, -1, "Port mismatch in=%" PRIu32 ", state=%" PRIu32 "\n",
+        port, inStateVec.at(vn).at(vc).outPort );
+    switch_alloc_sendto_port = port;
+    switch_alloc_sendfrom_vn = vn;
+    switch_alloc_sendfrom_vc = vc;
+  }
+  void resetSwitchSendAllocation() final {
+    inStateVec.at( switch_alloc_sendfrom_vn ).at(switch_alloc_sendfrom_vc).inVcState = IN_IDLE;
+    switch_alloc_sendto_port = switch_alloc_sendfrom_vn = switch_alloc_sendfrom_vc = UINT32_MAX;
+  }
+
+  bool isRecvAllocatedFromSwitch() final {
+    if ( switch_alloc_rcvto_vn != UINT32_MAX )
+      return true;
+    return false;
+  }
+  void recvAllocateFromSwitch( uint32_t sending_port, uint32_t vn, uint32_t vc ) final {
+    if ( sending_port != outStateVec.at(vn).at(vc).inPort )
+      output->fatal( CALL_INFO, -1, "Port mismatch in=%" PRIu32 ", state=%" PRIu32 "\n",
+        sending_port, outStateVec.at(vn).at(vc).inPort );
+    switch_alloc_rcvfrom_port = sending_port;
+    switch_alloc_rcvto_vn = vn;
+    switch_alloc_rcvto_vc = vc;
+  }
+  void resetSwitchRecvAllocation() final {
+    outStateVec.at( switch_alloc_rcvto_vn ).at(switch_alloc_rcvto_vc ).outVcState = OUT_IDLE;
+    switch_alloc_rcvfrom_port = switch_alloc_rcvto_vn = switch_alloc_rcvto_vc = UINT32_MAX;
+  }
+  uint32_t getDestVc( uint32_t vn, uint32_t vc ) final { return inStateVec.at(vn).at(vc).outVc; }
+
+  // Switch/xbar interactions
+  uint32_t getSendingPort() final {
+    if ( switch_alloc_rcvfrom_port == UINT32_MAX ) // no sender
+      return UINT32_MAX;
+    if ( outStateVec.at(switch_alloc_rcvto_vn).at(switch_alloc_rcvto_vc).outBufCredits > 0 )
+      return switch_alloc_rcvfrom_port;
     return UINT32_MAX;
   }
 
-  void inUnitSetOutputVc( uint32_t vn, uint32_t input_vc, uint32_t output_vc ) final {
-    inStateVec.at(vn).at(input_vc).outVn = vn;
-    inStateVec.at(vn).at(input_vc).outVc = output_vc;
-  }
-
-  void outUnitSetInputVc( uint32_t vn, uint32_t input_vc, uint32_t output_vc ) final {
-    outStateVec.at(vn).at(output_vc).inVn = vn;
-    outStateVec.at(vn).at(output_vc).inVc = input_vc;
-  }
-
-
-  // Switch/xbar interactions
-  int32_t getOutBufCreditCount( std::pair<uint32_t, uint32_t> vn_vc ) final {
-    return outStateVec.at( vn_vc.first ).at( vn_vc.second ).outBufCredits;
-  }
-
-  MordredFlit* getInBufFlit( std::pair<uint32_t, uint32_t> vn_vc ) final;
-  void   recvOutBufFlit( MordredFlit* flit, std::pair<uint32_t, uint32_t> vn_vc ) final; // Rename?
+  MordredFlit* getInBufFlit() final;
+  void   recvOutBufFlit( MordredFlit* flit ) final; // Rename?
 
 private:
   void allocateBuffers();
@@ -142,6 +177,20 @@ private:
   uint32_t flit_vc_rr{};
   uint32_t credit_ret_vn_rr{};
   uint32_t credit_ret_vc_rr{};
+
+  // For switch allocation
+  // sendto == destination info; rcvfrom == src info
+  // the sendto terms should match what's in the perVcInState struct
+  // similarly, the rcvfrom terms should match what's in the perVcOutState struct
+
+  // This lets us get info from the sender to query the receiver; mainly needed for credits
+  uint32_t switch_alloc_sendto_port{UINT32_MAX};
+  uint32_t switch_alloc_sendfrom_vn{UINT32_MAX};
+  uint32_t switch_alloc_sendfrom_vc{UINT32_MAX};
+
+  uint32_t switch_alloc_rcvfrom_port{UINT32_MAX};
+  uint32_t switch_alloc_rcvto_vn{UINT32_MAX};
+  uint32_t switch_alloc_rcvto_vc{UINT32_MAX};
 
   UnitAlgebra param_link_bw;
   UnitAlgebra param_flit_size;
