@@ -95,7 +95,7 @@ bool TestEP::clockTick( Cycle_t cycle ) {
   }
 #endif
 
-#if 0
+#if 1
   // Simple output testing - need at least 9 endpoints as currently written
   if ( ( nocIface->getEndpointID() == 0 ) && ( cycle == 20 ) ) {
     output.verbose( CALL_INFO, 3, 0, "Sending packet. Cycle=%" PRIu64 "\n", cycle );
@@ -112,7 +112,7 @@ bool TestEP::clockTick( Cycle_t cycle ) {
   }
 #endif
 
-#if 0
+#if 1
   if ( ( nocIface->getEndpointID() == 0 ) && ( cycle == 30 ) ) {
     output.verbose( CALL_INFO, 3, 0, "Sending packet. Cycle=%" PRIu64 "\n", cycle );
     auto pkt = new simpleTestEvent( "oh my bad decaf");
@@ -125,6 +125,23 @@ bool TestEP::clockTick( Cycle_t cycle ) {
     req->givePayload( pkt );
 
     nocIface->send( req, 0 );
+  }
+#endif
+
+#if 1 // this is a second copy of the first packet
+  if ( ( nocIface->getEndpointID() == 0 ) && ( cycle == 50 ) ) {
+    output.verbose( CALL_INFO, 3, 0, "Sending packet. Cycle=%" PRIu64 "\n", cycle );
+    auto pkt = new simpleTestEvent( "howdy2");
+
+    auto *req = new Interfaces::SimpleNetwork::Request();
+    req->src = nocIface->getEndpointID();
+    req->dest = 1;
+    req->size_in_bits = 8*pkt->str.size();
+    req->vn = 0;
+    req->givePayload( pkt );
+
+    if ( !nocIface->send( req, 0 ) )
+      output.fatal( CALL_INFO, -1, "Failed to send packet\n" );
   }
 #endif
 

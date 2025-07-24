@@ -98,8 +98,9 @@ public:
     inStateVec.at(vn).at(input_vc).outVc = dest_vc;
   }
 
-  void outUnitSetSrcVc( uint32_t vn, uint32_t src_vc, uint32_t output_vc ) final {
-    outStateVec.at(vn).at(src_vc).outVcState = OUT_BUSY;
+  void outUnitSetSrc( uint32_t port, uint32_t vn, uint32_t src_vc, uint32_t output_vc ) final {
+    outStateVec.at(vn).at(output_vc).outVcState = OUT_BUSY;
+    outStateVec.at(vn).at(output_vc).inPort = port;
     outStateVec.at(vn).at(output_vc).inVn = vn;
     outStateVec.at(vn).at(output_vc).inVc = src_vc;
   }
@@ -155,6 +156,19 @@ public:
 
   MordredFlit* getInBufFlit() final;
   void   recvOutBufFlit( MordredFlit* flit ) final; // Rename?
+
+  void resetPerVcDest() final {
+    // This should be resetting the out{port,vn,vc} in an input unit - use the switch_alloc_sendfrom parameters
+    inStateVec.at(switch_alloc_sendfrom_vn).at(switch_alloc_sendfrom_vc).outPort =
+      inStateVec.at(switch_alloc_sendfrom_vn).at(switch_alloc_sendfrom_vc).outVn =
+        inStateVec.at(switch_alloc_sendfrom_vn).at(switch_alloc_sendfrom_vc).outVc = UINT32_MAX;
+  }
+
+  void resetPerVcSrc() final {
+    outStateVec.at(switch_alloc_rcvto_vn).at(switch_alloc_rcvto_vc).inPort =
+      outStateVec.at(switch_alloc_rcvto_vn).at(switch_alloc_rcvto_vc).inVn =
+        outStateVec.at(switch_alloc_rcvto_vn).at(switch_alloc_rcvto_vc).inVc = UINT32_MAX;
+  }
 
 private:
   void allocateBuffers();

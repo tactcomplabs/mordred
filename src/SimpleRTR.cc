@@ -69,8 +69,11 @@ SimpleRTR::SimpleRTR( ComponentId_t cid, Params& params ) : Component( cid ) {
     output.fatal( CALL_INFO, -1, "arbiter is a nullptr\n" );
   }
 
-  vcAlloc = loadAnonymousSubComponent<VcAllocAPI>( "mordred.vcAllocRR", "vcAlloc", 0,
+  vcAlloc = loadAnonymousSubComponent<VcAllocAPI>( "mordred.VcAllocRR", "vcAlloc", 0,
     ComponentInfo::SHARE_NONE, params, id, numPorts, numVns, numVcs );
+  if ( vcAlloc == nullptr ) {
+    output.fatal( CALL_INFO, -1, "vcAlloc is a nullptr\n" );
+  }
 
   // Try registering a stat
   std::string rtrstr = "rtr[" + std::to_string( id ) + "]";
@@ -134,8 +137,14 @@ bool SimpleRTR::clockTick( Cycle_t cycle ) {
     portsVec.at( i )->recvOutBufFlit( flit );
 
     if ( flit->ftype == MordredFlit::TAIL ) {
+      // These MUST be reset prior to calling the resetSwitch{Send,Recv}Allocation functions in a clockTick
+      // as the rely on the values that are reset when calling them
+      portsVec.at(sending_port)->resetPerVcDest();
+      portsVec.at(i)->resetPerVcSrc();
+      // The switch allocation could be done more frequently than on a packet basis
       portsVec.at(sending_port)->resetSwitchSendAllocation();
       portsVec.at(i)->resetSwitchRecvAllocation();
+      output.verbose( CALL_INFO, 3, 0, "Tail flit observed\n");
     }
   }
 

@@ -20,7 +20,7 @@ VcAllocRR::VcAllocRR( ComponentId_t id, Params& params, uint32_t rtr_id, uint32_
   numVcs( num_vcs )
 {
   const auto verbosity = params.find<uint32_t>("verbose", 5);
-  output = new Output("VcAllocRR[[" + std::to_string( rtrId ) + "]:@p:@t]: ",
+  output = new Output("VcAllocRR[" + std::to_string( rtrId ) + ":@p:@t]: ",
     verbosity, 0, Output::STDOUT);
 
   resetSrcVnVc();
@@ -41,7 +41,7 @@ void VcAllocRR::arbitrate( std::vector<RtrPortControlAPI*>& ports, std::vector<R
       auto dest_vc = findDestVc( ports.at( dest_portnum ) );
       if ( dest_vc != UINT32_MAX ) {
         input_port->inUnitSetDestVc( src_vn, src_vc, dest_vc );
-        ports.at(dest_portnum)->outUnitSetSrcVc( src_vn, src_vc, dest_vc );
+        ports.at(dest_portnum)->outUnitSetSrc( portnum, src_vn, src_vc, dest_vc );
         shared_obj.needVcAlloc.at( src_vn ).at( src_vc ) = nullptr;
         output->verbose( CALL_INFO, 5, 0, "Routed flit [Port:VN:VC] from [%" PRIu32 ":%" PRIu32 ":%" PRIu32 "] to [%" PRIu32 ":%" PRIu32 ":%" PRIu32 "]\n",
           portnum, src_vn, src_vc, dest_portnum, src_vn, dest_vc);

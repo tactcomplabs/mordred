@@ -20,6 +20,7 @@ set(MordredSrcs
         ArbRR.h
         ArbRR.cc
         VcAllocAPI.h
+        VcAllocRR.h
         VcAllocRR.cc
 )
 

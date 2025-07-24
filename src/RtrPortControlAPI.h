@@ -122,7 +122,7 @@ public:
   virtual uint32_t getDestPort( uint32_t vn, uint32_t vc ) = 0;
   virtual OutVcStateE getOutputState( uint32_t vn, uint32_t vc ) = 0;
   virtual void inUnitSetDestVc( uint32_t vn, uint32_t input_vc, uint32_t dest_vc ) = 0;
-  virtual void outUnitSetSrcVc( uint32_t vn, uint32_t src_vc, uint32_t output_vc ) = 0;
+  virtual void outUnitSetSrc( uint32_t port, uint32_t vn, uint32_t src_vc, uint32_t output_vc ) = 0;
 
   // Switch allocation functions
   virtual bool isSendAllocatedToSwitch() = 0;
@@ -134,9 +134,15 @@ public:
   virtual void recvAllocateFromSwitch( uint32_t sending_port, uint32_t vn, uint32_t vc ) = 0;
   virtual void resetSwitchRecvAllocation() = 0;
 
-  // TODO: Do I really need to be using pairs? - no for getting, maybe for writing (TBD)
+  // Moving packets
   virtual MordredFlit* getInBufFlit() = 0;
   virtual void recvOutBufFlit( MordredFlit* flit )  = 0;
+
+  // Reset input/output state when we see a tail flit - use the switch_alloc variables (at least for now)
+  // to determine which input/output set to reset
+  // These are not my favorite names
+  virtual void resetPerVcDest() = 0;
+  virtual void resetPerVcSrc() = 0;
 
 };  // class RtrPortControlAPI
 

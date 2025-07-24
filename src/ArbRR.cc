@@ -42,7 +42,7 @@ void ArbRR::arbitrate( std::vector<RtrPortControlAPI*> &ports, std::vector<RtrOw
     if( ports.at( rcvportnum )->isRecvAllocatedFromSwitch() ) // already receiving from someone
       continue;
     // rcvportnum is not actively receiving from the switch, so RR through the ports and find the next sender
-    for( uint32_t j = 0, sendportnum = send_rr_port; j < numVns; ++j, sendportnum = ( sendportnum + 1 ) % numPorts ) {
+    for( uint32_t j = 0, sendportnum = send_rr_port; j < numPorts; ++j, sendportnum = ( sendportnum + 1 ) % numPorts ) {
       if ( sendportnum == rcvportnum ) // disallow sending back to self
         continue;
       if ( ports.at( sendportnum ) == nullptr ) // skip invalid ports
@@ -55,6 +55,8 @@ void ArbRR::arbitrate( std::vector<RtrPortControlAPI*> &ports, std::vector<RtrOw
         auto dest_vc = ports.at( sendportnum )->getDestVc( sending_vn, sending_vc );
         ports.at(rcvportnum)->recvAllocateFromSwitch( sendportnum, sending_vn, dest_vc );
         rtr_shared_objs.at( sendportnum ).needSwitchAlloc.at(sending_vn).at(sending_vc) = nullptr;
+        output->verbose( CALL_INFO, 5, 0, "SwitchArb flit [Port:VN:VC] from [%" PRIu32 ":%" PRIu32 ":%" PRIu32 "] to [%" PRIu32 ":%" PRIu32 ":%" PRIu32 "]\n",
+          sendportnum, sending_vn, sending_vc, rcvportnum, sending_vn, dest_vc);
         resetSendingVnVc();
         break; // found a matching sender, no need to do another one
       }
