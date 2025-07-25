@@ -37,7 +37,7 @@
  * - The simpleTestEvent is the endpoint event; the TestEP is the endpoint and it creates the
  *    SimpleNetwork::Request wrapper for the simpleTestEvent. The request destination is the router
  *    number/ID of the desired endpoint
- * - The MordredNIC receives the SimpleNetwork::Request and creates a single MordredFlit that
+ * - The MordredNIC receives the SimpleNetwork::Request and creates a series of MordredFlits that
  *    wraps the SimpleNetwork::Request.  The MordredFlit is transmitted on the SST::Link to the router
  * - The network passes around the MordredFlit until we hit the desired endpoint router; the MordredFlit
  *    is sent to the endpt NIC.
@@ -127,6 +127,9 @@ public:
   // wants to pass to another endpoint
   Interfaces::SimpleNetwork::Request  *req;
 
+  // TODO: Remove the next_port and all VC fields - let this be handled by the router itself; could probably remove the
+  // VN as well, but that might be useful on network entry
+
   uint32_t vn{0};
   uint32_t next_port{UINT32_MAX};
   uint32_t next_vc{UINT32_MAX};
@@ -191,34 +194,53 @@ private:
   ImplementSerializable( SST::Mordred::MordredCreditEvent );
 };
 
-
 /**
  * So the naming here is probably horrible, but this is a collection of
- * per-VN data structures that the router owns.  Most everything in
- * this structure is going to be a vector because we many of the things
- * are needed for each VC as well.
+ * data structures that the router owns but is shared between units within
+ * the router.
+ *
+ * The router will create a vector of these objects (one element per port) and then
+ * the data objects within this struct will be what the ports operate on/deal with.
+ *
+ * TODO: This should be a more extendable class - may just want to use templated types
+ * for the vectors; probably can't though since these are constructed by the router
+ *
+ * Honestly, these vectors could probably be booleans
  */
-struct RtrOwnedVnObj {
+struct RtrOwnedSharedObjs {
+  // Stays false if this object is for a port that is unconnected/invalid
+  bool isValid{false};
 
-  // For each VC, the HEAD flit of the input buffer; this flit is used for making routing/arbitration decisions
-  std::vector<MordredFlit*> vcHeads;
+  // May need to reconsider these once I get into coding things up a bit more
+  std::vector<std::vector<MordredFlit*>> needVcAlloc; // ports place into this, the VC allocator will clear entries
+  std::vector<std::vector<MordredFlit*>> needSwitchAlloc;
 
-  // Other fields to add?
-  // vc state
-  // next vn -- packets shouldn't really be changing vns, but maybe they could if bridging networks
-  // next vc -- this gets maintained from HEAD to TAIL flit
-
-  // TODO: May want to combine these functions, esp if we always use them together
-  void allocateVecs( uint32_t num_vcs ) {
-    vcHeads.resize( num_vcs );
-  }
-
-  void initVecs() {
-    for( auto &vc_head : vcHeads ) {
-      vc_head = nullptr;
+  void allocateVecs( uint32_t num_vns, uint32_t num_vcs ) {
+    isValid = true;
+    needVcAlloc.resize( num_vns );
+    needSwitchAlloc.resize( num_vns );
+    for ( uint32_t i = 0; i < num_vns; i++ ) {
+      needVcAlloc[i].resize( num_vcs, nullptr );
+      needSwitchAlloc[i].resize( num_vcs, nullptr );
     }
   }
+};
 
+// UNUSED; Decided to revamp the above structure
+struct SharedStateObj {
+  std::vector<std::vector<bool>> reqVc; // reqVc[vn][vc] is requesting an output vn,vc allocation; to be consumed by VC allocator
+  std::vector<std::vector<bool>> reqXbar; // reqXbar[vn][vc] is requesting access to the xbar to move through the switch; to be consumed by switch/xbar allocator
+
+  void allocateVecs( uint32_t num_vns, uint32_t num_vcs ) {
+    reqVc.resize( num_vns );
+    for ( auto &vn : reqVc ) {
+      vn.resize( num_vcs, false );
+    }
+    reqXbar.resize( num_vns );
+    for ( auto &vn : reqXbar ) {
+      vn.resize( num_vcs, false );
+    }
+  }
 };
 
 

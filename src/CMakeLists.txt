@@ -16,9 +16,12 @@ set(MordredSrcs
         RtrPortControlAPI.h
         RtrPortControl.h
         RtrPortControl.cc
-        ArbAPI.h
-        ArbRR.h
-        ArbRR.cc
+        XbarArbAPI.h
+        XbarArbRR.h
+        XbarArbRR.cc
+        VcAllocAPI.h
+        VcAllocRR.h
+        VcAllocRR.cc
 )
 
 add_library(mordred SHARED ${MordredSrcs})
