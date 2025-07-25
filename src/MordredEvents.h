@@ -38,12 +38,15 @@
  *    SimpleNetwork::Request wrapper for the simpleTestEvent. The request destination is the router
  *    number/ID of the desired endpoint
  * - The MordredNIC receives the SimpleNetwork::Request and creates a series of MordredFlits that
- *    wraps the SimpleNetwork::Request.  The MordredFlit is transmitted on the SST::Link to the router
+ *    wraps the SimpleNetwork::Request (all MordredFlits contain a copy of the request pointer).
+ *    The MordredFlit is transmitted on the SST::Link to the router
  * - The network passes around the MordredFlit until we hit the desired endpoint router; the MordredFlit
  *    is sent to the endpt NIC.
  * - The MordredNIC removes the MordredFlit wrapper and returns the SimpleNetwork::Request to the endpt
+ *    once the TAIL flit is received
  * - Endpt code (TestEP) removes the SimpleNetwork::Request shell and prints out the message stored in
  *    the simpleTestEvent.
+ *  - Only the HEAD and TAIL flits really need the SimpleNetwork::Request
  */
 
 namespace SST::Mordred {
@@ -127,13 +130,8 @@ public:
   // wants to pass to another endpoint
   Interfaces::SimpleNetwork::Request  *req;
 
-  // TODO: Remove the next_port and all VC fields - let this be handled by the router itself; could probably remove the
-  // VN as well, but that might be useful on network entry
-
   uint32_t vn{0};
-  uint32_t next_port{UINT32_MAX};
-  uint32_t next_vc{UINT32_MAX};
-  uint32_t cur_vc{0}; // TODO: Start using this rather than assuming 0 everywhere
+  uint32_t cur_vc{0}; // Update when the flit is written into an output buffer
   uint64_t packet_id{};
   uint32_t flit_id{};
   /** END: Data members of the flit **/
@@ -160,8 +158,6 @@ public:
     ser & ftype;
     ser & req;
     ser & vn;
-    ser & next_port;
-    ser & next_vc;
     ser & cur_vc;
     ser & packet_id;
     ser & flit_id;
@@ -202,18 +198,14 @@ private:
  * The router will create a vector of these objects (one element per port) and then
  * the data objects within this struct will be what the ports operate on/deal with.
  *
- * TODO: This should be a more extendable class - may just want to use templated types
- * for the vectors; probably can't though since these are constructed by the router
- *
- * Honestly, these vectors could probably be booleans
  */
 struct RtrOwnedSharedObjs {
   // Stays false if this object is for a port that is unconnected/invalid
   bool isValid{false};
 
-  // May need to reconsider these once I get into coding things up a bit more
+  // Could these be booleans?
   std::vector<std::vector<MordredFlit*>> needVcAlloc; // ports place into this, the VC allocator will clear entries
-  std::vector<std::vector<MordredFlit*>> needSwitchAlloc;
+  std::vector<std::vector<MordredFlit*>> needSwitchAlloc; // ports place into this, the switch allocator will clear entries
 
   void allocateVecs( uint32_t num_vns, uint32_t num_vcs ) {
     isValid = true;
@@ -226,22 +218,6 @@ struct RtrOwnedSharedObjs {
   }
 };
 
-// UNUSED; Decided to revamp the above structure
-struct SharedStateObj {
-  std::vector<std::vector<bool>> reqVc; // reqVc[vn][vc] is requesting an output vn,vc allocation; to be consumed by VC allocator
-  std::vector<std::vector<bool>> reqXbar; // reqXbar[vn][vc] is requesting access to the xbar to move through the switch; to be consumed by switch/xbar allocator
-
-  void allocateVecs( uint32_t num_vns, uint32_t num_vcs ) {
-    reqVc.resize( num_vns );
-    for ( auto &vn : reqVc ) {
-      vn.resize( num_vcs, false );
-    }
-    reqXbar.resize( num_vns );
-    for ( auto &vn : reqXbar ) {
-      vn.resize( num_vcs, false );
-    }
-  }
-};
 
 
 } // namespace SST::Mordred

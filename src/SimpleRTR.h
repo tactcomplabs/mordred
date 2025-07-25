@@ -125,20 +125,9 @@ private:
   std::vector<RtrPortControlAPI*>  portsVec;
 
   // Shared between components
-  // perPortSharedObjs[port_id]
   std::vector<RtrOwnedSharedObjs> perPortSharedObjs;
 
-  // Per (input) port structure; the pair is the VN,VC input pair that won arbitration
-  // to send something through the crossbar to an output port
-  // use UINT32_MAX, UINT32_MAX to identify idle/unassigned;
-  // TODO: TBD if this will be deleted or absorbed into perPortSharedObjs
-  std::vector<std::pair<uint32_t,uint32_t>> arbWinners;
-
-  // Per port structure, the output state is used to identify if a port is already
-  // sending to this output port
-  // TODO: Delete this - look into the ports as needed
-  std::vector<OutVcStateE> outVcStates;
-
+  // Stats
   Statistic<uint64_t>* tickCounter;
 
 };  // SimpleRTR

@@ -209,10 +209,6 @@ private:
   UnitAlgebra param_link_bw;
   UnitAlgebra param_flit_size;
 
-  // TODO: Probably want a "port" state that IDs if something is already on the
-  // move in/out of here (may be faster than searching states) - this may be
-  // better at the router level
-
   // These are in bits
   uint32_t inBufSize;
   uint32_t outBufSize;
@@ -221,7 +217,7 @@ private:
   std::vector<std::vector<perVcInState>> inStateVec;
   std::vector<std::vector<perVcOutState>> outStateVec;
 
-  // Each element is for a VN
+  // This holds the element for this specific port (SimpleRtr owns it)
   RtrOwnedSharedObjs *rtrSharedObjs{};
 
   // Statistics

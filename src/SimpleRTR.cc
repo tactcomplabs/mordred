@@ -46,8 +46,6 @@ SimpleRTR::SimpleRTR( ComponentId_t cid, Params& params ) : Component( cid ) {
   if ( !topology )
     output.fatal( CALL_INFO, -1, "Couldn't load topology\n" );
 
-  arbWinners.resize( numPorts, std::make_pair( UINT32_MAX, UINT32_MAX ) );
-  outVcStates.resize( numPorts, OutVcStateE::OUT_IDLE );
   perPortSharedObjs.resize( numPorts );
   // Configure local/endpt ports -- borrowed this approach from
   // sst-elements/src/sst/elements/simpleElementExample/basicLinks.cc

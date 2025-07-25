@@ -362,9 +362,8 @@ void RtrPortControl::inHandler( SST::Event* ev ) {
     if ( flit == nullptr )
       output->fatal( CALL_INFO, -1, "Invalid flit \n" );
 
-    flit->next_port = topo->routePacket( (uint32_t)flit->req->dest ); // TODO: do routing later if we're going to change the VC during routing
-    output->verbose( CALL_INFO, 5, 0, "Recv flit %s, src=%" PRIu64 ", dst=%" PRIu64 ", dest_port=%" PRIu32 ", vn=%" PRIu32 ", type=%u\n",
-      flit->pktIdStr().c_str(), flit->req->src, flit->req->dest, flit->next_port, flit->vn, (uint32_t)flit->ftype );
+    output->verbose( CALL_INFO, 5, 0, "Recv flit %s, src=%" PRIu64 ", dst=%" PRIu64 ", vn=%" PRIu32 ", type=%u\n",
+      flit->pktIdStr().c_str(), flit->req->src, flit->req->dest, flit->vn, (uint32_t)flit->ftype );
 
     inStateVec.at( flit->vn ).at( flit->cur_vc ).inBuf.push( flit );
     if ( flit->ftype == MordredFlit::TAIL ) {
@@ -398,6 +397,7 @@ MordredFlit* RtrPortControl::getInBufFlit() {
 }
 
 void RtrPortControl::recvOutBufFlit( MordredFlit* flit ) {
+  flit->cur_vc = switch_alloc_sendfrom_vc;
   outStateVec.at( switch_alloc_rcvto_vn ).at( switch_alloc_rcvto_vc ).outBuf.push( flit );
   outStateVec.at( switch_alloc_rcvto_vn ).at( switch_alloc_rcvto_vc ).outBufCredits--;
   output->verbose( CALL_INFO, 5, 0, "Put flit %s in outBuf\n", flit->pktIdStr().c_str() );
