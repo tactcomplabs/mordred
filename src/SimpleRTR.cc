@@ -63,7 +63,7 @@ SimpleRTR::SimpleRTR( ComponentId_t cid, Params& params ) : Component( cid ) {
     }
   }
 
-  arbiter = loadAnonymousSubComponent<ArbAPI>( "mordred.arbRR", "arbiter", 0,
+  arbiter = loadAnonymousSubComponent<XbarArbAPI>( "mordred.xbarArbRR", "arbiter", 0,
     ComponentInfo::SHARE_NONE, params, id, numPorts, numVns, numVcs );
   if (arbiter == nullptr) {
     output.fatal( CALL_INFO, -1, "arbiter is a nullptr\n" );

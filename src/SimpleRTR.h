@@ -24,7 +24,7 @@
 #include <vector>
 
 // Local SST headers
-#include "ArbAPI.h"
+#include "XbarArbAPI.h"
 #include "RtrPortControlAPI.h"
 #include "TopologyAPI.h"
 #include "VcAllocAPI.h"
@@ -119,7 +119,7 @@ private:
 
   // Major components
   TopologyAPI* topology{nullptr};
-  ArbAPI* arbiter{nullptr};
+  XbarArbAPI* arbiter{nullptr};
   VcAllocAPI* vcAlloc{nullptr};
   // If a port is unconnected, we push_back a nullptr for that port index
   std::vector<RtrPortControlAPI*>  portsVec;

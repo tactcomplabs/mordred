@@ -1,5 +1,5 @@
 //
-// ArbRR.h
+// XbarArbRR.h
 //
 // Copyright (C) 2025-2025 Tactical Computing Laboratories, LLC
 // All Rights Reserved
@@ -11,8 +11,8 @@
 // Changing this file up quite a bit - it was originally doing both VC and switch alloc, but
 // now it's just going to be for switch allocation
 
-#ifndef ARBRR_H
-#define ARBRR_H
+#ifndef XBARARBRR_H
+#define XBARARBRR_H
 
 // Standard headers
 #include <cstdint>
@@ -21,20 +21,20 @@
 #include "sst_config.h"
 
 // Other local headers
-#include "ArbAPI.h"
+#include "XbarArbAPI.h"
 #include "MordredEvents.h"
 
 namespace SST::Mordred {
 
-class ArbRR : public ArbAPI {
+class XbarArbRR : public XbarArbAPI {
 public:
   SST_ELI_REGISTER_SUBCOMPONENT(
-    ArbRR,
+    XbarArbRR,
     "mordred",
-    "arbRR",
+    "xbarArbRR",
     SST_ELI_ELEMENT_VERSION( 0, 1, 0 ),
-    "Round robin arbitration for the router crossbar",
-    SST::Mordred::ArbAPI
+    "Round robin arbitration for the crossbar switch within the router",
+    SST::Mordred::XbarArbAPI
   )
 
   // TODO: Use or delete this parameter - just auto set to 5 now in constructor
@@ -44,12 +44,10 @@ public:
 
   SST_ELI_DOCUMENT_STATISTICS()
 
-  ArbRR( ComponentId_t id, Params &params, uint32_t rtr_id, uint32_t num_ports, uint32_t num_vns, uint32_t num_vcs );
+  XbarArbRR( ComponentId_t id, Params &params, uint32_t rtr_id, uint32_t num_ports, uint32_t num_vns, uint32_t num_vcs );
 
-  ~ArbRR() final = default;
+  ~XbarArbRR() final = default;
 
-  // At the end of this, we want a list of input tuples [Port,VN,VC] that will be allowed to move to the output side
-  // Probably want to keep a vector/list/something to mark the packets that are actively moving
   void arbitrate( std::vector<RtrPortControlAPI*> &ports, std::vector<RtrOwnedSharedObjs> &rtr_shared_objs ) final;
 
 private:
@@ -73,4 +71,4 @@ private:
 
 } // namespace SST::Mordred
 
-#endif //ARBRR_H
+#endif //XBARARBRR_H

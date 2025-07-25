@@ -43,6 +43,7 @@ class InVcHeads; // forward declaration
 class TopologyAPI; // forward declaration
 
 // These are for the individual VCs
+// Currently not using the {WAIT,NEED}_CREDITS states
 enum InVcStateE { IN_IDLE, ROUTING, WAIT_VC, WAIT_CREDITS, IN_ACTIVE }; // for the port input side - match Dally book
 enum OutVcStateE { OUT_IDLE, OUT_BUSY, NEED_CREDITS}; // for the port output side - mainly for xbar arb
 
@@ -51,10 +52,8 @@ enum OutVcStateE { OUT_IDLE, OUT_BUSY, NEED_CREDITS}; // for the port output sid
  * from the Dally interconnections book
  *
  * The buffers in these structs are not size limited; we'll use the number of credits
- * to manage the usage of the collected set of buffers
+ * to manage the usage of the buffers
  *
- * TODO: probably need to provide functions to allow for updates (or at least an update
- * mechanism)
  */
 struct perVcInState {
   InVcStateE inVcState;
@@ -79,6 +78,7 @@ struct perVcOutState {
   uint32_t inVn;
   uint32_t inVc;
   int32_t outBufCredits; // space available in outBuf; dec on write to buf, inc when flit put on link
+
   // (dec on send to dest, inc when credit packet comes from dest)
   int32_t destCredits; // maintains available credits for myVn.myVc downstream; initialized to non-zero in init (dest sends a count)
   std::queue<MordredFlit*> outBuf;
@@ -111,7 +111,7 @@ public:
   virtual Event* recvUntimedData() = 0;
 
   // No separate clock - run off the router clock
-  // TODO: This may get broken up into separate update and execute functions; booksim approached their
+  // NOTE: This may get broken up into separate update and execute functions; booksim approached their
   // model this way and described as update being the combinational logic and execute being the state
   // updates
   virtual void ClockTick( Cycle_t cycle ) = 0;
