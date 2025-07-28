@@ -66,7 +66,7 @@ private:
 
   uint32_t rtrId;
   uint32_t numPorts;
-  uint32_t numLocalPorts; // TODO: Routing function assumes only 1 local port
+  uint32_t numLocalPorts;
 
   // Mesh parameters
   uint32_t xId{UINT32_MAX};
