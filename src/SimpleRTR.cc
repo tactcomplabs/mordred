@@ -38,6 +38,7 @@ SimpleRTR::SimpleRTR( ComponentId_t cid, Params& params ) : Component( cid ) {
   numVns = params.find<uint32_t>( "num_vns", 1 ); // commented out as an ELI param for now
   numVcs = params.find<uint32_t>( "num_vcs", 1 );
 
+  // TODO: Required for all topologies?  Probably not....
   if ( numPorts <= numLocalPorts )
     output.fatal( CALL_INFO, -1, "num_ports must be greater than num_local_ports\n" );
 
@@ -95,8 +96,8 @@ SimpleRTR::~SimpleRTR() {
 }
 
 void SimpleRTR::init( uint32_t phase ) {
-  //output.verbose(CALL_INFO, 5, 0, "SimpleRTR::init(%" PRIu32 ")\n", phase);
-  //output.flush();
+  output.verbose(CALL_INFO, 5, 0, "SimpleRTR::init(%" PRIu32 ")\n", phase);
+  output.flush();
 
   topology->init( phase );
   vcAlloc->init( phase );
@@ -106,6 +107,8 @@ void SimpleRTR::init( uint32_t phase ) {
 }
 
 void SimpleRTR::setup() {
+  output.verbose(CALL_INFO, 5, 0, "SimpleRTR::setup\n");
+  output.flush();
   topology->setup();
   vcAlloc->setup();
   for ( auto &port : portsVec )

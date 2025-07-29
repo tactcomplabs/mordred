@@ -6,6 +6,12 @@ from math import floor
 #params = ( { "rate" : "0ns" } )
 #sst.setStatisticOutput("sst.statOutputCSV", { "filepath" : "./stats.csv", "separator" : ", " } )
 
+FixedRtrParams = {
+    "flit_size" : "32b",
+    "input_buf_size" : "32B",
+    "output_buf_size" : "32B"
+}
+
 links = dict()
 def getLink(name1, name2):
     name = "link.%s_%s"%(name1, name2)
@@ -34,14 +40,12 @@ def createMesh(x_size, y_size, local_ports):
     rtr_params = {
         "num_ports": nports,
         "num_local_ports" : local_ports,
-        "flit_size" : "32b",
-        "input_buf_size" : "32B",
-        "output_buf_size" : "32B"
     }
     for y in range(y_size):
         for x in range(x_size):
             rtr = sst.Component("rtr_%d_%d"%(x, y), "mordred.simple_rtr")
             rtr.addParam("id", rtr_id)
+            rtr.addParams(FixedRtrParams)
             rtr.addParams(rtr_params)
             rtr_id += 1
             rtr_topo = rtr.setSubComponent( "topology", "mordred.MeshTopology" )
@@ -220,12 +224,19 @@ class FlattenedButterfly:
         self.routers = self.gen_routers()
         self.create_topo_links()
         # TODO: Create local endpoints and link them to the router
+        self.endpoints = self.gen_endpoints()
 
     def gen_routers(self):
         routers = []
         for i in range(self.num_routers):
             rtr_name = "rtr_%d"%(i)
             routers.append(sst.Component(rtr_name, "mordred.simple_rtr"))
+            routers[i].addParam( "id", i )
+            routers[i].addParams(FixedRtrParams)
+            routers[i].addParam( "num_ports", self.n - 1 +self.k ) # TODO: Fixme if necessary
+            routers[i].addParam( "num_local_ports", self.k ) # TODO: Fixme if necessary
+            rtr_topo = routers[i].setSubComponent( "topology", "mordred.flattenedButterfly" )
+            # TODO: Add topo params as needed
             print("Created router {}".format(rtr_name))
         return routers
 
@@ -243,15 +254,49 @@ class FlattenedButterfly:
     def create_link(self, i, j):
         if (i > j):
             i,j = j,i
-        link_name, new_link = self.getFlatFlyLink("rtr_%d"%(i), "rtr_%d"%(j))
+        link_name, new_link, lname = self.getFlatFlyLink("rtr_%d"%(i), "rtr_%d"%(j))
         if new_link:
-            rtr_pname = "rtr_port" + str(getNextTopoPort("rtr_%d"%i))
+            link_text = lname
+            rtr_pname = "port" + str(getNextTopoPort("rtr_%d"%i))
+            link_text += " connecting " + rtr_pname
             self.routers[i].addLink(link_name, rtr_pname, "800ps")
-            rtr_pname = "rtr_port" + str(getNextTopoPort("rtr_%d"%j))
+            rtr_pname = "port" + str(getNextTopoPort("rtr_%d"%j))
+            link_text += " to " + rtr_pname
             self.routers[j].addLink(link_name, rtr_pname, "800ps")
+            print("TD Made link {}".format(link_text))
+
 
     def getFlatFlyLink(self, name1, name2):
         name = "link.%s_%s"%(name1, name2)
+        if name not in self.flatfly_links:
+            self.flatfly_links[name] = sst.Link(name)
+            print("TJD Created link {}".format(name))
+            return self.flatfly_links[name], True, name
+        return self.flatfly_links[name], False, name
+
+    def gen_endpoints(self):
+        endpoints = []
+        for i in range(self.num_routers):
+            for j in range(self.k):
+                portname = "port" + str(self.n - 1 + j)
+                ep_name = "ep_%d_%d"%(i,j)
+                ep = sst.Component(ep_name, "mordred.test_ep")
+                endpoints.append(ep)
+                ep_iface = ep.setSubComponent( "noc_iface", "mordred.mordredNIC" )
+                ep_iface.addParams({
+                    "input_buf_size" : "1kB",
+                    "output_buf_size" : "1kB",
+                })
+                rtr_id = "rtr_%d"%i
+                ep_id = "ep_%d"%j
+                link_name, new_link = self.createEpRtrLink(rtr_id, ep_id)
+                if not new_link:
+                    print("WARN Failed to create ep link")
+                self.routers[i].addLink(link_name, portname, "800ps")
+                ep_iface.addLink(link_name, "port", "800ps")
+
+    def createEpRtrLink(self, rtr_id, ep_id):
+        name = "link.%s_%s"%(rtr_id, ep_id)
         if name not in self.flatfly_links:
             self.flatfly_links[name] = sst.Link(name)
             return self.flatfly_links[name], True
@@ -316,8 +361,8 @@ y_size = 3
 #Xbar config
 xbar_size = 6
 
-print("Do mesh")
-createMesh(x_size, y_size, local_ports)
+#print("Do mesh")
+#createMesh(x_size, y_size, local_ports)
 
 ## TODO: THE OTHER TOPOLOGIES HAVE NOT BEEN FIXED FOR THE NEW NAMING
 ## IN THE ROUTER COMPONENT (nor do we have matching subcomponents)
@@ -333,7 +378,7 @@ createMesh(x_size, y_size, local_ports)
 # High-Radix Networks, ISCA 2007
 
 #print("Fig 1D in flat fly paper")
-#flatfly = FlattenedButterfly(2, 4) # fig 1d in paper
+flatfly = FlattenedButterfly(2, 4) # fig 1d in paper
 
 # For some reason, this version really likes to have double links in its
 # initial construction; haven't quite figured out why - could be related to

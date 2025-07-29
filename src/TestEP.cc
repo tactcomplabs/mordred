@@ -36,6 +36,7 @@ TestEP::TestEP( ComponentId_t cid, Params& params ) : Component( cid ) {
   //output.setVerboseMask( DEBUG_INIT_PHASE );
 
   output.verbose( CALL_INFO, 5, 0, "Constructor complete for %s \n", getName().c_str() );
+  output.flush();
 }
 
 void TestEP::init( const uint32_t phase ) {

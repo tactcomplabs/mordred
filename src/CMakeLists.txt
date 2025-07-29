@@ -22,6 +22,8 @@ set(MordredSrcs
         VcAllocAPI.h
         VcAllocRR.h
         VcAllocRR.cc
+        FlatButterflyTopo.h
+        FlatButterflyTopo.cc
 )
 
 add_library(mordred SHARED ${MordredSrcs})
