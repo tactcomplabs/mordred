@@ -36,7 +36,7 @@ public:
   ~TopologyAPI() override  = default;
 
   /// Computed endpoint ID
-  virtual int32_t getEndpointId( uint32_t portnum ) { return -1; }
+  virtual int32_t getEndpointId( uint32_t portnum ) = 0;
 
   /// Get the output port for a flit
   virtual uint32_t routePacket( uint32_t dest ) = 0;

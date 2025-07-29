@@ -59,7 +59,7 @@ constexpr uint32_t DEBUG_INIT_PHASE   = (1UL << 1);
 // TODO: Add a mask for debugging credits
 
 // This is a very simple event being sent by the TestEP.
-class simpleTestEvent : public Event {
+class simpleTestEvent final : public Event {
 public:
   simpleTestEvent() { /* empty */ }
   simpleTestEvent( std::string str_ ) : str( std::move(str_) ) { /* empty */ }
@@ -96,7 +96,7 @@ private:
 };
 
 // Used to initialize the network
-class MordredInitEvent : public baseMordredEvent {
+class MordredInitEvent final : public baseMordredEvent {
 public:
   enum Commands { REPORT_ENDPOINT, REPORT_ROUTER, ROUTER_ID, PORT_NUM, ENDPOINT_ID, NUM_VNS,
                   NUM_VCS, FLIT_WIDTH, BUS_WIDTH, NUM_COMMANDS };
