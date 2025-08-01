@@ -50,10 +50,13 @@ public:
   SST_ELI_DOCUMENT_SUBCOMPONENT_SLOTS()
 
   /// MeshTopology: constructor
-  MeshTopology( ComponentId_t id, Params& params, uint32_t rtr_id, uint32_t num_ports, uint32_t num_local_ports );
+  MeshTopology( ComponentId_t id, Params& params, uint32_t rtr_id, uint32_t num_ports, uint32_t num_local_ports, std::vector<uint32_t>* connected_ports );
 
   /// MeshTopology: destructor
   ~MeshTopology() override = default;
+
+  // Lifecycle functions
+  void setup() final;
 
   int32_t getEndpointId( uint32_t portnum ) override;
 
@@ -76,6 +79,8 @@ private:
 
   // Port mapping
   enum PortDirE : uint32_t {NORTH = 0, EAST = 1, SOUTH = 2, WEST = 3};
+
+  std::vector<uint32_t>* perPortConnectedRtr; // Unused for this topology, but printed in setup.
 
 };
 

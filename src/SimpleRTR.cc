@@ -43,7 +43,7 @@ SimpleRTR::SimpleRTR( ComponentId_t cid, Params& params ) : Component( cid ) {
     output.fatal( CALL_INFO, -1, "num_ports must be greater than num_local_ports\n" );
 
   // Load subcomponents
-  topology = loadUserSubComponent<TopologyAPI>( "topology", ComponentInfo::SHARE_NONE, id, numPorts, numLocalPorts );
+  topology = loadUserSubComponent<TopologyAPI>( "topology", ComponentInfo::SHARE_NONE, id, numPorts, numLocalPorts, &perPortConnectedRtr );
   if ( !topology )
     output.fatal( CALL_INFO, -1, "Couldn't load topology\n" );
 
@@ -96,25 +96,58 @@ SimpleRTR::~SimpleRTR() {
 }
 
 void SimpleRTR::init( uint32_t phase ) {
-  output.verbose(CALL_INFO, 5, 0, "SimpleRTR::init(%" PRIu32 ")\n", phase);
-  output.flush();
+  //output.verbose(CALL_INFO, 5, 0, "SimpleRTR::init(%" PRIu32 ")\n", phase);
+  //output.flush();
 
   topology->init( phase );
   vcAlloc->init( phase );
+  arbiter->init( phase );
   for ( auto &port : portsVec )
     if ( port != nullptr )
       port->init( phase );
 }
 
 void SimpleRTR::setup() {
-  output.verbose(CALL_INFO, 5, 0, "SimpleRTR::setup\n");
-  output.flush();
+  //output.verbose(CALL_INFO, 5, 0, "SimpleRTR::setup\n");
+  //output.flush();
+
+  perPortConnectedRtr.resize( numPorts, UINT32_MAX );
+  for ( uint32_t i = 0; i < numPorts; i++ ) {
+    if ( portsVec.at(i) != nullptr )
+      perPortConnectedRtr.at(i) = portsVec.at(i)->getConnectedRtrId();
+  }
+
   topology->setup();
   vcAlloc->setup();
+  arbiter->setup();
   for ( auto &port : portsVec )
     if ( port != nullptr )
       port->setup();
 }
+
+void SimpleRTR::complete( uint32_t phase ) {
+  //output.verbose(CALL_INFO, 5, 0, "SimpleRTR::complete(%" PRIu32 ")\n", phase);
+  //output.flush();
+
+  topology->complete( phase );
+  vcAlloc->complete( phase );
+  arbiter->complete( phase );
+  for ( auto &port : portsVec )
+    if ( port != nullptr )
+      port->complete( phase );
+}
+
+void SimpleRTR::finish() {
+  //output.verbose(CALL_INFO, 5, 0, "SimpleRTR::finish\n");
+  //output.flush();
+  topology->finish();
+  vcAlloc->finish();
+  arbiter->finish();
+  for ( auto &port : portsVec )
+    if ( port != nullptr )
+      port->finish();
+}
+
 
 bool SimpleRTR::clockTick( Cycle_t cycle ) {
   // May want/need to look at how we want to time/order ticking the ports and running the crossbar/arbitration here

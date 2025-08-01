@@ -116,6 +116,8 @@ public:
   // updates
   virtual void ClockTick( Cycle_t cycle ) = 0;
 
+  virtual uint32_t getConnectedRtrId() const = 0;
+
   virtual uint32_t getSendingPort()                                                                  = 0;
 
   // VC Allocator functions

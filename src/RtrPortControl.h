@@ -170,6 +170,8 @@ public:
         outStateVec.at(switch_alloc_rcvto_vn).at(switch_alloc_rcvto_vc).inVc = UINT32_MAX;
   }
 
+  uint32_t getConnectedRtrId() const final { return connectedRtrId; }
+
 private:
   void allocateBuffers();
   MordredInitEvent* getInitEvent( MordredInitEvent::Commands cmd );

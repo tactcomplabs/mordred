@@ -13,6 +13,7 @@
 
 // Standard headers
 #include <cstdint>
+#include <vector>
 
 // Local SST header
 #include "sst_config.h"
@@ -39,8 +40,8 @@ public:
   // register the parameters
   SST_ELI_DOCUMENT_PARAMS(
     { "verbose", "Sets the output verbsoity", "5" },
-    //{ "xDim", "Number of points in the X dimension", "1"},
-    // {"yDim", "Number of points in the Y dimension", "1"}
+    { "k", "k-ary value of the network (REQUIRED)", nullptr},
+     {"n", "n-fly value of the network (REQUIRED)", nullptr}
   )
 
   // register the ports
@@ -50,23 +51,43 @@ public:
   SST_ELI_DOCUMENT_SUBCOMPONENT_SLOTS()
 
   /// FlatButterflyTopo: constructor
-  FlatButterflyTopo( ComponentId_t id, Params& params, uint32_t rtr_id, uint32_t num_ports, uint32_t num_local_ports );
+  FlatButterflyTopo( ComponentId_t id, Params& params, uint32_t rtr_id, uint32_t num_ports, uint32_t num_local_ports, std::vector<uint32_t>* connected_ports );
 
   /// FlatButterflyTopo: destructor
   ~FlatButterflyTopo() override = default;
 
+  /// FlatButterflyTopo: necessary lifecycle functions
+  void setup() final;
+
   int32_t getEndpointId( uint32_t portnum ) override;
 
-  /// Get the output port for a flit
+  /// Get the output port for a flit -- dest should be the destination endpoint
   uint32_t routePacket( uint32_t dest ) final;
 
 
 private:
   Output* output;
 
+  uint32_t k{UINT32_MAX};
+  uint32_t n{UINT32_MAX};
   uint32_t rtrId;
   uint32_t numPorts;
   uint32_t numLocalPorts;
+  uint32_t numRtrPorts;
+  std::vector<uint32_t> myAddress;
+
+  std::vector<uint32_t>* perPortConnectedRtr; //owned by SimpleRtr
+  std::vector< std::vector<uint32_t> > connectedRtrsByBase; // sized to numRtrPorts
+
+  // In the returned vector, index[0] has the least significant digit which is generally ignored by the
+  // routing algorithm (in theory, it should be the ID of the local endpoint to use if this router holds our end
+  // destination)
+  std::vector<uint32_t> convertBase( uint32_t num );
+  bool isLocalAddr( std::vector<uint32_t>& dest_addr );
+
+  // For each connected router, how many hops from it to the destination router;
+  // The destination router is 0 hops away from the desired endpoint
+  uint32_t calcDist( uint32_t idx, std::vector<uint32_t>& dest_addr );
 
 };
 

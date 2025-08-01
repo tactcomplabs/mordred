@@ -102,8 +102,8 @@ public:
   /// SST Required
   void init(uint32_t phase) override;
   void setup() override;
-  void complete(uint32_t phase) override { /* empty */ }
-  void finish() override { /* empty */ }
+  void complete(uint32_t phase) override;
+  void finish() override;
 
   // Clock Handler
   bool clockTick( Cycle_t cycle );
@@ -123,6 +123,9 @@ private:
   VcAllocAPI* vcAlloc{nullptr};
   // If a port is unconnected, we push_back a nullptr for that port index
   std::vector<RtrPortControlAPI*>  portsVec;
+
+  // Values of UINT32_MAX represent either 1) unconnected ports or 2) local ports
+  std::vector<uint32_t> perPortConnectedRtr; // shared with topology
 
   // Shared between components
   std::vector<RtrOwnedSharedObjs> perPortSharedObjs;

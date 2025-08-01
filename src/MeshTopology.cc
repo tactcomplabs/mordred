@@ -21,11 +21,12 @@
 using namespace SST::Mordred;
 
 MeshTopology::MeshTopology( ComponentId_t id, Params& params,
-  uint32_t rtr_id, uint32_t num_ports, uint32_t num_local_ports ) :
+  uint32_t rtr_id, uint32_t num_ports, uint32_t num_local_ports, std::vector<uint32_t>* connected_ports ) :
   TopologyAPI( id ),
   rtrId( rtr_id ),
   numPorts( num_ports ),
-  numLocalPorts( num_local_ports )
+  numLocalPorts( num_local_ports ),
+  perPortConnectedRtr( connected_ports )
 {
   const auto verbosity = params.find<uint32_t>( "verbose", 5 );
   output               = new Output( "MeshTopology [" + getName() + ":@p:@t]:", verbosity, 0, Output::STDOUT );
@@ -46,6 +47,13 @@ MeshTopology::MeshTopology( ComponentId_t id, Params& params,
   output->verbose( CALL_INFO, 1, 0, "MeshTopology constructed; rtr_id=%" PRIu32 ", num_ports=%" PRIu32 ", local_ports=%" PRIu32 "\n",
     rtrId, numPorts, numLocalPorts);
 }
+
+void MeshTopology::setup() {
+  for (uint32_t i = 0; i < numPorts; ++i) {
+    output->verbose( CALL_INFO, 7, 0, "perPortConnectedRtr[%" PRIu32 "]=%" PRIu32 "\n", i, perPortConnectedRtr->at(i) );
+  }
+}
+
 
 int32_t MeshTopology::getEndpointId( uint32_t portnum ) {
   if ( portnum < 4 )

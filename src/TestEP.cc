@@ -62,7 +62,7 @@ bool TestEP::clockTick( Cycle_t cycle ) {
   //  output.verbose( CALL_INFO, 3, 0, "Tick; Cycle=%" PRIu64 "\n", cycle );
   //output.flush();
 
-#if 1
+#if 0
   if ( ( nocIface->getEndpointID() == 0 ) && ( cycle == 10 ) ) {
     output.verbose( CALL_INFO, 3, 0, "Sending packet. Cycle=%" PRIu64 "\n", cycle );
     auto pkt = new simpleTestEvent( "howdy");
@@ -79,7 +79,7 @@ bool TestEP::clockTick( Cycle_t cycle ) {
   }
 #endif
 
-#if 1
+#if 0
   if ( ( nocIface->getEndpointID() == 0 ) && ( cycle == 20 ) ) {
     output.verbose( CALL_INFO, 3, 0, "Sending packet. Cycle=%" PRIu64 "\n", cycle );
     auto pkt = new simpleTestEvent( "give me coffee pretty please");
@@ -113,7 +113,7 @@ bool TestEP::clockTick( Cycle_t cycle ) {
   }
 #endif
 
-#if 1
+#if 0
   if ( ( nocIface->getEndpointID() == 0 ) && ( cycle == 30 ) ) {
     output.verbose( CALL_INFO, 3, 0, "Sending packet. Cycle=%" PRIu64 "\n", cycle );
     auto pkt = new simpleTestEvent( "oh my bad decaf");
@@ -129,7 +129,7 @@ bool TestEP::clockTick( Cycle_t cycle ) {
   }
 #endif
 
-#if 1 // this is a second copy of the first packet
+#if 0 // this is a second copy of the first packet
   if ( ( nocIface->getEndpointID() == 0 ) && ( cycle == 50 ) ) {
     output.verbose( CALL_INFO, 3, 0, "Sending packet. Cycle=%" PRIu64 "\n", cycle );
     auto pkt = new simpleTestEvent( "howdy2");

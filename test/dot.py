@@ -218,33 +218,36 @@ class FlattenedButterfly:
         self.num_endpoints = pow(k, n)
         self.num_routers = floor(self.num_endpoints/k)
         self.radix = ( n * (k-1) ) + 1
-        self.num_rtr_rtr_links = k-1
+        self.local_port_start = self.radix - self.k
         self.num_dims = n - 1
         self.flatfly_links = dict()
         self.routers = self.gen_routers()
         self.create_topo_links()
-        # TODO: Create local endpoints and link them to the router
         self.endpoints = self.gen_endpoints()
 
     def gen_routers(self):
+
         routers = []
         for i in range(self.num_routers):
             rtr_name = "rtr_%d"%(i)
             routers.append(sst.Component(rtr_name, "mordred.simple_rtr"))
             routers[i].addParam( "id", i )
             routers[i].addParams(FixedRtrParams)
-            routers[i].addParam( "num_ports", self.n - 1 +self.k ) # TODO: Fixme if necessary
-            routers[i].addParam( "num_local_ports", self.k ) # TODO: Fixme if necessary
+            routers[i].addParam( "num_ports", self.radix )
+            routers[i].addParam( "num_local_ports", self.k )
             rtr_topo = routers[i].setSubComponent( "topology", "mordred.flattenedButterfly" )
             # TODO: Add topo params as needed
-            print("Created router {}".format(rtr_name))
+            rtr_topo.addParams({
+                "k" : self.k,
+                "n" : self.n,
+            })
         return routers
 
 # The range of d might be off a hair - paper has it as 1, self.n-1 but that blows up
 # on a 4-ary, 2-fly.
     def create_topo_links(self):
         for d in range(self.num_dims):
-            for m in range (self.num_rtr_rtr_links):
+            for m in range (self.k-1):
                 for i in range(self.num_routers):
                     ff = floor(i/pow(self.k,d)) % self.k
                     j = i + ( ( m - ff ) * pow(self.k,d) )
@@ -254,31 +257,26 @@ class FlattenedButterfly:
     def create_link(self, i, j):
         if (i > j):
             i,j = j,i
-        link_name, new_link, lname = self.getFlatFlyLink("rtr_%d"%(i), "rtr_%d"%(j))
+        link_name, new_link = self.getFlatFlyLink("rtr_%d"%(i), "rtr_%d"%(j))
         if new_link:
-            link_text = lname
             rtr_pname = "port" + str(getNextTopoPort("rtr_%d"%i))
-            link_text += " connecting " + rtr_pname
             self.routers[i].addLink(link_name, rtr_pname, "800ps")
             rtr_pname = "port" + str(getNextTopoPort("rtr_%d"%j))
-            link_text += " to " + rtr_pname
             self.routers[j].addLink(link_name, rtr_pname, "800ps")
-            print("TD Made link {}".format(link_text))
 
 
     def getFlatFlyLink(self, name1, name2):
         name = "link.%s_%s"%(name1, name2)
         if name not in self.flatfly_links:
             self.flatfly_links[name] = sst.Link(name)
-            print("TJD Created link {}".format(name))
-            return self.flatfly_links[name], True, name
-        return self.flatfly_links[name], False, name
+            return self.flatfly_links[name], True
+        return self.flatfly_links[name], False
 
     def gen_endpoints(self):
         endpoints = []
         for i in range(self.num_routers):
             for j in range(self.k):
-                portname = "port" + str(self.n - 1 + j)
+                portname = "port" + str(self.local_port_start + j)
                 ep_name = "ep_%d_%d"%(i,j)
                 ep = sst.Component(ep_name, "mordred.test_ep")
                 endpoints.append(ep)
