@@ -376,16 +376,16 @@ xbar_size = 6
 # High-Radix Networks, ISCA 2007
 
 #print("Fig 1D in flat fly paper")
-flatfly = FlattenedButterfly(2, 4) # fig 1d in paper
+flatfly = FlattenedButterfly(2, 4) # fig 1d in paper; 16 endpoints
 
 # For some reason, this version really likes to have double links in its
 # initial construction; haven't quite figured out why - could be related to
 # the dimensions count (see FlattenedButterfly.create_all_links)
 #print("Fig 1B in flat fly paper")
-#flatfly2 = FlattenedButterfly(4, 2) # fig 1b in paper
+#flatfly2 = FlattenedButterfly(4, 2) # fig 1b in paper; 16 endpoints
 
 #print("Fig 3 in Micro2007 FlatFly Paper")
-#flatfly3 = FlattenedButterfly(4, 3) # fig 1b in paper
+#flatfly3 = FlattenedButterfly(4, 3) # 64 endpoints
 
 # Stats collection - apparently I don't know the secret handshake because I can get the dummy
 # counter in SimpleRtr to count things, but the stat in RtrPortControl is just a NullStatistic

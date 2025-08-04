@@ -258,6 +258,12 @@ SST::Interfaces::SimpleNetwork::Request* MordredNIC::recv( int32_t vn ) {
   Request* req = inBuf.at(u_vn).front();
   inBuf.at(u_vn).pop();
 
+  // Move to handleIncomingPacket()?
+  if ( req->dest != netID ) {
+    output->flush();
+    output->fatal( CALL_INFO, -1, "Packet with dest=%" PRId64 " received by netID=%" PRId64 ". Enough endpoints?\n",
+      req->dest, netID );
+  }
   return req;
 }
 

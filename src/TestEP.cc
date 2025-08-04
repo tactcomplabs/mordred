@@ -62,14 +62,20 @@ bool TestEP::clockTick( Cycle_t cycle ) {
   //  output.verbose( CALL_INFO, 3, 0, "Tick; Cycle=%" PRIu64 "\n", cycle );
   //output.flush();
 
+  // Manipulate these as desired
+  // May hit a segfault or other nasty behavior if src/dest exceeds the number
+  // of endpoints in the configuration
+  uint32_t srcs[] = {0, 2, 0, 0, 4};
+  uint32_t dests[] = {1, 1, 3, 7, 7};
+
 #if 0
-  if ( ( nocIface->getEndpointID() == 0 ) && ( cycle == 10 ) ) {
+  if ( ( nocIface->getEndpointID() == srcs[0] ) && ( cycle == 10 ) ) {
     output.verbose( CALL_INFO, 3, 0, "Sending packet. Cycle=%" PRIu64 "\n", cycle );
     auto pkt = new simpleTestEvent( "howdy");
 
     auto *req = new Interfaces::SimpleNetwork::Request();
     req->src = nocIface->getEndpointID();
-    req->dest = 1;
+    req->dest = dests[0];
     req->size_in_bits = 8*pkt->str.size();
     req->vn = 0;
     req->givePayload( pkt );
@@ -80,13 +86,13 @@ bool TestEP::clockTick( Cycle_t cycle ) {
 #endif
 
 #if 0
-  if ( ( nocIface->getEndpointID() == 0 ) && ( cycle == 20 ) ) {
+  if ( ( nocIface->getEndpointID() == srcs[1] ) && ( cycle == 20 ) ) {
     output.verbose( CALL_INFO, 3, 0, "Sending packet. Cycle=%" PRIu64 "\n", cycle );
     auto pkt = new simpleTestEvent( "give me coffee pretty please");
 
     auto *req = new Interfaces::SimpleNetwork::Request();
     req->src = nocIface->getEndpointID();
-    req->dest = 1;
+    req->dest = dests[1];
     req->size_in_bits = 8*pkt->str.size();
     req->vn = 0;
     req->givePayload( pkt );
@@ -96,15 +102,14 @@ bool TestEP::clockTick( Cycle_t cycle ) {
   }
 #endif
 
-#if 1
-  // Simple output testing - need at least 9 endpoints as currently written
-  if ( ( nocIface->getEndpointID() == 0 ) && ( cycle == 20 ) ) {
+#if 0
+  if ( ( nocIface->getEndpointID() == srcs[2] ) && ( cycle == 20 ) ) {
     output.verbose( CALL_INFO, 3, 0, "Sending packet. Cycle=%" PRIu64 "\n", cycle );
     auto pkt = new simpleTestEvent( "howdy, how are you?");
 
     auto *req = new Interfaces::SimpleNetwork::Request();
     req->src = nocIface->getEndpointID();
-    req->dest = 3;
+    req->dest = dests[2];
     req->size_in_bits = 8*pkt->str.size();
     req->vn = 0;
     req->givePayload( pkt );
@@ -114,13 +119,13 @@ bool TestEP::clockTick( Cycle_t cycle ) {
 #endif
 
 #if 0
-  if ( ( nocIface->getEndpointID() == 0 ) && ( cycle == 30 ) ) {
+  if ( ( nocIface->getEndpointID() == srcs[3] ) && ( cycle == 30 ) ) {
     output.verbose( CALL_INFO, 3, 0, "Sending packet. Cycle=%" PRIu64 "\n", cycle );
     auto pkt = new simpleTestEvent( "oh my bad decaf");
 
     auto *req = new Interfaces::SimpleNetwork::Request();
     req->src = nocIface->getEndpointID();
-    req->dest = 7;
+    req->dest = dests[3];
     req->size_in_bits = 8*pkt->str.size();
     req->vn = 0;
     req->givePayload( pkt );
@@ -129,14 +134,14 @@ bool TestEP::clockTick( Cycle_t cycle ) {
   }
 #endif
 
-#if 0 // this is a second copy of the first packet
-  if ( ( nocIface->getEndpointID() == 0 ) && ( cycle == 50 ) ) {
+#if 1
+  if ( ( nocIface->getEndpointID() == srcs[4] ) && ( cycle == 50 ) ) {
     output.verbose( CALL_INFO, 3, 0, "Sending packet. Cycle=%" PRIu64 "\n", cycle );
     auto pkt = new simpleTestEvent( "howdy2");
 
     auto *req = new Interfaces::SimpleNetwork::Request();
     req->src = nocIface->getEndpointID();
-    req->dest = 1;
+    req->dest = dests[4];
     req->size_in_bits = 8*pkt->str.size();
     req->vn = 0;
     req->givePayload( pkt );

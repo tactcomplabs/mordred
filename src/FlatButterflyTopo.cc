@@ -49,9 +49,11 @@ FlatButterflyTopo::FlatButterflyTopo( ComponentId_t id, Params& params,
 
   output->verbose( CALL_INFO, 1, 0, "FlatButterflyTopo constructed; rtr_id=%" PRIu32 ", base_endpt=%" PRIu32 ", num_ports=%" PRIu32 ", local_ports=%" PRIu32 "\n",
     rtrId, base_endpt, numPorts, numLocalPorts);
+#if 0
   for ( uint32_t i = 0; i < n; i++ ) {
     output->verbose( CALL_INFO, 5, 0, "myAddress[%" PRIu32 "] = %" PRIu32 "\n", i, myAddress.at( i ) );
   }
+#endif
 }
 
 void FlatButterflyTopo::setup() {
@@ -79,7 +81,6 @@ std::vector<uint32_t> FlatButterflyTopo::convertBase( uint32_t num ) {
 }
 
 int32_t FlatButterflyTopo::getEndpointId( uint32_t portnum ) {
-  //output->fatal( CALL_INFO, -1, "Not yet implemented \n" );
   if ( portnum < numRtrPorts )
     return -1;
   uint32_t base_id = rtrId * numLocalPorts;
@@ -108,10 +109,8 @@ uint32_t FlatButterflyTopo::routePacket( uint32_t dest ) {
     if ( perPortConnectedRtr->at( i ) == UINT32_MAX )
       continue;
     distances.at(i) = calcDist( i, dest_addr );
-    output->verbose( CALL_INFO, 5, 0, "Distance[%" PRIu32 "] = %" PRIu32 "\n", i, distances.at(i) );
+    //output->verbose( CALL_INFO, 5, 0, "Distance[%" PRIu32 "] = %" PRIu32 "\n", i, distances.at(i) );
   }
-
-  output->flush();
 
   // At this point, the distances vector has how many digits differ between the destination endpt and
   // each of our neighboring routers;
