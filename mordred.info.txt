@@ -1,0 +1,103 @@
+PROCESSED 1 .so (SST ELEMENT) FILES FOUND IN DIRECTORY(s) /Users/tdysart/git/forzarev-ring-stg2/forzarev/forza-elts/src/zip:/opt/homebrew/Cellar/sst/14.0.0/lib/sstcore:/opt/homebrew/Cellar/sst/14.0.0/lib/sst-elements-library:/Users/tdysart/git/sst-tutorials/hpca2024/exercises/archimedes:/Users/tdysart/git/sst-bench/sst-bench/chkpnt:/Users/tdysart/git/forzarev-ring-stg2/forzarev/src:/Users/tdysart/git/forzarev-ring-stg2/forzarev/forza-elts/src/zen:/Users/tdysart/git/forzarev-ring-stg2/forzarev/forza-elts/src/zqm:/Users/tdysart/git/sst-bench/sst-bench/large-stat:/Users/tdysart/git/sst-bench/sst-bench/micro-comp:/Users/tdysart/git/sst-bench/sst-bench/micro-comp-link:/Users/tdysart/git/mordred/src:/Users/tdysart/git/sst-bench/sst-bench/msg-perf:/Users/tdysart/git/sst-bench/sst-bench/restart:/Users/tdysart/git/sst-bench/sst-bench/restore:/Users/tdysart/git/forzarev-ring-stg2/forzarev/src:/private/tmp/sst--sst-elements-20240624-7230-ijdbfl/sst-elements-library-14.0.0/src/sst/elements/osseous:/Users/tdysart/git/verilator-sst/install:/Users/tdysart/git/verilator-sst/install:/Users/tdysart/git/verilator-sst/install:/Users/tdysart/git/verilator-sst/install:/Users/tdysart/git/verilator-sst/install:/Users/tdysart/git/verilator-sst/install:/Users/tdysart/git/verilator-sst/install:/Users/tdysart/git/verilator-sst/install:/Users/tdysart/git/verilator-sst/install:/Users/tdysart/git/verilator-sst/install:/Users/tdysart/git/verilator-sst/install:/Users/tdysart/git/verilator-sst/install:/Users/tdysart/git/verilator-sst/install:/Users/tdysart/git/verilator-sst/install:/Users/tdysart/git/verilator-sst/install
+Filtering output on Element = "mordred"
+================================================================================
+ELEMENT LIBRARY 0 = mordred ()
+Components (2 total)
+   Component 0: simple_rtr
+      Description: Simple NoC router component
+      ELI version: 0.9.0
+      Compiled on: May 21 2025 10:17:19, using file: /Users/tdysart/git/mordred/src/SimpleRTR.h
+      Category: NETWORK COMPONENT
+      Parameters (9 total)
+         verbose: Sets the output verbsoity  [5]
+         id: ID of the router  [<required>]
+         clock: Clock frequency of the router  [1GHz]
+         num_ports: Number of ports on the router  [3]
+         num_local_ports: Number of local ports  [1]
+         num_vcs: Number of virtual channels.  [1]
+         flit_size: Flit size specified in either b or B (can include SI prefix).  [32b]
+         input_buf_size: Size of input buffers specified in b or B (can include SI prefix).  [<required>]
+         output_buf_size: Size of output buffers specified in b or B (can include SI prefix).  [<required>]
+      Ports (1 total)
+         port%(portnum)d: Port id.
+      SubComponent Slots (3 total)
+         topology: Topology and routing subcomponent [SST::Mordred::TopologyAPI]
+         portcontrol: PortControl blocks; loaded anonymously [SST::Mordred::RtrPortControlAPI]
+         arbiter: Arbitration scheme/model [SST::Mordred::ArbAPI]
+      Statistics (0 total)
+      Profile Points (0 total)
+      Attributes (0 total)
+
+   Component 1: test_ep
+      Description: Simple endpoint
+      ELI version: 0.9.0
+      Compiled on: May 21 2025 10:42:57, using file: /Users/tdysart/git/mordred/src/TestEP.h
+      Category: NETWORK COMPONENT
+      Parameters (2 total)
+         verbose: Sets the output verbsoity  [5]
+         clock: Clock frequency of the endpoint  [1GHz]
+      Ports (0 total)
+      SubComponent Slots (1 total)
+         noc_iface: NoC interface [SST::Interfaces::SimpleNetwork]
+      Statistics (0 total)
+      Profile Points (0 total)
+      Attributes (0 total)
+
+SubComponents (4 total)
+   SubComponent 0: MeshTopology
+      Description: 2D Mesh Topology for NoC Router
+      ELI version: 0.9.0
+      Compiled on: May 21 2025 10:28:46, using file: /Users/tdysart/git/mordred/src/MeshTopology.h
+      Interface: SST::Mordred::TopologyAPI
+      Parameters (3 total)
+         verbose: Sets the output verbsoity  [5]
+         xDim: Number of points in the X dimension  [1]
+         yDim: Number of points in the Y dimension  [1]
+      Ports (0 total)
+      SubComponent Slots (0 total)
+      Statistics (0 total)
+      Profile Points (0 total)
+      Attributes (0 total)
+
+   SubComponent 1: arbRR
+      Description: Round robin arbitration for the router crossbar
+      ELI version: 0.9.0
+      Compiled on: May 21 2025 10:42:00, using file: /Users/tdysart/git/mordred/src/ArbRR.h
+      Interface: SST::Mordred::ArbAPI
+      Parameters (1 total)
+         verbose: Sets the output verbosity  [5]
+      Ports (0 total)
+      SubComponent Slots (0 total)
+      Statistics (0 total)
+      Profile Points (0 total)
+      Attributes (0 total)
+
+   SubComponent 2: mordredNIC
+      Description: Interface for connecting to the Mordred NOC
+      ELI version: 0.9.0
+      Compiled on: May 21 2025 10:17:19, using file: /Users/tdysart/git/mordred/src/MordredNIC.h
+      Interface: SST::Interfaces::SimpleNetwork
+      Parameters (3 total)
+         verbose: Sets the output verbosity  [5]
+         input_buf_size: Size of input buffers specified in b or B (can include SI prefix).  [1kiB]
+         output_buf_size: Size of output buffers specified in b or B (can include SI prefix).  [1kiB]
+      Ports (1 total)
+         port: Port that connects to a Mordred router.
+      SubComponent Slots (0 total)
+      Statistics (0 total)
+      Profile Points (0 total)
+      Attributes (0 total)
+
+   SubComponent 3: rtrPortControl
+      Description: Manage a port on the Mordred router
+      ELI version: 0.9.0
+      Compiled on: May 21 2025 10:17:19, using file: /Users/tdysart/git/mordred/src/RtrPortControl.h
+      Interface: SST::Mordred::RtrPortControlAPI
+      Parameters (1 total)
+         verbose: Sets the output verbsoity  [5]
+      Ports (0 total)
+      SubComponent Slots (0 total)
+      Statistics (0 total)
+      Profile Points (0 total)
+      Attributes (0 total)
+
