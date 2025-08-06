@@ -69,7 +69,11 @@ public:
   SST_ELI_DOCUMENT_PORTS()
 
   SST_ELI_DOCUMENT_STATISTICS(
-  {"in_flit_cnt", "Number of incoming flits", "unitless", 3},
+    // These are pretty useless unless I know if that is going to link or internal
+  {"recv_flit_cnt", "Number of flits received on the link", "unitless", 3},
+  {"sent_flit_cnt", "Number of flits sent on the link", "unitless", 3},
+  {"sent_packet_cnt", "Number of packets sent on the link", "unitless", 3},
+  {"output_stalls", "Number of cycles stalled on sending output", "unitless", 3}
   )
 
   RtrPortControl( ComponentId_t id, Params& params, TopologyAPI* topology, RtrOwnedSharedObjs* rtr_shared_objs, uint32_t rtr_num, uint32_t port_num );
@@ -146,12 +150,13 @@ public:
   uint32_t getDestVc( uint32_t vn, uint32_t vc ) final { return inStateVec.at(vn).at(vc).outVc; }
 
   // Switch/xbar interactions
+  // Return UINT32_MAX for idle and portId if blocked (no credits)
   uint32_t getSendingPort() final {
     if ( switch_alloc_rcvfrom_port == UINT32_MAX ) // no sender
       return UINT32_MAX;
     if ( outStateVec.at(switch_alloc_rcvto_vn).at(switch_alloc_rcvto_vc).outBufCredits > 0 )
       return switch_alloc_rcvfrom_port;
-    return UINT32_MAX;
+    return portId;
   }
 
   MordredFlit* getInBufFlit() final;
@@ -173,7 +178,7 @@ public:
   uint32_t getConnectedRtrId() const final { return connectedRtrId; }
 
 private:
-  void allocateBuffers();
+  void allocateBuffers(); // this also registers the stats
   MordredInitEvent* getInitEvent( MordredInitEvent::Commands cmd );
   void returnCredit();
 
@@ -224,9 +229,13 @@ private:
 
   // Statistics
   // For the 2D vectors, the outer dimension is VN, inner is VC
-  // Soooo, this keeps showing up as a NullStatistic after I try to register
-  // it; no idea why at this point.  Seems like the SST docs are insufficient.
-  std::vector<std::vector<Statistic<uint64_t>*>> statInFlitCnt;
+  // MUST have this parameter set (ComponentInfo::INSERT_STATS) as part of the
+  // share_flags when loading the subcomponent.  SST docs don't seem to describe
+  // the share_flags anywhere
+  std::vector<std::vector<Statistic<uint64_t>*>> statLinkRecvFlitCnt;
+  std::vector<std::vector<Statistic<uint64_t>*>> statLinkSentFlitCnt;
+  std::vector<std::vector<Statistic<uint64_t>*>> statLinkSentPacketCnt;
+  Statistic<uint64_t>* statLinkOutputStalledCnt; // TODO: Currently unused; see comments in ClockTick()
 };
 
 } // namespace SST::Mordred

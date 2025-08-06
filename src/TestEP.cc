@@ -28,7 +28,7 @@ TestEP::TestEP( ComponentId_t cid, Params& params ) : Component( cid ) {
   registerAsPrimaryComponent();
   primaryComponentDoNotEndSim();
 
-  nocIface = loadUserSubComponent<Interfaces::SimpleNetwork>( "noc_iface", ComponentInfo::SHARE_NONE, 1 );
+  nocIface = loadUserSubComponent<Interfaces::SimpleNetwork>( "noc_iface", ComponentInfo::SHARE_NONE | ComponentInfo::INSERT_STATS, 1 );
   if ( !nocIface )
     output.fatal( CALL_INFO, -1, "Failed to load nocIface\n" );
 
@@ -65,10 +65,10 @@ bool TestEP::clockTick( Cycle_t cycle ) {
   // Manipulate these as desired
   // May hit a segfault or other nasty behavior if src/dest exceeds the number
   // of endpoints in the configuration
-  uint32_t srcs[] = {0, 2, 0, 0, 4};
+  uint32_t srcs[] = {0, 0, 0, 0, 4};
   uint32_t dests[] = {1, 1, 3, 7, 7};
 
-#if 0
+#if 1
   if ( ( nocIface->getEndpointID() == srcs[0] ) && ( cycle == 10 ) ) {
     output.verbose( CALL_INFO, 3, 0, "Sending packet. Cycle=%" PRIu64 "\n", cycle );
     auto pkt = new simpleTestEvent( "howdy");
@@ -85,7 +85,7 @@ bool TestEP::clockTick( Cycle_t cycle ) {
   }
 #endif
 
-#if 0
+#if 1
   if ( ( nocIface->getEndpointID() == srcs[1] ) && ( cycle == 20 ) ) {
     output.verbose( CALL_INFO, 3, 0, "Sending packet. Cycle=%" PRIu64 "\n", cycle );
     auto pkt = new simpleTestEvent( "give me coffee pretty please");

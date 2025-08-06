@@ -134,6 +134,14 @@ public:
   uint32_t cur_vc{0}; // Update when the flit is written into an output buffer
   uint64_t packet_id{};
   uint32_t flit_id{};
+  // The values below are using getCurrentSimCycle() - this needs to be scaled by the clock frequency
+  // to get the number of clock ticks
+
+  uint64_t pkt_created_cycle{UINT64_MAX}; // set when MordredNIC::send() is called
+
+  // The MordredNIC stores the head time and then fills this for the TAIL; this allows us to just use
+  // the data in the TAIL flit for doing "everything"
+  uint64_t head_inject_cycle{UINT64_MAX}; // set when the head flit is put onto the link.
   /** END: Data members of the flit **/
 
   std::string getFtypeStr() {
@@ -161,6 +169,8 @@ public:
     ser & cur_vc;
     ser & packet_id;
     ser & flit_id;
+    ser & pkt_created_cycle;
+    ser & head_inject_cycle;
   }
 
   // Register this event as serializable

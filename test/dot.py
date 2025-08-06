@@ -2,9 +2,8 @@
 import sst
 from math import floor
 
-#sst.setStatisticLoadLevel(7)
-#params = ( { "rate" : "0ns" } )
-#sst.setStatisticOutput("sst.statOutputCSV", { "filepath" : "./stats.csv", "separator" : ", " } )
+stat_params = ( { "rate" : "0ns" } )
+sst.setStatisticOutput("sst.statOutputCSV", { "filepath" : "./stats.csv", "separator" : ", " } )
 
 FixedRtrParams = {
     "flit_size" : "32b",
@@ -391,9 +390,9 @@ flatfly = FlattenedButterfly(2, 4) # fig 1d in paper; 16 endpoints
 # counter in SimpleRtr to count things, but the stat in RtrPortControl is just a NullStatistic
 # Fun. Annoying.  SST documentation is clearly insufficient.
 sst.setStatisticLoadLevel(7)
-params = ( { "rate" : "0ns" } )
-sst.enableAllStatisticsForAllComponents(params)
-#sst.enableAllStatisticsForComponentType("mordred.simple_rtr.rtrPortControl", params )
-sst.setStatisticOutput("sst.statOutputCSV", { "filepath" : "./stats.csv", "separator" : ", " } )
+#stat_params = ( { "rate" : "0ns" } )
+sst.enableAllStatisticsForAllComponents(stat_params)
+#sst.enableAllStatisticsForComponentType("mordred.simple_rtr.rtrPortControl", stat_params, True )
+#sst.setStatisticOutput("sst.statOutputCSV", { "filepath" : "./stats.csv", "separator" : ", " } )
 
 #EOF

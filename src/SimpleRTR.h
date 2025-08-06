@@ -32,8 +32,6 @@
 
 // TODO: Configure verbosity control (use constants in MordredEvents)
 
-// TODO: This doesn't account for concentration yet
-
 /**
  * Currently, we assume that all ports linked to the router (so both from endpoints and other routers),
  * have the same number of virtual networks and virtual channels.  Since we're only using 1 of each for
@@ -84,7 +82,7 @@ public:
     {"topology", "Topology and routing subcomponent", "SST::Mordred::TopologyAPI"},
     {"portcontrol", "PortControl blocks; loaded anonymously", "SST::Mordred::RtrPortControlAPI"},
     {"vc_alloc", "VC allocator", "SST::Mordred::VcAllocAPI"},
-    {"arbiter", "Arbitration scheme/model", "SST::Mordred::ArbAPI"}, // TODO: This becomes the switch allocator
+    {"arbiter", "Arbitration scheme/model", "SST::Mordred::ArbAPI"},
   )
 
   SST_ELI_DOCUMENT_PORTS(
@@ -94,6 +92,8 @@ public:
 
   SST_ELI_DOCUMENT_STATISTICS(
     {"tick10_cnt", "Number of cycles/10", "unitless", 3},
+    { "xbar_idle", "For each receiving port, num cycles with an idle crossbar", "unitless", 3},
+    { "xbar_blocked", "For each receiving port, num cycles crossbar blocked", "unitless", 3}
   )
 
   SimpleRTR( ComponentId_t cid, Params& params );
@@ -132,6 +132,8 @@ private:
 
   // Stats
   Statistic<uint64_t>* tickCounter;
+  std::vector<Statistic<uint64_t>*> statPerPortXbarIdle;
+  std::vector<Statistic<uint64_t>*> statPerPortXbarBlocked;
 
 };  // SimpleRTR
 

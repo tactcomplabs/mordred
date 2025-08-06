@@ -60,6 +60,10 @@ MordredNIC::MordredNIC( ComponentId_t cid, Params& params, int vns = 1 ) :
   std::string clock_freq("1GHz");
   registerClock( clock_freq, new Clock::Handler2<MordredNIC, &MordredNIC::clockTick>(this) );
 
+  // Register stats
+  statPacketsRecv = registerStatistic<uint64_t>( "packets_recv" );
+  statAvgNocLatency = registerStatistic<double>( "average_noc_latency" );
+
   output->verbose(CALL_INFO, 5, 0, "MordredNIC constructed\n");
   output->flush();
 }
@@ -182,6 +186,11 @@ void MordredNIC::setup() {
 }
 
 void MordredNIC::complete( uint32_t phase ) {
+  double avg_ticks = (double)totalNocLatency / totalPackets;
+  if ( totalPackets == 0 ) // need this to avoid some nasty output in sst 14.0.0
+    avg_ticks = -1.0;
+  statPacketsRecv->addData( totalPackets );
+  statAvgNocLatency->addData( avg_ticks );
   output->verbose(CALL_INFO, 7, 0, "MordredNIC complete; phase=%" PRIu32 "\n", phase);
   output->flush();
 }
@@ -242,6 +251,7 @@ bool MordredNIC::send( Request* req, int32_t vn ) {
 
   // Tail flit
   flit = new MordredFlit( req, MordredFlit::TAIL, packetId++, u_num_flits-1 );
+  flit->pkt_created_cycle = getCurrentSimCycle();
   outBuf.at(u_vn).push( flit );
 
   return true;
@@ -297,6 +307,12 @@ bool MordredNIC::clockTick( Cycle_t cycle ) {
       if ( rtrCredits.at(vn) > 0 ) {
         auto flit = outBuf.at(vn).front();
         outBuf.at(vn).pop();
+        if ( flit->ftype == MordredFlit::HEAD ) {
+          headInjectCycle = getCurrentSimCycle();
+        } else if ( flit->ftype == MordredFlit::TAIL ) {
+          flit->head_inject_cycle = headInjectCycle;
+          headInjectCycle = UINT64_MAX;
+        }
         link->send( flit );
         sent = true;
         rtrCredits.at(vn)--;
@@ -373,6 +389,17 @@ void MordredNIC::handleIncomingPacket( SST::Event* ev ) {
       }
       inBuf.at(flit->vn).push( req );
       output->verbose( CALL_INFO, 5, 0, "Finished receiving %s\n", flit->pktIdStr().c_str() );
+      // Compute elapsed latency of the packet
+      // TODO: Do this with the actual clock rate, etc...seems like some things may change in sst 16, so I'm not in a rush
+      // to deal with it today
+      uint64_t noc_latency = getCurrentSimCycle() - flit->head_inject_cycle;
+      uint64_t total_latency = getCurrentSimCycle() - flit->pkt_created_cycle;
+      double noc_latency_ns = ceil( noc_latency / 1000 );
+      // Time in ns == clock ticks with 1 GHz clock.
+      output->verbose( CALL_INFO, 5, 0, "Total latency=%" PRIu64 "; NoC latency=%" PRIu64 "= %f ns\n",
+        total_latency, noc_latency, noc_latency_ns );
+      totalNocLatency += (uint64_t)noc_latency_ns;
+      totalPackets++;
     }
     // Update num of credits to return to router
     inReturnCredits.at( flit->vn )++;
