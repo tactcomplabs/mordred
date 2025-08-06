@@ -58,8 +58,10 @@ public:
     {"port", "Port that connects to a Mordred router.", { "untimedMordredEvent", "basicMordredEvent" } },
   )
 
-  // TODO: Add stats
-  SST_ELI_DOCUMENT_STATISTICS()
+  SST_ELI_DOCUMENT_STATISTICS(
+    {"packets_recv", "Number of packets received", "unitless", 3},
+    {"average_noc_latency", "Average latency (in clocks) of each packet", "unitless", 3}
+    )
 
   MordredNIC( ComponentId_t cid, Params& params, int vns );
   ~MordredNIC() override { /* empty destructor */ }
@@ -166,6 +168,7 @@ private:
   uint32_t    flitSize{};
   uint32_t    channelBusWidth{}; // TODO: Make UnitAlgebra if we're going to use it
   uint64_t    packetId{};
+  uint64_t    headInjectCycle{UINT64_MAX};
 
   UnitAlgebra bw; // Need? It's currently unused.
 
@@ -201,6 +204,12 @@ private:
   // credits to return to the router as the inBuf is emptied out
   // init to 0
   std::vector<int32_t> inReturnCredits;
+
+  // Statistics
+  uint64_t totalNocLatency{0}; // in clock ticks
+  uint64_t totalPackets{0};
+  Statistic<uint64_t>* statPacketsRecv;
+  Statistic<double>* statAvgNocLatency;
 
 };  // MordredNIC
 

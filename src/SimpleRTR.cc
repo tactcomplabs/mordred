@@ -38,7 +38,7 @@ SimpleRTR::SimpleRTR( ComponentId_t cid, Params& params ) : Component( cid ) {
   numVns = params.find<uint32_t>( "num_vns", 1 ); // commented out as an ELI param for now
   numVcs = params.find<uint32_t>( "num_vcs", 1 );
 
-  // TODO: Required for all topologies?  Probably not....
+  // Leaving here as a sanity check - assumes more than one router in the system
   if ( numPorts <= numLocalPorts )
     output.fatal( CALL_INFO, -1, "num_ports must be greater than num_local_ports\n" );
 
@@ -55,7 +55,7 @@ SimpleRTR::SimpleRTR( ComponentId_t cid, Params& params ) : Component( cid ) {
     if ( isPortConnected( linkname ) ) {
       perPortSharedObjs.at(i).allocateVecs( numVns, numVcs );
       portsVec.push_back( loadAnonymousSubComponent<RtrPortControlAPI>("mordred.rtrPortControl", "portcontrol", (int)i,
-        ComponentInfo::SHARE_PORTS, params, topology, &perPortSharedObjs[i], id, i) );
+        ComponentInfo::SHARE_PORTS | ComponentInfo::INSERT_STATS, params, topology, &perPortSharedObjs[i], id, i) );
     } else {
       output.verbose( CALL_INFO, 5, 0, "Port %u with name=%s unconnected\n", i, linkname.c_str() );
       portsVec.push_back( nullptr );
@@ -74,11 +74,13 @@ SimpleRTR::SimpleRTR( ComponentId_t cid, Params& params ) : Component( cid ) {
     output.fatal( CALL_INFO, -1, "vcAlloc is a nullptr\n" );
   }
 
-  // Try registering a stat
-  std::string rtrstr = "rtr[" + std::to_string( id ) + "]";
-  tickCounter = registerStatistic<uint64_t>( "tick10_cnt", rtrstr.c_str() );
-  if ( tickCounter->isNullStatistic() )
-    output.verbose( CALL_INFO, 5, 0, "tickCounter STAT is NULL\n" );
+  // Register Stats
+  tickCounter = registerStatistic<uint64_t>( "tick10_cnt" );
+  for ( uint32_t i = 0; i < numPorts; i++ ) {
+    std::string portstr = "port" + std::to_string( i );
+    statPerPortXbarIdle.push_back( registerStatistic<uint64_t>( "xbar_idle", portstr.c_str() ) );
+    statPerPortXbarBlocked.push_back( registerStatistic<uint64_t>( "xbar_blocked", portstr.c_str() ) );
+  }
 
   output.verbose(
     CALL_INFO, 5, 0, "Constructor complete for %s. local_ports=%" PRIu32 "; rtr_ports=%" PRIu32 "\n",
@@ -156,13 +158,19 @@ bool SimpleRTR::clockTick( Cycle_t cycle ) {
     tickCounter->addData( 1 );
 
   // For all router ports, see if we can receive a flit through the crossbar
+  // portsVec.at(i) is the receiving port in this loop
   for ( uint32_t i = 0; i < numPorts; i++ ) {
     if ( portsVec.at( i ) == nullptr )
       continue;
 
-    auto sending_port = portsVec.at( i )->getSendingPort();
-    if ( sending_port == UINT32_MAX ) // can't receive a flit, move on
+    auto sending_port = portsVec.at( i )->getSendingPort(); //ensures we have a sender and a credit available
+    if ( sending_port == UINT32_MAX ) {
+      statPerPortXbarIdle.at(i)->addData( 1 );
       continue;
+    } if ( sending_port == i ) {
+      statPerPortXbarBlocked.at(i)->addData( 1 );
+      continue;
+    }
 
     // Get the flit from the sender -- multiple checks there for invalid/null concerns
     auto flit = portsVec.at( sending_port )->getInBufFlit();

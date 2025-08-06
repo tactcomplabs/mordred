@@ -102,13 +102,17 @@ void RtrPortControl::allocateBuffers() {
 
   inStateVec.resize( numVns );
   outStateVec.resize( numVns );
-  statInFlitCnt.resize( numVns );
+  statLinkRecvFlitCnt.resize( numVns );
+  statLinkSentFlitCnt.resize( numVns );
+  statLinkSentPacketCnt.resize( numVns );
 
   // Allocate/init the second dimension
   for ( uint32_t i = 0; i < numVns; i++ ) {
     inStateVec.at( i ).resize( numVcs );
     outStateVec.at( i ).resize( numVcs );
-    statInFlitCnt.at(i).resize( numVcs, nullptr );
+    statLinkRecvFlitCnt.at(i).resize( numVcs, nullptr );
+    statLinkSentFlitCnt.at(i).resize( numVcs, nullptr );
+    statLinkSentPacketCnt.at(i).resize( numVcs, nullptr );
   }
 
   // Init stuff as needed
@@ -122,13 +126,13 @@ void RtrPortControl::allocateBuffers() {
   // Register stats
   for (uint32_t i = 0; i < numVns; i++ ) {
     for (uint32_t j = 0; j < numVcs; j++ ) {
-      std::string str = std::to_string( rtrId ) + "." + std::to_string( portId ) + "." + std::to_string(i) + "." + std::to_string(j);
-      statInFlitCnt.at( i ).at( j ) = registerStatistic<uint64_t>( "in_flit_cnt", str.c_str() );
-      output->verbose( CALL_INFO, 5, 0, "Register STAT subid=%s\n", str.c_str() );
-      if ( statInFlitCnt.at( i ).at( j )->isNullStatistic() ) {}
-        output->verbose( CALL_INFO, 5, 0, "Reg STAT [%u][%u] IS NULL\n", i, j );
+      std::string str = std::to_string( rtrId ) + "_" + std::to_string( portId ) + "_" + std::to_string(i) + "_" + std::to_string(j);
+      statLinkRecvFlitCnt.at( i ).at( j ) = registerStatistic<uint64_t>( "recv_flit_cnt", str.c_str() );
+      statLinkSentFlitCnt.at( i ).at( j ) = registerStatistic<uint64_t>( "sent_flit_cnt", str.c_str() );
+      statLinkSentPacketCnt.at( i ).at( j ) = registerStatistic<uint64_t>( "sent_packet_cnt", str.c_str() );
     }
   }
+  statLinkOutputStalledCnt = registerStatistic<uint64_t>( "output_stalls" );
 }
 
 void RtrPortControl::init( unsigned int phase ) {
@@ -315,7 +319,9 @@ void RtrPortControl::ClockTick( Cycle_t cycle ) {
   // Send a flit on the link from the output buffer
   // - this should probably send from whichever VC is already sending since the
   // switch allocation will hold it high
-  // - may not even need multiple vn/vc buffers here, but will maintain for now
+  // TODO: Determine how to add output_stalls to this logic
+  // output_stall is if every non-empty buffer is prevented from sending
+  // might want a couple of other booleans to help figure it out, but that's just random musing
   bool sent = false;
   for( uint32_t i = 0, vn = flit_vn_rr; i < numVns; i++, vn = ( ( vn != ( numVns - 1 ) ) ? vn + 1 : 0 ) ) {
     for( uint32_t j = 0, vc = flit_vc_rr; j < numVcs; j++, vc = ( ( vc != ( numVcs - 1 ) ) ? vc + 1 : 0 ) ) {
@@ -327,6 +333,10 @@ void RtrPortControl::ClockTick( Cycle_t cycle ) {
         link->send( flit );
         sent = true;
         outStateVec.at( vn ).at ( vc ).destCredits--;
+        if ( flit->ftype == MordredFlit::TAIL ) {
+          statLinkSentFlitCnt.at( vn ).at( vc )->addData( flit->flit_id + 1 );
+          statLinkSentPacketCnt.at( vn ).at( vc )->addData( 1 );
+        }
         //output->verbose( CALL_INFO, 5, 0, "Sending output flit; remaining_credits=%" PRId32 "\n", destCredits.at( vn ).at(vc) );
         break; // can only send one flit out on the link
       }
@@ -366,10 +376,8 @@ void RtrPortControl::inHandler( SST::Event* ev ) {
       flit->pktIdStr().c_str(), flit->req->src, flit->req->dest, flit->vn, flit->cur_vc, (uint32_t)flit->ftype );
 
     inStateVec.at( flit->vn ).at( flit->cur_vc ).inBuf.push( flit );
-    if ( flit->ftype == MordredFlit::TAIL ) {
-      statInFlitCnt.at( flit->vn ).at( flit->cur_vc )->addData( flit->flit_id + 1 );
-      //output->verbose( CALL_INFO, 5, 0, "STAT UPDATE for [%u][%u]\n", flit->vn, flit->cur_vc );
-    }
+    if ( flit->ftype == MordredFlit::TAIL )
+      statLinkRecvFlitCnt.at( flit->vn ).at( flit->cur_vc )->addData( flit->flit_id + 1 );
     break;
   } // end FLIT
   default:
