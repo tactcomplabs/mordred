@@ -245,10 +245,13 @@ void RtrPortControl::init( unsigned int phase ) {
         auto credit_ev = static_cast<MordredCreditEvent*>( ev );
         outStateVec.at( credit_ev->vn ).at ( credit_ev->vc ).destCredits += credit_ev->credits;
         output->verbose( CALL_INFO, 5, 0, "Received credit event vc=%d, credits=%d; cur_credits=%d\n", credit_ev->vc, credit_ev->credits, outStateVec.at( credit_ev->vn ).at ( credit_ev->vc ).destCredits );
+        delete ev;
+      } else if ( base_ev->getType() == baseMordredEvent::PACKET ) {
+        initEvents.push( ev );
       } else {
         output->verbose( CALL_INFO, 5, 0, "Received unexpected event type=%d\n", (int) base_ev->getType() );
+        delete ev;
       }
-      delete ev;
     }
   }  // end default
   }
@@ -264,12 +267,17 @@ void RtrPortControl::setup() {
 }
 
 void RtrPortControl::sendUntimedData( Event* ev ) {
-  output->fatal( CALL_INFO, -1, "Not yet implemented\n" );
+  //output->fatal( CALL_INFO, -1, "Not yet implemented\n" );
+  link->sendUntimedData( ev );
 }
 
 SST::Event* RtrPortControl::recvUntimedData() {
-  output->fatal( CALL_INFO, -1, "Not yet implemented\n" );
-  return nullptr;
+  //output->fatal( CALL_INFO, -1, "Not yet implemented\n" );
+  if ( initEvents.empty() )
+    return nullptr;
+  auto event = initEvents.front();
+  initEvents.pop();
+  return event;
 }
 
 void RtrPortControl::ClockTick( Cycle_t cycle ) {

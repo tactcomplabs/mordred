@@ -65,6 +65,8 @@ bool TestEP::clockTick( Cycle_t cycle ) {
   // Manipulate these as desired
   // May hit a segfault or other nasty behavior if src/dest exceeds the number
   // of endpoints in the configuration
+  //Cycle_t end_cycle = 80;
+  Cycle_t end_cycle = 1000;
   uint32_t srcs[] = {0, 0, 0, 0, 4};
   uint32_t dests[] = {1, 1, 3, 7, 7};
 
@@ -85,7 +87,7 @@ bool TestEP::clockTick( Cycle_t cycle ) {
   }
 #endif
 
-#if 1
+#if 0
   if ( ( nocIface->getEndpointID() == srcs[1] ) && ( cycle == 20 ) ) {
     output.verbose( CALL_INFO, 3, 0, "Sending packet. Cycle=%" PRIu64 "\n", cycle );
     auto pkt = new simpleTestEvent( "give me coffee pretty please");
@@ -134,7 +136,7 @@ bool TestEP::clockTick( Cycle_t cycle ) {
   }
 #endif
 
-#if 1
+#if 0
   if ( ( nocIface->getEndpointID() == srcs[4] ) && ( cycle == 50 ) ) {
     output.verbose( CALL_INFO, 3, 0, "Sending packet. Cycle=%" PRIu64 "\n", cycle );
     auto pkt = new simpleTestEvent( "howdy2");
@@ -161,7 +163,7 @@ bool TestEP::clockTick( Cycle_t cycle ) {
   }
 
   // End simulation
-  if ( cycle == 80 ) {
+  if ( cycle == end_cycle ) {
     output.verbose( CALL_INFO, 3, 0, "Cycle=%" PRIu64 "\n", cycle );
     primaryComponentOKToEndSim();
   }

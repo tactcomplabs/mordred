@@ -89,6 +89,8 @@ public:
   void sendUntimedData(Event* ev) final;
   Event* recvUntimedData() final;
 
+  uint32_t getPortId() final { return portId; }
+
   void ClockTick(Cycle_t cycle) final;
 
   void inHandler(Event* ev);
@@ -219,6 +221,8 @@ private:
   // These are in bits
   uint32_t inBufSize;
   uint32_t outBufSize;
+
+  std::queue<Event*> initEvents;
 
   // These are 2D - [vn][vc]
   std::vector<std::vector<perVcInState>> inStateVec;

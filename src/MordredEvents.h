@@ -77,7 +77,7 @@ public:
 // Base event sent around the NoC.
 class baseMordredEvent : public Event {
 public:
-  enum MordredEventType { FLIT, CREDIT, INITIALIZATION };
+  enum MordredEventType { FLIT, CREDIT, PACKET, INITIALIZATION };
 
   baseMordredEvent( MordredEventType type_ ) : type( type_ ) { /* empty */ }
 
@@ -99,12 +99,20 @@ private:
 class MordredInitEvent final : public baseMordredEvent {
 public:
   enum Commands { REPORT_ENDPOINT, REPORT_ROUTER, ROUTER_ID, PORT_NUM, ENDPOINT_ID, NUM_VNS,
-                  NUM_VCS, FLIT_WIDTH, BUS_WIDTH, NUM_COMMANDS };
+                  NUM_VCS, FLIT_WIDTH, BUS_WIDTH, EP_PACKET, NUM_COMMANDS };
   MordredInitEvent() : baseMordredEvent( INITIALIZATION ) {}
+
+  MordredInitEvent(Interfaces::SimpleNetwork::Request *r) :
+  baseMordredEvent( PACKET ),
+  command( Commands::EP_PACKET ),
+  value(0),
+  req(r) {}
 
   Commands command;
   uint32_t value;
   UnitAlgebra ua_value;
+  Interfaces::SimpleNetwork::Request  *req{nullptr};
+
 
 private:
   ImplementSerializable( SST::Mordred::MordredInitEvent )

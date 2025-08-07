@@ -168,10 +168,13 @@ void MordredNIC::init( uint32_t phase ) {
         rtrCredits.at( credit_ev->vn ) += credit_ev->credits;
         output->verbose( CALL_INFO, 5, 0, "Received credit event vn=%" PRIu32 ", credits=%" PRId32 "; cur_credits=%" PRId32 "\n",
           credit_ev->vn, credit_ev->credits, rtrCredits.at( credit_ev->vn ) );
+        delete ev;
+      } else if ( base_ev->getType() == baseMordredEvent::PACKET ) {
+        initEvents.push( static_cast<MordredInitEvent*>(ev) );
       } else {
         output->verbose( CALL_INFO, 5, 0, "Received unexpected event type=%d\n", (int) base_ev->getType() );
+        delete ev;
       }
-      delete ev;
     }
     break;
   }
@@ -201,14 +204,21 @@ void MordredNIC::finish() {
 }
 
 void MordredNIC::sendUntimedData( Request* req ) {
-  output->flush();
-  output->fatal( CALL_INFO, -1, "Not yet implemented\n" );
+  //output->flush();
+  //output->fatal( CALL_INFO, -1, "Not yet implemented\n" );
+  auto ev = new MordredInitEvent(req);
+  link->sendUntimedData( ev );
 }
 
 SST::Interfaces::SimpleNetwork::Request* MordredNIC::recvUntimedData() {
-  output->flush();
-  output->fatal( CALL_INFO, -1, "Not yet implemented\n" );
-  return nullptr;
+  if ( initEvents.empty() )
+    return nullptr;
+
+  auto ev = initEvents.front();
+  initEvents.pop();
+  auto req = ev->req;
+  delete ev;
+  return req;
 }
 
 int32_t MordredNIC::calcNumFlits( uint32_t num_bits ) {

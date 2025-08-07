@@ -179,6 +179,8 @@ private:
   UnitAlgebra inbufSize;
   UnitAlgebra outbufSize;
 
+  std::queue<MordredInitEvent*> initEvents; // TODO: baseMordredEvent instead?
+
   // Note: All of the vectors below are sized to the number of VNs
 
   // Packet buffers

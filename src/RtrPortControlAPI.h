@@ -110,6 +110,8 @@ public:
   virtual void sendUntimedData(Event *ev) = 0;
   virtual Event* recvUntimedData() = 0;
 
+  virtual uint32_t getPortId() = 0;
+
   // No separate clock - run off the router clock
   // NOTE: This may get broken up into separate update and execute functions; booksim approached their
   // model this way and described as update being the combinational logic and execute being the state

@@ -104,9 +104,27 @@ void SimpleRTR::init( uint32_t phase ) {
   topology->init( phase );
   vcAlloc->init( phase );
   arbiter->init( phase );
-  for ( auto &port : portsVec )
-    if ( port != nullptr )
-      port->init( phase );
+  for ( auto &port : portsVec ) {
+    if ( port == nullptr )
+      continue;
+    port->init( phase );
+    /// TODO TODO TODO: Once we're past the initialized phase, the untimed packets from each port
+    /// (which are in port.initEvents) need to be routed and sent on to their final destinations
+    if ( phase >= 4 ) {
+      Event *ev = nullptr;
+      while ( ( ev = port->recvUntimedData() ) != nullptr ) {
+        auto init_ev = static_cast<MordredInitEvent *>(ev);
+        auto dest_port = topology->routePacket( init_ev->req->dest );
+        output.verbose( CALL_INFO, 5, 0, "Send initPacket from %" PRIu32 " to dest %" PRIu32 "\n",
+          port->getPortId(), dest_port);
+        output.flush();
+        if ( portsVec.at( dest_port ) == nullptr ) {
+          output.fatal( CALL_INFO, -1, "Port %" PRIu32 " is a nullptr\n", dest_port );
+        }
+        portsVec.at( dest_port )->sendUntimedData( ev );
+      }
+    }
+  }
 }
 
 void SimpleRTR::setup() {
