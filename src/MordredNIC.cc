@@ -303,7 +303,7 @@ bool MordredNIC::spaceToSend( int vn, int num_bits ) {
 bool MordredNIC::requestToReceive( int vn ) {
   output->flush();
   output->fatal( CALL_INFO, -1, "Not yet implemented\n" );
-  return false;
+  //return false;
 }
 
 bool MordredNIC::clockTick( Cycle_t cycle ) {

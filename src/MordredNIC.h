@@ -120,7 +120,7 @@ public:
          * @return true if a network request is pending in the specified
          * virtual network, false otherwise
          */
-  bool requestToReceive( int vn ) override;
+[[noreturn]]  bool requestToReceive( int vn ) override;
 
   /**
     * Registers a functor which will fire when a new request is
