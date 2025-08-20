@@ -267,8 +267,9 @@ void RtrPortControl::setup() {
 }
 
 void RtrPortControl::sendUntimedData( Event* ev ) {
-  //output->fatal( CALL_INFO, -1, "Not yet implemented\n" );
   link->sendUntimedData( ev );
+  output->verbose( CALL_INFO, 5, 0, "Sent untimed data\n");
+  output->flush();
 }
 
 SST::Event* RtrPortControl::recvUntimedData() {

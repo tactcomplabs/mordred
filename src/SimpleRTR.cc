@@ -98,8 +98,8 @@ SimpleRTR::~SimpleRTR() {
 }
 
 void SimpleRTR::init( uint32_t phase ) {
-  //output.verbose(CALL_INFO, 5, 0, "SimpleRTR::init(%" PRIu32 ")\n", phase);
-  //output.flush();
+  output.verbose(CALL_INFO, 5, 0, "SimpleRTR::init(%" PRIu32 ")\n", phase);
+  output.flush();
 
   topology->init( phase );
   vcAlloc->init( phase );
@@ -128,8 +128,8 @@ void SimpleRTR::init( uint32_t phase ) {
 }
 
 void SimpleRTR::setup() {
-  //output.verbose(CALL_INFO, 5, 0, "SimpleRTR::setup\n");
-  //output.flush();
+  output.verbose(CALL_INFO, 5, 0, "SimpleRTR::setup\n");
+  output.flush();
 
   perPortConnectedRtr.resize( numPorts, UINT32_MAX );
   for ( uint32_t i = 0; i < numPorts; i++ ) {

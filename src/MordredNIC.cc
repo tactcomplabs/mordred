@@ -120,6 +120,9 @@ void MordredNIC::init( uint32_t phase ) {
     delete init_ev;
     output->verbose( CALL_INFO, 5, 0, "Received init phase=%" PRIu32 " packets with numVCs=%" PRIu32 ", flit_width=%" PRIu32 ", channel_bus_width=%" PRIu32 "\n",
       phase, numVcs, flitSize, channelBusWidth );
+
+    resizeVectors();
+
     break;
 
 #if 0
@@ -148,8 +151,6 @@ void MordredNIC::init( uint32_t phase ) {
     output->verbose( CALL_INFO, 5, 0, "Received endpoint id = %" PRId64 "\n", netID );
     delete init_ev;
 
-    // Setup/send credit info
-    resizeVectors();
     // Send router credits equal to num_flits inBuf can hold
     auto credits = static_cast<int32_t>( inbufSize.getRoundedValue() / flitSize );
     for ( uint32_t i = 0; i < numVns; i++ ) {
@@ -170,6 +171,8 @@ void MordredNIC::init( uint32_t phase ) {
           credit_ev->vn, credit_ev->credits, rtrCredits.at( credit_ev->vn ) );
         delete ev;
       } else if ( base_ev->getType() == baseMordredEvent::PACKET ) {
+        output->verbose( CALL_INFO, 5, 0, "Received untimed packet\n" );
+        output->flush();
         initEvents.push( static_cast<MordredInitEvent*>(ev) );
       } else {
         output->verbose( CALL_INFO, 5, 0, "Received unexpected event type=%d\n", (int) base_ev->getType() );
@@ -352,6 +355,11 @@ bool MordredNIC::clockTick( Cycle_t cycle ) {
 }
 
 void MordredNIC::resizeVectors() {
+  if ( numVns == 0 ) {
+    output->flush();
+    output->fatal( CALL_INFO, -1, "MordredNIC resizing vectors failure\n" );
+  }
+
   inBuf.resize( numVns );
   outBuf.resize( numVns );
 

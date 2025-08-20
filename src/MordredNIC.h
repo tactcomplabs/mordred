@@ -8,6 +8,10 @@
 // See LICENSE in the top level directory for licensing details
 //
 
+#ifndef MORDREDNIC_H
+#define MORDREDNIC_H
+
+
 /**
  * The NIC is designed to get most of its configuration information from the SimpleRtr
  * rather than as outside parameters.  If we modify this behavior, then we'll need to
@@ -216,3 +220,5 @@ private:
 };  // MordredNIC
 
 }  // namespace SST::Mordred
+
+#endif // MORDREDNIC_H

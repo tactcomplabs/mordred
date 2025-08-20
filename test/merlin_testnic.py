@@ -277,7 +277,7 @@ class FlattenedButterfly:
             for j in range(self.k):
                 portname = "port" + str(self.local_port_start + j)
                 ep_name = "ep_%d_%d"%(i,j)
-                ep = sst.Component(ep_name, "merlin.test_nic")
+                ep = sst.Component(ep_name, "mordred.testNic")
                 ep_num = i*self.k + j
                 ep.addParams({
                     "id" : ep_num,
@@ -286,6 +286,7 @@ class FlattenedButterfly:
                     "message_size" : "16B",
                 })
                 endpoints.append(ep)
+                #print("Created endpoint %d"%(ep_num))
                 ep_iface = ep.setSubComponent( "networkIF", "mordred.mordredNIC" )
                 ep_iface.addParams({
                     "input_buf_size" : "1kB",
