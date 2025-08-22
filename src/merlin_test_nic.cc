@@ -156,8 +156,8 @@ void nic::complete(unsigned int phase) {
 
 void
 nic::init(unsigned int phase) {
-  output->verbose( CALL_INFO, 5, 0, "testNIC %d init(%d)\n", net_id, phase);
-  output->flush();
+  //output->verbose( CALL_INFO, 5, 0, "testNIC %d init(%d)\n", net_id, phase);
+  //output->flush();
     link_control->init(phase);
     init_complete(phase);
 }
@@ -169,9 +169,8 @@ nic::init_complete(unsigned int phase) {
     {
         // Wait until network is initialized
         if ( !link_control->isNetworkInitialized() ) break;
-        output->verbose( CALL_INFO, 5, 0, "testNIC(%d) init_complete(%d)\n", net_id, phase);
-        output->flush();
-#if 1
+        //output->verbose( CALL_INFO, 5, 0, "testNIC(%d) init_complete(%d)\n", net_id, phase);
+        //output->flush();
         net_id = link_control->getEndpointID();
         last_target = net_id;
 
@@ -204,7 +203,6 @@ nic::init_complete(unsigned int phase) {
             }
         }
         break;
-#endif
     }
     case 1:
     {
@@ -260,8 +258,8 @@ nic::init_complete(unsigned int phase) {
     }
     case 3:
     {
-      output->verbose( CALL_INFO, 5, 0, "testNIC(%d) init_complete(%d)-case3\n", net_id, phase);
-      output->flush();
+      //output->verbose( CALL_INFO, 5, 0, "testNIC(%d) init_complete(%d)-case3\n", net_id, phase);
+      //output->flush();
         SimpleNetwork::Request* req;
         while ( (req = link_control->recvUntimedData() ) != NULL ) {
             // std::cout << "NIC " << id << " Received an init event in phase " << phase << "!" << std::endl;
@@ -283,8 +281,8 @@ nic::init_complete(unsigned int phase) {
     }
     case 4:
     {
-      output->verbose( CALL_INFO, 5, 0, "testNIC(%d) init_complete(%d)-case4\n", net_id, phase);
-      output->flush();
+      //output->verbose( CALL_INFO, 5, 0, "testNIC(%d) init_complete(%d)-case4\n", net_id, phase);
+      //output->flush();
         SimpleNetwork::Request* req;
         while ( (req = link_control->recvUntimedData() ) != NULL ) {
             // std::cout << "NIC " << id << " Received an init event in phase " << phase << "!" << std::endl;
@@ -305,6 +303,7 @@ nic::init_complete(unsigned int phase) {
     default:
         break;
     }
+  output->flush();
 }
 
 class MyRtrEvent final : public Event {
@@ -369,6 +368,7 @@ nic::clock_handler(Cycle_t cycle)
 
           link_control->send(req,send_vc);
           // output->output("(%lld) %d: sent packet to %d\n",getCurrentSimTimeNano(),net_id,last_target);
+          output->verbose( CALL_INFO, 5, 0, "TestNIC%d Sending a packet to %d\n", net_id, last_target);
 
           packets_sent++;
 
@@ -390,9 +390,13 @@ nic::clock_handler(Cycle_t cycle)
         if ( ev == NULL ) {
             output->fatal(CALL_INFO, -1, "Error: Received event of wrong type!\n");
         }
+
         packets_recd++;
         // int src = net_map[req->src];
         int src = req->src;
+
+        output->verbose( CALL_INFO, 5, 0, "TestNIC%d Received a packet from %d; rec_cnt=%d of %d \n",
+          net_id, src, packets_recd, expected_recv_count);
 
         if ( req->dest != net_id ) {
             output->fatal(CALL_INFO,-1,"%d received packet intended for %d\n",net_id,(int)req->dest);
@@ -402,7 +406,7 @@ nic::clock_handler(Cycle_t cycle)
         delete ev;
         delete req;
     }
-
+    output->flush();
     return false;
 }
 

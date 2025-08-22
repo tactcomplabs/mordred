@@ -95,16 +95,33 @@ public:
 
   void inHandler(Event* ev);
 
+  void validateVnVc( uint32_t vn, uint32_t vc ) {
+    if ( (vn == UINT32_MAX) || (vc == UINT32_MAX) )
+      output->fatal( CALL_INFO, -1, "Invalid vn=%u or vc=%u\n", vn, vc );
+  }
+
   // VC Alloc interactions
-  uint32_t getDestPort( uint32_t vn, uint32_t vc ) final { return inStateVec.at(vn).at(vc).outPort; }
-  OutVcStateE getOutputState( uint32_t vn, uint32_t vc ) final { return outStateVec.at(vn).at(vc).outVcState; }
+  uint32_t getDestPort( uint32_t vn, uint32_t vc ) final {
+    validateVnVc( vn, vc );
+    return inStateVec.at(vn).at(vc).outPort;
+  }
+
+  OutVcStateE getOutputState( uint32_t vn, uint32_t vc ) final {
+    validateVnVc( vn, vc );
+    return outStateVec.at(vn).at(vc).outVcState;
+  }
 
   void inUnitSetDestVc( uint32_t vn, uint32_t input_vc, uint32_t dest_vc ) final {
+    validateVnVc( vn, input_vc );
+    // TODO: Where called from? Are these ever reset?
+    // These probably ought to be reset when we see a tail flit
+    // Looks like we reset in RtrPortControl::resetPerVcDest()
     inStateVec.at(vn).at(input_vc).outVn = vn;
     inStateVec.at(vn).at(input_vc).outVc = dest_vc;
   }
 
   void outUnitSetSrc( uint32_t port, uint32_t vn, uint32_t src_vc, uint32_t output_vc ) final {
+    validateVnVc( vn, output_vc );
     outStateVec.at(vn).at(output_vc).outVcState = OUT_BUSY;
     outStateVec.at(vn).at(output_vc).inPort = port;
     outStateVec.at(vn).at(output_vc).inVn = vn;
@@ -120,6 +137,7 @@ public:
   }
 
   void sendAllocateToSwitch( uint32_t port, uint32_t vn, uint32_t vc ) final {
+    validateVnVc( vn, vc );
     if ( port != inStateVec.at(vn).at(vc).outPort )
       output->fatal( CALL_INFO, -1, "Port mismatch in=%" PRIu32 ", state=%" PRIu32 "\n",
         port, inStateVec.at(vn).at(vc).outPort );
@@ -128,6 +146,7 @@ public:
     switch_alloc_sendfrom_vc = vc;
   }
   void resetSwitchSendAllocation() final {
+    validateVnVc( switch_alloc_sendfrom_vn, switch_alloc_sendfrom_vc );
     inStateVec.at( switch_alloc_sendfrom_vn ).at(switch_alloc_sendfrom_vc).inVcState = IN_IDLE;
     switch_alloc_sendto_port = switch_alloc_sendfrom_vn = switch_alloc_sendfrom_vc = UINT32_MAX;
   }
@@ -138,6 +157,7 @@ public:
     return false;
   }
   void recvAllocateFromSwitch( uint32_t sending_port, uint32_t vn, uint32_t vc ) final {
+    validateVnVc( vn, vc );
     if ( sending_port != outStateVec.at(vn).at(vc).inPort )
       output->fatal( CALL_INFO, -1, "Port mismatch in=%" PRIu32 ", state=%" PRIu32 "\n",
         sending_port, outStateVec.at(vn).at(vc).inPort );
@@ -146,25 +166,33 @@ public:
     switch_alloc_rcvto_vc = vc;
   }
   void resetSwitchRecvAllocation() final {
+    validateVnVc( switch_alloc_rcvto_vn, switch_alloc_rcvto_vc );
     outStateVec.at( switch_alloc_rcvto_vn ).at(switch_alloc_rcvto_vc ).outVcState = OUT_IDLE;
     switch_alloc_rcvfrom_port = switch_alloc_rcvto_vn = switch_alloc_rcvto_vc = UINT32_MAX;
   }
-  uint32_t getDestVc( uint32_t vn, uint32_t vc ) final { return inStateVec.at(vn).at(vc).outVc; }
+  uint32_t getDestVc( uint32_t vn, uint32_t vc ) final {
+    validateVnVc( vn, vc );
+    return inStateVec.at(vn).at(vc).outVc; // TODO: Where does this get set? RtrPortControl::inUnitSetDestVc
+  }
 
   // Switch/xbar interactions
-  // Return UINT32_MAX for idle and portId if blocked (no credits)
+  // Return UINT32_MAX for idle
+  // Return UINT32_MAX-1 if blocked (no credits)
+
   uint32_t getSendingPort() final {
     if ( switch_alloc_rcvfrom_port == UINT32_MAX ) // no sender
       return UINT32_MAX;
+    validateVnVc( switch_alloc_rcvto_vn, switch_alloc_rcvto_vc );
     if ( outStateVec.at(switch_alloc_rcvto_vn).at(switch_alloc_rcvto_vc).outBufCredits > 0 )
       return switch_alloc_rcvfrom_port;
-    return portId;
+    return UINT32_MAX-1;
   }
 
   MordredFlit* getInBufFlit() final;
   void   recvOutBufFlit( MordredFlit* flit ) final; // Rename?
 
   void resetPerVcDest() final {
+    validateVnVc( switch_alloc_sendfrom_vn, switch_alloc_sendfrom_vc );
     // This should be resetting the out{port,vn,vc} in an input unit - use the switch_alloc_sendfrom parameters
     inStateVec.at(switch_alloc_sendfrom_vn).at(switch_alloc_sendfrom_vc).outPort =
       inStateVec.at(switch_alloc_sendfrom_vn).at(switch_alloc_sendfrom_vc).outVn =
@@ -172,6 +200,7 @@ public:
   }
 
   void resetPerVcSrc() final {
+    validateVnVc( switch_alloc_rcvto_vn, switch_alloc_rcvto_vc );
     outStateVec.at(switch_alloc_rcvto_vn).at(switch_alloc_rcvto_vc).inPort =
       outStateVec.at(switch_alloc_rcvto_vn).at(switch_alloc_rcvto_vc).inVn =
         outStateVec.at(switch_alloc_rcvto_vn).at(switch_alloc_rcvto_vc).inVc = UINT32_MAX;

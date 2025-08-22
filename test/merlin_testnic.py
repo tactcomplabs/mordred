@@ -277,12 +277,13 @@ class FlattenedButterfly:
             for j in range(self.k):
                 portname = "port" + str(self.local_port_start + j)
                 ep_name = "ep_%d_%d"%(i,j)
-                ep = sst.Component(ep_name, "mordred.testNic")
+                #ep = sst.Component(ep_name, "mordred.testNic")
+                ep = sst.Component(ep_name, "merlin.test_nic")
                 ep_num = i*self.k + j
                 ep.addParams({
                     "id" : ep_num,
                     "num_peers" : self.num_endpoints,
-                    "num_messages" : 1,
+                    "num_messages" : 3,
                     "message_size" : "16B",
                 })
                 endpoints.append(ep)

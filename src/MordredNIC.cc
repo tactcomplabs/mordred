@@ -97,8 +97,8 @@ void MordredNIC::init( uint32_t phase ) {
     init_ev = getInitEvent( MordredInitEvent::Commands::PORT_NUM );
     rtrPort = init_ev->value;
     delete init_ev;
-    output->verbose( CALL_INFO, 5, 0, "Received init phase=%" PRIu32 " packets from [Rtr.Port]=[%" PRIu32 ".%" PRIu32 "]\n",
-      phase, rtrId, rtrPort );
+    //output->verbose( CALL_INFO, 5, 0, "Received init phase=%" PRIu32 " packets from [Rtr.Port]=[%" PRIu32 ".%" PRIu32 "]\n",
+    //  phase, rtrId, rtrPort );
     break;
 
   case 2: {
@@ -118,8 +118,8 @@ void MordredNIC::init( uint32_t phase ) {
     init_ev = getInitEvent( MordredInitEvent::Commands::BUS_WIDTH );
     channelBusWidth = init_ev->value;
     delete init_ev;
-    output->verbose( CALL_INFO, 5, 0, "Received init phase=%" PRIu32 " packets with numVCs=%" PRIu32 ", flit_width=%" PRIu32 ", channel_bus_width=%" PRIu32 "\n",
-      phase, numVcs, flitSize, channelBusWidth );
+    //output->verbose( CALL_INFO, 5, 0, "Received init phase=%" PRIu32 " packets with numVCs=%" PRIu32 ", flit_width=%" PRIu32 ", channel_bus_width=%" PRIu32 "\n",
+    //  phase, numVcs, flitSize, channelBusWidth );
 
     resizeVectors();
 
@@ -161,18 +161,18 @@ void MordredNIC::init( uint32_t phase ) {
   }
 
   default:
-    output->verbose( CALL_INFO, 5, DEBUG_INIT_PHASE, "Init phase = %" PRIu32 "\n", phase );
+    //output->verbose( CALL_INFO, 5, DEBUG_INIT_PHASE, "Init phase = %" PRIu32 "\n", phase );
     while ( ( ev = link->recvUntimedData() ) != nullptr ) {
       auto base_ev = static_cast<baseMordredEvent*>( ev );
       if( base_ev->getType() == baseMordredEvent::CREDIT ) {
         auto credit_ev = static_cast<MordredCreditEvent*>( ev );
         rtrCredits.at( credit_ev->vn ) += credit_ev->credits;
-        output->verbose( CALL_INFO, 5, 0, "Received credit event vn=%" PRIu32 ", credits=%" PRId32 "; cur_credits=%" PRId32 "\n",
-          credit_ev->vn, credit_ev->credits, rtrCredits.at( credit_ev->vn ) );
+        //output->verbose( CALL_INFO, 5, 0, "Received credit event vn=%" PRIu32 ", credits=%" PRId32 "; cur_credits=%" PRId32 "\n",
+        //  credit_ev->vn, credit_ev->credits, rtrCredits.at( credit_ev->vn ) );
         delete ev;
       } else if ( base_ev->getType() == baseMordredEvent::PACKET ) {
-        output->verbose( CALL_INFO, 5, 0, "Received untimed packet\n" );
-        output->flush();
+        //output->verbose( CALL_INFO, 5, 0, "Received untimed packet\n" );
+        //output->flush();
         initEvents.push( static_cast<MordredInitEvent*>(ev) );
       } else {
         output->verbose( CALL_INFO, 5, 0, "Received unexpected event type=%d\n", (int) base_ev->getType() );
@@ -208,9 +208,9 @@ void MordredNIC::finish() {
 
 void MordredNIC::sendUntimedData( Request* req ) {
   auto ev = new MordredInitEvent(req);
-  output->verbose( CALL_INFO, 5, 0, "MordredNIC sendUntimedData; src=%" PRIu64 ", dest=%" PRIu64 "\n",
-    req->src, req->dest);
-  output->flush();
+  //output->verbose( CALL_INFO, 5, 0, "MordredNIC sendUntimedData; src=%" PRIu64 ", dest=%" PRIu64 "\n",
+  //  req->src, req->dest);
+  //output->flush();
   link->sendUntimedData( ev );
 }
 
@@ -268,9 +268,9 @@ bool MordredNIC::send( Request* req, int32_t vn ) {
   flit->pkt_created_cycle = getCurrentSimCycle();
   outBuf.at(u_vn).push( flit );
 
-  output->verbose( CALL_INFO, 5, 0, "EPNIC Send to [RTR.Port]=[%u,%u] with dest=%" PRIu64 "; num_flits=%u\n",
-    rtrId, rtrPort, req->dest, u_num_flits );
-  output->flush();
+  //output->verbose( CALL_INFO, 5, 0, "EPNIC Send to [RTR.Port]=[%u,%u] with dest=%" PRIu64 "; num_flits=%u\n",
+  //  rtrId, rtrPort, req->dest, u_num_flits );
+  //output->flush();
 
   return true;
 }
@@ -399,6 +399,8 @@ void MordredNIC::handleIncomingPacket( SST::Event* ev ) {
   switch( bev->getType() ) {
   case baseMordredEvent::CREDIT: {
     auto credit = static_cast<MordredCreditEvent*>( bev );
+    if ( credit->vn != 0 )
+      output->fatal( CALL_INFO, -1, "Unsupported vn=%u\n", credit->vn );
     rtrCredits.at(credit->vn) += credit->credits;
     output->verbose( CALL_INFO, 5, 0, "Received %" PRId32 " credits to vn=%" PRIu32 ", cur_credits=%" PRIu32 "\n",
       credit->credits, credit->vn, rtrCredits.at( credit->vn ) );
@@ -413,6 +415,8 @@ void MordredNIC::handleIncomingPacket( SST::Event* ev ) {
       if ( req == nullptr ) {
         output->fatal( CALL_INFO, -1, "Request was nullptr!\n" );
       }
+      if ( flit->vn != 0 )
+        output->fatal( CALL_INFO, -1, "Unsupported vn=%u\n", flit->vn );
       inBuf.at(flit->vn).push( req );
       output->verbose( CALL_INFO, 5, 0, "Finished receiving %s\n", flit->pktIdStr().c_str() );
       // Compute elapsed latency of the packet

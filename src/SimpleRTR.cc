@@ -98,8 +98,8 @@ SimpleRTR::~SimpleRTR() {
 }
 
 void SimpleRTR::init( uint32_t phase ) {
-  output.verbose( CALL_INFO, 5, 0, "SimpleRTR::init(%" PRIu32 ")\n", phase );
-  output.flush();
+  //output.verbose( CALL_INFO, 5, 0, "SimpleRTR::init(%" PRIu32 ")\n", phase );
+  //output.flush();
 
   topology->init( phase );
   vcAlloc->init( phase );
@@ -189,7 +189,7 @@ bool SimpleRTR::clockTick( Cycle_t cycle ) {
     if ( sending_port == UINT32_MAX ) {
       statPerPortXbarIdle.at(i)->addData( 1 );
       continue;
-    } if ( sending_port == i ) {
+    } if ( sending_port == ( UINT32_MAX - 1 ) ) {
       statPerPortXbarBlocked.at(i)->addData( 1 );
       continue;
     }
@@ -208,7 +208,7 @@ bool SimpleRTR::clockTick( Cycle_t cycle ) {
       // The switch allocation could be done more frequently than on a packet basis
       portsVec.at(sending_port)->resetSwitchSendAllocation();
       portsVec.at(i)->resetSwitchRecvAllocation();
-      output.verbose( CALL_INFO, 3, 0, "Tail flit observed\n");
+      output.verbose( CALL_INFO, 3, 0, "Tail flit %s observed\n", flit->pktIdStr().c_str() );
     }
   }
 

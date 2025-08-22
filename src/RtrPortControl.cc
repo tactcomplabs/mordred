@@ -180,7 +180,7 @@ void RtrPortControl::init( unsigned int phase ) {
 
       init_ev = getInitEvent( MordredInitEvent::PORT_NUM );
       connectedPortId = init_ev->value;
-      output->verbose( CALL_INFO, 5, 0, "Received init packets from [Rtr.Port]=[%" PRIu32 ".%" PRIu32 "]\n", connectedRtrId, connectedPortId );
+      //output->verbose( CALL_INFO, 5, 0, "Received init packets from [Rtr.Port]=[%" PRIu32 ".%" PRIu32 "]\n", connectedRtrId, connectedPortId );
       delete init_ev;
     } else if ( connectionType == ENDPOINT ) {
       init_ev = new MordredInitEvent();
@@ -273,8 +273,8 @@ void RtrPortControl::setup() {
 
 void RtrPortControl::sendUntimedData( Event* ev ) {
   link->sendUntimedData( ev );
-  output->verbose( CALL_INFO, 5, 0, "Sent untimed data\n");
-  output->flush();
+  //output->verbose( CALL_INFO, 5, 0, "Sent untimed data\n");
+  //output->flush();
 }
 
 SST::Event* RtrPortControl::recvUntimedData() {
@@ -289,14 +289,6 @@ void RtrPortControl::ClockTick( Cycle_t cycle ) {
   //output->verbose( CALL_INFO, 3, 0, "Tick; cycle=%" PRIu64 "\n", cycle );
   //output->flush();
 
-  // Fill all possible vcHeads from the input buffer
-  // I'm not terribly keen on this logic as it would let us manipulate multiple VN,VC pairs in a given
-  // cycle, even if they are at the same "processing" stage.
-  // The expectation is that this would be an uncommon case over time as packets/flits end up being
-  // spread out.
-  // Anticipate putting some logic to prevent this overlapped processing into the other subcomps of
-  // the router
-
   // TODO: This also assumes one cycle each for VC and switch allocation - might need a method for speeding that up
   // probably going to make more sense to break this up into multiple functions, then the router can handle that
 
@@ -305,6 +297,7 @@ void RtrPortControl::ClockTick( Cycle_t cycle ) {
     for( uint32_t vc = 0; vc < numVcs; vc++ ) {
       // Going to throw some extra sanity checks in for now
       if ( inStateVec.at( vn ).at( vc ).inVcState == IN_IDLE ) {
+        // Ready to start the next packet through the pipeline
         if ( rtrSharedObjs->needVcAlloc.at(vn).at(vc) != nullptr )
           output->fatal( CALL_INFO, -1, "Expected nullptr\n" );
         if ( !inStateVec.at( vn ).at( vc ).inBuf.empty() ) {
@@ -313,16 +306,19 @@ void RtrPortControl::ClockTick( Cycle_t cycle ) {
             output->fatal( CALL_INFO, -1, "Expected head flit\n" );
           inStateVec.at(vn).at(vc).inVcState = ROUTING;
           inStateVec.at(vn).at(vc).outPort = topo->routePacket( (uint32_t)flit->req->dest );
-          // TODO: Ensure portId != outPort
+          output->verbose( CALL_INFO, 5, 0, "Flit %s routed\n", flit->pktIdStr().c_str() );
         }
       } else if ( inStateVec.at( vn ).at( vc ).inVcState == ROUTING ) {
+        // Ready for VC allocation
         auto *flit = inStateVec.at( vn ).at( vc ).inBuf.front();
+        output->verbose( CALL_INFO, 5, 0, "Flit %s ready for VC alloc\n", flit->pktIdStr().c_str() );
         inStateVec.at(vn).at(vc).inVcState = WAIT_VC;
         rtrSharedObjs->needVcAlloc.at(vn).at(vc) = flit;
       } else if ( ( inStateVec.at( vn ).at( vc ).inVcState == WAIT_VC ) &&
-                  ( inStateVec.at( vn ).at( vc ).outVc != UINT16_MAX ) ) {
+                  ( inStateVec.at( vn ).at( vc ).outVc != UINT32_MAX ) ) {
         // Ready for switch allocation
         auto *flit = inStateVec.at( vn ).at( vc ).inBuf.front();
+        output->verbose( CALL_INFO, 5, 0, "Flit %s ready for switch alloc\n", flit->pktIdStr().c_str() );
         inStateVec.at(vn).at(vc).inVcState = IN_ACTIVE;
         rtrSharedObjs->needSwitchAlloc.at(vn).at(vc) = flit;
       }
@@ -374,6 +370,7 @@ void RtrPortControl::inHandler( SST::Event* ev ) {
   switch( bev->getType() ) {
   case baseMordredEvent::CREDIT: {
     auto credit = static_cast<MordredCreditEvent*>( bev );
+    validateVnVc( credit->vn, credit->vc );
     outStateVec.at( credit->vn ).at ( credit->vc ).destCredits += credit->credits;
     output->verbose( CALL_INFO, 5, 0, "Received %" PRId32 " credits to vc=%" PRIu32 ", cur_credits=%" PRIu32 "\n",
       credit->credits, credit->vc, outStateVec.at( credit->vn ).at ( credit->vc ).destCredits );
@@ -384,6 +381,7 @@ void RtrPortControl::inHandler( SST::Event* ev ) {
     auto *flit = static_cast<MordredFlit*>( ev );
     if ( flit == nullptr )
       output->fatal( CALL_INFO, -1, "Invalid flit \n" );
+    validateVnVc( flit->vn, flit->cur_vc );
 
     output->verbose( CALL_INFO, 5, 0, "Recv flit %s, src=%" PRIu64 ", dst=%" PRIu64 ", vn=%" PRIu32 ", vc=%" PRIu32 ", type=%u\n",
       flit->pktIdStr().c_str(), flit->req->src, flit->req->dest, flit->vn, flit->cur_vc, (uint32_t)flit->ftype );
@@ -399,6 +397,8 @@ void RtrPortControl::inHandler( SST::Event* ev ) {
 }
 
 MordredFlit* RtrPortControl::getInBufFlit() {
+
+  validateVnVc( switch_alloc_sendfrom_vn, switch_alloc_sendfrom_vc );
 
   if ( inStateVec.at( switch_alloc_sendfrom_vn ).at( switch_alloc_sendfrom_vc ).inBuf.empty() ) {
     output->flush();
@@ -418,6 +418,7 @@ MordredFlit* RtrPortControl::getInBufFlit() {
 }
 
 void RtrPortControl::recvOutBufFlit( MordredFlit* flit ) {
+  validateVnVc( switch_alloc_rcvto_vn, switch_alloc_rcvto_vc );
   flit->cur_vc = switch_alloc_rcvto_vc;
   outStateVec.at( switch_alloc_rcvto_vn ).at( switch_alloc_rcvto_vc ).outBuf.push( flit );
   outStateVec.at( switch_alloc_rcvto_vn ).at( switch_alloc_rcvto_vc ).outBufCredits--;

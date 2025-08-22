@@ -43,8 +43,8 @@ void XbarArbRR::arbitrate( std::vector<RtrPortControlAPI*> &ports, std::vector<R
       continue;
     // rcvportnum is not actively receiving from the switch, so RR through the ports and find the next sender
     for( uint32_t j = 0, sendportnum = send_rr_port; j < numPorts; ++j, sendportnum = ( sendportnum + 1 ) % numPorts ) {
-      if ( sendportnum == rcvportnum ) // disallow sending back to self
-        continue;
+      //if ( sendportnum == rcvportnum ) // disallow sending back to self
+      //  continue;
       if ( ports.at( sendportnum ) == nullptr ) // skip invalid ports
         continue;
       if( ports.at( sendportnum )->isSendAllocatedToSwitch() ) // already sending to someone
@@ -53,6 +53,8 @@ void XbarArbRR::arbitrate( std::vector<RtrPortControlAPI*> &ports, std::vector<R
         // We have a sendable flit, so notify/update send/recv ports; clear flit from shared struct
         ports.at(sendportnum)->sendAllocateToSwitch( rcvportnum, sending_vn, sending_vc );
         auto dest_vc = ports.at( sendportnum )->getDestVc( sending_vn, sending_vc );
+        if ( dest_vc != 0 )
+          output->fatal( CALL_INFO, -1, "Invalid dest_vc - only 0 supported\n" );
         ports.at(rcvportnum)->recvAllocateFromSwitch( sendportnum, sending_vn, dest_vc );
         rtr_shared_objs.at( sendportnum ).needSwitchAlloc.at(sending_vn).at(sending_vc) = nullptr;
         output->verbose( CALL_INFO, 5, 0, "SwitchArb flit [Port:VN:VC] from [%" PRIu32 ":%" PRIu32 ":%" PRIu32 "] to [%" PRIu32 ":%" PRIu32 ":%" PRIu32 "]\n",
@@ -75,6 +77,8 @@ bool XbarArbRR::findSendableFlit( uint32_t rcvportnum, RtrPortControlAPI* &sendp
       if ( shared_obj.needSwitchAlloc.at(vn).at(vc) != nullptr ) {
         if ( rcvportnum == sendport->getDestPort( vn, vc ) ) {
           // We have a winner!
+          output->verbose( CALL_INFO, 5, 0, "Flit %s wins the switch\n", shared_obj.needSwitchAlloc.at(vn).at(vc)->pktIdStr().c_str() );
+          output->flush();
           sending_vn = vn;
           sending_vc = vc;
           return true;
