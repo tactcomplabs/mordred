@@ -28,6 +28,8 @@ TestEP::TestEP( ComponentId_t cid, Params& params ) : Component( cid ) {
   registerAsPrimaryComponent();
   primaryComponentDoNotEndSim();
 
+  numPeers = params.find<uint32_t>( "num_peers", 1 );
+
   nocIface = loadUserSubComponent<Interfaces::SimpleNetwork>( "noc_iface", ComponentInfo::SHARE_NONE | ComponentInfo::INSERT_STATS, 1 );
   if ( !nocIface )
     output.fatal( CALL_INFO, -1, "Failed to load nocIface\n" );
@@ -42,6 +44,60 @@ TestEP::TestEP( ComponentId_t cid, Params& params ) : Component( cid ) {
 void TestEP::init( const uint32_t phase ) {
   output.verbose( CALL_INFO, 5, DEBUG_INIT_PHASE, "TestEP::init(%" PRIu32 ")\n", phase );
   nocIface->init( phase );
+
+  switch( init_state ) {
+  case 0:
+    // Wait until network is initialized
+    if( !nocIface->isNetworkInitialized() )
+      break;
+    Id = nocIface->getEndpointID();
+    output.verbose( CALL_INFO, 5, 0, "TestEP(%d) init_complete(%d)\n", Id, phase );
+    output.flush();
+    init_state = 1;
+    // TODO: Sanity check id
+    break;
+
+    case 1: {
+      if ( Id != 0 ) {
+        init_state = 4;
+        break;
+      }
+      if ( numPeers )
+      // Send a point to point message to all endpoints, including myself
+      // NOTE: These are never read
+      output.verbose( CALL_INFO, 5, 0,  "Phase(%d): TestEP %d starting to send point-to-point messages\n", phase, Id);
+      for ( uint32_t i = 0; i < numPeers; ++i ) {
+        auto * req = new Interfaces::SimpleNetwork::Request(i, Id, 0, true, true);
+        nocIface->sendUntimedData(req);
+      }
+      output.verbose( CALL_INFO, 5, 0,  "Phase(%d): TestEP %d done sending point-to-point messages\n", phase, Id);
+      output.flush();
+      init_state = 4;
+    }
+    break;
+
+  case 4: {
+    Interfaces::SimpleNetwork::Request* req;
+    while ( (req = nocIface->recvUntimedData() ) != nullptr ) {
+      output.verbose( CALL_INFO, 5, 0, "Phase(%d); TestEP %u received untimed message\n", phase, Id );
+      output.flush();
+
+      // It's possible some of the point to point will overlap
+      // some of the broadcasts, so we need to check to see
+      // which this is
+      numInitMsgs++;
+      delete req;
+    }
+
+    if ( numInitMsgs == 1 ) { //since only Id==0 is sending for now
+      init_state = 5;
+    }
+  }
+    break; // case 4
+
+  default: break;
+  }
+
 }
 
 void TestEP::setup() {

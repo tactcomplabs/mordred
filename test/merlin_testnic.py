@@ -282,7 +282,7 @@ class FlattenedButterfly:
                 ep.addParams({
                     "id" : ep_num,
                     "num_peers" : self.num_endpoints,
-                    "num_messages" : 3,
+                    "num_messages" : 1,
                     "message_size" : "16B",
                 })
                 endpoints.append(ep)

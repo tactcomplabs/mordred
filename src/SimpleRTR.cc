@@ -98,30 +98,39 @@ SimpleRTR::~SimpleRTR() {
 }
 
 void SimpleRTR::init( uint32_t phase ) {
-  output.verbose(CALL_INFO, 5, 0, "SimpleRTR::init(%" PRIu32 ")\n", phase);
+  output.verbose( CALL_INFO, 5, 0, "SimpleRTR::init(%" PRIu32 ")\n", phase );
   output.flush();
 
   topology->init( phase );
   vcAlloc->init( phase );
   arbiter->init( phase );
-  for ( auto &port : portsVec ) {
-    if ( port == nullptr )
+
+  if( phase == 2 ) {
+    // This block has to be done during the init phase
+    // certain topologies will need this vector to be completed before
+    // we try routing untimed messages from endpoints in later
+    // init phases
+    perPortConnectedRtr.resize( numPorts, UINT32_MAX );
+    for( uint32_t i = 0; i < numPorts; i++ ) {
+      if( portsVec.at( i ) != nullptr )
+        perPortConnectedRtr.at( i ) = portsVec.at( i )->getConnectedRtrId();
+    }
+  }
+
+  for( auto& port : portsVec ) {
+    if( port == nullptr )
       continue;
     port->init( phase );
-    /// TODO TODO TODO: Once we're past the initialized phase, the untimed packets from each port
-    /// (which are in port.initEvents) need to be routed and sent on to their final destinations
-    if ( phase >= 4 ) {
-      Event *ev = nullptr;
-      while ( ( ev = port->recvUntimedData() ) != nullptr ) {
-        auto init_ev = static_cast<MordredInitEvent *>(ev);
+    /// Once we've passed the network initialized phase, some endpoint setups will want to do some
+    /// type of initialization themselves.  So we need to grab the untimed packets from each port
+    /// (which are in port.initEvents), route them, and send towards their final destinations
+    if( phase >= 4 ) {
+      Event* ev = port->recvUntimedData();
+      while ( ev != nullptr ) {
+        auto init_ev   = static_cast<MordredInitEvent*>( ev );
         auto dest_port = topology->routePacket( init_ev->req->dest );
-        output.verbose( CALL_INFO, 5, 0, "Send initPacket from %" PRIu32 " to dest %" PRIu32 "\n",
-          port->getPortId(), dest_port);
-        output.flush();
-        if ( portsVec.at( dest_port ) == nullptr ) {
-          output.fatal( CALL_INFO, -1, "Port %" PRIu32 " is a nullptr\n", dest_port );
-        }
         portsVec.at( dest_port )->sendUntimedData( ev );
+        ev = port->recvUntimedData();
       }
     }
   }
@@ -130,12 +139,6 @@ void SimpleRTR::init( uint32_t phase ) {
 void SimpleRTR::setup() {
   output.verbose(CALL_INFO, 5, 0, "SimpleRTR::setup\n");
   output.flush();
-
-  perPortConnectedRtr.resize( numPorts, UINT32_MAX );
-  for ( uint32_t i = 0; i < numPorts; i++ ) {
-    if ( portsVec.at(i) != nullptr )
-      perPortConnectedRtr.at(i) = portsVec.at(i)->getConnectedRtrId();
-  }
 
   topology->setup();
   vcAlloc->setup();
@@ -170,6 +173,7 @@ void SimpleRTR::finish() {
 
 
 bool SimpleRTR::clockTick( Cycle_t cycle ) {
+  output.flush();
   // May want/need to look at how we want to time/order ticking the ports and running the crossbar/arbitration here
 
   if ( cycle % 10 == 0 )

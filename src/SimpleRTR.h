@@ -130,6 +130,9 @@ private:
   // Shared between components
   std::vector<RtrOwnedSharedObjs> perPortSharedObjs;
 
+  // For untimed receives/sends
+  std::queue<Event*> untimedInitEventsQ;
+
   // Stats
   Statistic<uint64_t>* tickCounter;
   std::vector<Statistic<uint64_t>*> statPerPortXbarIdle;

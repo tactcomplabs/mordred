@@ -278,6 +278,7 @@ class FlattenedButterfly:
                 portname = "port" + str(self.local_port_start + j)
                 ep_name = "ep_%d_%d"%(i,j)
                 ep = sst.Component(ep_name, "mordred.test_ep")
+                ep.addParam( "num_peers", self.num_endpoints )
                 endpoints.append(ep)
                 ep_iface = ep.setSubComponent( "noc_iface", "mordred.mordredNIC" )
                 ep_iface.addParams({

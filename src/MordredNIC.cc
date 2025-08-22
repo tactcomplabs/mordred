@@ -207,9 +207,10 @@ void MordredNIC::finish() {
 }
 
 void MordredNIC::sendUntimedData( Request* req ) {
-  //output->flush();
-  //output->fatal( CALL_INFO, -1, "Not yet implemented\n" );
   auto ev = new MordredInitEvent(req);
+  output->verbose( CALL_INFO, 5, 0, "MordredNIC sendUntimedData; src=%" PRIu64 ", dest=%" PRIu64 "\n",
+    req->src, req->dest);
+  output->flush();
   link->sendUntimedData( ev );
 }
 
@@ -267,6 +268,10 @@ bool MordredNIC::send( Request* req, int32_t vn ) {
   flit->pkt_created_cycle = getCurrentSimCycle();
   outBuf.at(u_vn).push( flit );
 
+  output->verbose( CALL_INFO, 5, 0, "EPNIC Send to [RTR.Port]=[%u,%u] with dest=%" PRIu64 "; num_flits=%u\n",
+    rtrId, rtrPort, req->dest, u_num_flits );
+  output->flush();
+
   return true;
 }
 
@@ -301,9 +306,12 @@ bool MordredNIC::spaceToSend( int vn, int num_bits ) {
 }
 
 bool MordredNIC::requestToReceive( int vn ) {
-  output->flush();
-  output->fatal( CALL_INFO, -1, "Not yet implemented\n" );
-  //return false;
+  if ( vn != 0 )
+    output->fatal( CALL_INFO, -1, "MordredNIC only supports vn=0\n" );
+  auto u_vn = static_cast<uint32_t>( vn );
+  if ( inBuf.at(u_vn).empty() )
+    return false;
+  return true;
 }
 
 bool MordredNIC::clockTick( Cycle_t cycle ) {

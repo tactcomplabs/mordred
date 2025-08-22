@@ -248,6 +248,11 @@ void RtrPortControl::init( unsigned int phase ) {
         delete ev;
       } else if ( base_ev->getType() == baseMordredEvent::PACKET ) {
         initEvents.push( ev );
+        //auto init_ev = static_cast<MordredInitEvent*>( ev );
+        //output->verbose( CALL_INFO, 5, 0, "Received startup packet; src=%" PRIu64 "; dest=%" PRIu64 "\n",
+        //  init_ev->req->src, init_ev->req->dest );
+        //output->flush();
+        //delete ev;
       } else {
         output->verbose( CALL_INFO, 5, 0, "Received unexpected event type=%d\n", (int) base_ev->getType() );
         delete ev;
@@ -273,7 +278,6 @@ void RtrPortControl::sendUntimedData( Event* ev ) {
 }
 
 SST::Event* RtrPortControl::recvUntimedData() {
-  //output->fatal( CALL_INFO, -1, "Not yet implemented\n" );
   if ( initEvents.empty() )
     return nullptr;
   auto event = initEvents.front();

@@ -56,7 +56,9 @@ FlatButterflyTopo::FlatButterflyTopo( ComponentId_t id, Params& params,
 #endif
 }
 
-void FlatButterflyTopo::setup() {
+void FlatButterflyTopo::init( uint32_t phase ) {
+  if ( phase != 3)
+    return;
   // Compute the n-digit radix-k addresses for our neighboring routers
   // Need these for the routing function
   for (uint32_t i = 0; i < numRtrPorts; ++i) {
@@ -73,7 +75,9 @@ std::vector<uint32_t> FlatButterflyTopo::convertBase( uint32_t num ) {
   std::vector<uint32_t> result(n, 0);
   uint32_t idx = 0;
   while ( num > 0 ) {
-    result[idx] = num % k;
+    if (idx >= n)
+      output->fatal( CALL_INFO, -1, "fail idx=%u, n=%u\n", idx, n );
+    result.at(idx) = num % k;
     num /= k;
     idx++;
   }
@@ -92,13 +96,16 @@ uint32_t FlatButterflyTopo::routePacket( uint32_t dest ) {
   uint32_t dest_port = UINT32_MAX;
 
   std::vector<uint32_t> dest_addr = convertBase( dest );
+  if ( dest_addr.size() != myAddress.size() )
+    output->fatal( CALL_INFO, -1, "Invalid dest_addr.size=%zu; myAddr.size=%zu\n", dest_addr.size(), myAddress.size() );
 
   // First, we want to determine if this dest_addr is local
   // If so, we return local output port
   if ( isLocalAddr( dest_addr ) ) {
     dest_port = numRtrPorts + dest_addr[0];
-    output->verbose( CALL_INFO, 5, 0, "Found local delivery; dest=%" PRIu32 ", outport=%" PRIu32 "\n",
-      dest, dest_port);
+    //output->verbose( CALL_INFO, 5, 0, "Found local delivery; dest=%" PRIu32 ", outport=%" PRIu32 "\n",
+    //  dest, dest_port);
+    //output->flush();
     return dest_port;
   }
 
@@ -110,6 +117,7 @@ uint32_t FlatButterflyTopo::routePacket( uint32_t dest ) {
       continue;
     distances.at(i) = calcDist( i, dest_addr );
     //output->verbose( CALL_INFO, 5, 0, "Distance[%" PRIu32 "] = %" PRIu32 "\n", i, distances.at(i) );
+    //output->flush();
   }
 
   // At this point, the distances vector has how many digits differ between the destination endpt and
@@ -150,6 +158,8 @@ bool FlatButterflyTopo::isLocalAddr( std::vector<uint32_t>& dest_addr ) {
 
 uint32_t FlatButterflyTopo::calcDist( uint32_t idx, std::vector<uint32_t>& dest_addr ) {
   uint32_t dist = 0;
+  if ( idx >= connectedRtrsByBase.size() )
+    output->fatal( CALL_INFO, -1, "Error! Invalid idx=%u, size=%zu\n", idx, connectedRtrsByBase.size() );
   for ( uint32_t i = n-1; i > 0; i-- ) {
     if ( dest_addr.at( i ) != connectedRtrsByBase.at( idx ).at( i ) )
       dist++;

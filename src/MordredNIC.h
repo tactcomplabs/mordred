@@ -120,7 +120,7 @@ public:
          * @return true if a network request is pending in the specified
          * virtual network, false otherwise
          */
-[[noreturn]]  bool requestToReceive( int vn ) override;
+  bool requestToReceive( int vn ) override; // use with sst version 14
 
   /**
     * Registers a functor which will fire when a new request is

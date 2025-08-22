@@ -122,13 +122,13 @@ void nic::setup()
     }
 
     if ( init_count != num_peers ) {
-        output->output("NIC %d didn't receive all init point-to-point messages.  Only recieved %d\n",net_id,init_count);
+        output->output("NIC %d didn't receive all init point-to-point messages.  Only received %d\n",net_id,init_count);
     }
 
     if ( !send_untimed_bcast ) return;
 
     if ( init_broadcast_count != (num_peers -1 ) ) {
-        output->output("NIC %d didn't receive all init broadcast messages.  Only recieved %d\n",net_id,init_broadcast_count);
+        output->output("NIC %d didn't receive all init broadcast messages.  Only received %d\n",net_id,init_broadcast_count);
     }
     last_target = id;
 }
@@ -169,6 +169,9 @@ nic::init_complete(unsigned int phase) {
     {
         // Wait until network is initialized
         if ( !link_control->isNetworkInitialized() ) break;
+        output->verbose( CALL_INFO, 5, 0, "testNIC(%d) init_complete(%d)\n", net_id, phase);
+        output->flush();
+#if 1
         net_id = link_control->getEndpointID();
         last_target = net_id;
 
@@ -201,6 +204,7 @@ nic::init_complete(unsigned int phase) {
             }
         }
         break;
+#endif
     }
     case 1:
     {
@@ -256,6 +260,8 @@ nic::init_complete(unsigned int phase) {
     }
     case 3:
     {
+      output->verbose( CALL_INFO, 5, 0, "testNIC(%d) init_complete(%d)-case3\n", net_id, phase);
+      output->flush();
         SimpleNetwork::Request* req;
         while ( (req = link_control->recvUntimedData() ) != NULL ) {
             // std::cout << "NIC " << id << " Received an init event in phase " << phase << "!" << std::endl;
@@ -277,6 +283,8 @@ nic::init_complete(unsigned int phase) {
     }
     case 4:
     {
+      output->verbose( CALL_INFO, 5, 0, "testNIC(%d) init_complete(%d)-case4\n", net_id, phase);
+      output->flush();
         SimpleNetwork::Request* req;
         while ( (req = link_control->recvUntimedData() ) != NULL ) {
             // std::cout << "NIC " << id << " Received an init event in phase " << phase << "!" << std::endl;
@@ -299,7 +307,7 @@ nic::init_complete(unsigned int phase) {
     }
 }
 
-class MyRtrEvent : public Event {
+class MyRtrEvent final : public Event {
 public:
     int seq;
     MyRtrEvent() {}
@@ -344,36 +352,36 @@ nic::clock_handler(Cycle_t cycle)
     }
 
     // Send packets
-    if ( packets_sent < expected_recv_count ) {
+      if ( packets_sent < expected_recv_count ) {
         if ( link_control->spaceToSend(send_vc,msg_size) ) {
-            last_target++;
-            last_target %= num_peers;
+          last_target++;
+          last_target %= num_peers;
 
-            MyRtrEvent* ev = new MyRtrEvent(packets_sent/num_peers);
-            SimpleNetwork::Request* req = new SimpleNetwork::Request();
+          MyRtrEvent* ev = new MyRtrEvent(packets_sent/num_peers);
+          SimpleNetwork::Request* req = new SimpleNetwork::Request();
 
-            req->dest = last_target;
-            req->src = net_id;
+          req->dest = last_target;
+          req->src = net_id;
 
-            req->vn = send_vc;
-            req->size_in_bits = (uint32_t)msg_size;
-            req->givePayload(ev);
+          req->vn = send_vc;
+          req->size_in_bits = (uint32_t)msg_size;
+          req->givePayload(ev);
 
-            link_control->send(req,send_vc);
-            // output->output("(%lld) %d: sent packet to %d\n",getCurrentSimTimeNano(),net_id,last_target);
+          link_control->send(req,send_vc);
+          // output->output("(%lld) %d: sent packet to %d\n",getCurrentSimTimeNano(),net_id,last_target);
 
-            packets_sent++;
+          packets_sent++;
 
 
-            if ( packets_sent == expected_recv_count ) {
-                output->output("%" PRIu64 ":  %d Finished sending packets (total of %d)\n",
-                              cycle, net_id, num_msg);
-            }
+          if ( packets_sent == expected_recv_count ) {
+            output->output("%" PRIu64 ":  %d Finished sending packets (total of %d)\n",
+                          cycle, net_id, num_msg);
+          }
         }
         else {
-            stalled_cycles++;
+          stalled_cycles++;
         }
-    }
+      }
 
     // Receive packets
     if ( link_control->requestToReceive(send_vc) ) {
