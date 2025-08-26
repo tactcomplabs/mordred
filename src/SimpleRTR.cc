@@ -173,7 +173,7 @@ void SimpleRTR::finish() {
 
 
 bool SimpleRTR::clockTick( Cycle_t cycle ) {
-  output.flush();
+  //output.flush();
   // May want/need to look at how we want to time/order ticking the ports and running the crossbar/arbitration here
 
   if ( cycle % 10 == 0 )
