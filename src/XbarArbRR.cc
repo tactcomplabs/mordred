@@ -57,8 +57,8 @@ void XbarArbRR::arbitrate( std::vector<RtrPortControlAPI*> &ports, std::vector<R
           output->fatal( CALL_INFO, -1, "Invalid dest_vc - only 0 supported\n" );
         ports.at(rcvportnum)->recvAllocateFromSwitch( sendportnum, sending_vn, dest_vc );
         rtr_shared_objs.at( sendportnum ).needSwitchAlloc.at(sending_vn).at(sending_vc) = nullptr;
-        output->verbose( CALL_INFO, 5, 0, "SwitchArb flit [Port:VN:VC] from [%" PRIu32 ":%" PRIu32 ":%" PRIu32 "] to [%" PRIu32 ":%" PRIu32 ":%" PRIu32 "]\n",
-          sendportnum, sending_vn, sending_vc, rcvportnum, sending_vn, dest_vc);
+        //output->verbose( CALL_INFO, 5, 0, "SwitchArb flit [Port:VN:VC] from [%" PRIu32 ":%" PRIu32 ":%" PRIu32 "] to [%" PRIu32 ":%" PRIu32 ":%" PRIu32 "]\n",
+        //  sendportnum, sending_vn, sending_vc, rcvportnum, sending_vn, dest_vc);
         resetSendingVnVc();
         break; // found a matching sender, no need to do another one
       }
@@ -77,8 +77,8 @@ bool XbarArbRR::findSendableFlit( uint32_t rcvportnum, RtrPortControlAPI* &sendp
       if ( shared_obj.needSwitchAlloc.at(vn).at(vc) != nullptr ) {
         if ( rcvportnum == sendport->getDestPort( vn, vc ) ) {
           // We have a winner!
-          output->verbose( CALL_INFO, 5, 0, "Flit %s wins the switch\n", shared_obj.needSwitchAlloc.at(vn).at(vc)->pktIdStr().c_str() );
-          output->flush();
+          //output->verbose( CALL_INFO, 5, 0, "Flit %s wins the switch\n", shared_obj.needSwitchAlloc.at(vn).at(vc)->pktIdStr().c_str() );
+          //output->flush();
           sending_vn = vn;
           sending_vc = vc;
           return true;

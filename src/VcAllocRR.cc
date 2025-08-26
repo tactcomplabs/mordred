@@ -43,8 +43,8 @@ void VcAllocRR::arbitrate( std::vector<RtrPortControlAPI*>& ports, std::vector<R
         input_port->inUnitSetDestVc( src_vn, src_vc, dest_vc );
         ports.at(dest_portnum)->outUnitSetSrc( portnum, src_vn, src_vc, dest_vc );
         shared_obj.needVcAlloc.at( src_vn ).at( src_vc ) = nullptr;
-        output->verbose( CALL_INFO, 5, 0, "Routed flit [Port:VN:VC] from [%" PRIu32 ":%" PRIu32 ":%" PRIu32 "] to [%" PRIu32 ":%" PRIu32 ":%" PRIu32 "]\n",
-          portnum, src_vn, src_vc, dest_portnum, src_vn, dest_vc);
+        //output->verbose( CALL_INFO, 5, 0, "Routed flit [Port:VN:VC] from [%" PRIu32 ":%" PRIu32 ":%" PRIu32 "] to [%" PRIu32 ":%" PRIu32 ":%" PRIu32 "]\n",
+        //  portnum, src_vn, src_vc, dest_portnum, src_vn, dest_vc);
       }
     }
   }

@@ -28,7 +28,7 @@ def getNextTopoPort(name):
     return (rtr_port_nums[name] - 1)
 
 
-# There is a simple endpoint connected to a local port of the routers
+# There are local_ports endpoints connected to each router
 # rtr_id is expected to go linearly from 0-((x*y)-1)
 # rtr_id is also expected to be x-dominant (e.g, router id xDim has location x=0,y=1)
 # links are expected to be ordered as n,e,s,w
@@ -97,76 +97,6 @@ def createMesh(x_size, y_size, local_ports):
 
                 rtr.addLink(getLink("rtr_%d_%d"%(x, y), ep_name), lcl_portname, "800ps")
                 lcl_ep_iface.addLink(getLink("rtr_%d_%d"%(x, y), ep_name), "port", "800ps")
-
-# This was an earlier version of the mesh that added a simple endpoint
-# so that all routers have all four ports connected; this is not
-# compatible with mordred.MeshTopology
-# There is a simple endpoint connected to a local port of the routers
-def createMeshWithEndpts(x_size, y_size, local_ports):
-    # Create the routers
-    for y in range(y_size):
-        for x in range(x_size):
-            rtr = sst.Component("rtr_%d_%d"%(x, y), "mordred.simple_rtr")
-            #rtr_topo = rtr.setSubComponent( "topology", "mordred.MeshTopology" )
-            #rtr_topo.addParams({
-            #    "xId" : x,
-            #    "yId" : y,
-            #    "xSize" : x_size,
-            #    "ySize" : y_size
-            #})
-            rtr_portnum = 0
-            rtr_portname = "rtr_port" + str(rtr_portnum)
-            # north links
-            if y != y_size - 1:
-                rtr.addLink(getLink("rtr_%d_%d"%(x,y), "rtr_%d_%d"%(x,y+1)), rtr_portname, "800ps")
-                print("Add north link with portname=%s to x,y=%d_%d"%(rtr_portname,x,y))
-            else: # connect to y == 0
-                rtr.addLink(getLink("rtr_%d_%d"%(x,y), "epN_%d_%d"%(x,y+1)), rtr_portname, "800ps")
-                epn = sst.Component("epN_%d_%d"%(x,y+1), "mordred.test_ep")
-                epn.addLink(getLink("rtr_%d_%d"%(x,y), "epN_%d_%d"%(x,y+1)), "port", "800ps")
-            rtr_portnum += 1
-            rtr_portname = "rtr_port" + str(rtr_portnum)
-
-            # south links
-            if y != 0:
-                rtr.addLink(getLink("rtr_%d_%d"%(x,y-1), "rtr_%d_%d"%(x,y)), rtr_portname, "800ps")
-                print("Add south link with portname=%s to x,y=%d_%d"%(rtr_portname,x,y))
-            else: # connect to endpts
-                rtr.addLink(getLink("rtr_%d_X"%(x), "epS_%d_%d"%(x,y)), rtr_portname, "800ps")
-                eps = sst.Component("epS_%d_X"%(x), "mordred.test_ep")
-                eps.addLink(getLink("rtr_%d_X"%(x), "epS_%d_%d"%(x,y)), "port", "800ps")
-            rtr_portnum += 1
-            rtr_portname = "rtr_port" + str(rtr_portnum)
-
-            # east links
-            if x != x_size - 1:
-                rtr.addLink(getLink("rtr_%d_%d"%(x,y), "rtr_%d_%d"%(x+1,y)), rtr_portname, "800ps")
-                print("Add east link with portname=%s to x,y=%d_%d"%(rtr_portname,x,y))
-            else:
-                rtr.addLink(getLink("rtr_%d_%d"%(x,y), "epE_%d_%d"%(x+1,y)), rtr_portname, "800ps")
-                epe = sst.Component("epE_%d_%d"%(x+1,y), "mordred.test_ep")
-                epe.addLink(getLink("rtr_%d_%d"%(x,y), "epE_%d_%d"%(x+1,y)), "port", "800ps")
-            rtr_portnum += 1
-            rtr_portname = "rtr_port" + str(rtr_portnum)
-
-            # west links
-            if x != 0:
-                rtr.addLink(getLink("rtr_%d_%d"%(x-1,y), "rtr_%d_%d"%(x,y)), rtr_portname, "800ps")
-                print("Add west link with portname=%s to x,y=%d_%d"%(rtr_portname,x,y))
-            else:
-                rtr.addLink(getLink("rtr_X_%d"%(y), "epW_%d_%d"%(x,y)), rtr_portname, "800ps")
-                epw = sst.Component("epW_X_%d"%(y), "mordred.test_ep")
-                epw.addLink(getLink("rtr_X_%d"%(y), "epW_%d_%d"%(x,y)), "port", "800ps")
-
-            # local ports
-            for k in range(local_ports):
-                lcl_portname = "local_port" + str(k)
-                # create endpoint
-                ep_name = "local_ep_%d_%d_%d"%(x,y,k)
-                lcl_ep = sst.Component(ep_name, "mordred.test_ep")
-                rtr.addLink(getLink("rtr_%d_%d"%(x, y), ep_name), lcl_portname, "800ps")
-                lcl_ep.addLink(getLink("rtr_%d_%d"%(x, y), ep_name), "port", "800ps")
-
 
 # Now, let's do another topology...
 def createSimpleTorus(x_size, y_size, local_ports):
@@ -362,7 +292,7 @@ xbar_size = 6
 #print("Do mesh")
 #createMesh(x_size, y_size, local_ports)
 
-## TODO: THE OTHER TOPOLOGIES HAVE NOT BEEN FIXED FOR THE NEW NAMING
+## TODO: ONLY THE FLATTENED BUTTERFLY HAS BEEN FIXED FOR THE NEW NAMING
 ## IN THE ROUTER COMPONENT (nor do we have matching subcomponents)
 
 #print("Do simple torus")

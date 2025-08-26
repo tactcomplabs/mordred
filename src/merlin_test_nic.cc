@@ -344,7 +344,7 @@ nic::clock_handler(Cycle_t cycle)
     expected_recv_count = num_peers * num_msg;
 
     if ( !done && (packets_recd >= expected_recv_count) ) {
-        output->output("%" PRIu64 ": NIC %d received all packets (total of %d)!\n", cycle, net_id, expected_recv_count);
+        output->output("%" PRIu64 ": TestNIC %d received all packets (total of %d)!\n", cycle, net_id, expected_recv_count);
         primaryComponentOKToEndSim();
         done = true;
         return true;

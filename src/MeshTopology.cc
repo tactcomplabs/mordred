@@ -54,7 +54,6 @@ void MeshTopology::setup() {
   }
 }
 
-
 int32_t MeshTopology::getEndpointId( uint32_t portnum ) {
   if ( portnum < 4 )
     return -1;

@@ -137,8 +137,8 @@ void SimpleRTR::init( uint32_t phase ) {
 }
 
 void SimpleRTR::setup() {
-  output.verbose(CALL_INFO, 5, 0, "SimpleRTR::setup\n");
-  output.flush();
+  //output.verbose(CALL_INFO, 5, 0, "SimpleRTR::setup\n");
+  //output.flush();
 
   topology->setup();
   vcAlloc->setup();
@@ -190,12 +190,21 @@ bool SimpleRTR::clockTick( Cycle_t cycle ) {
       statPerPortXbarIdle.at(i)->addData( 1 );
       continue;
     } if ( sending_port == ( UINT32_MAX - 1 ) ) {
+      //output.verbose( CALL_INFO, 5, 0, "Port %u cannot receive - out of credits\n", i );
+      //output.flush();
       statPerPortXbarBlocked.at(i)->addData( 1 );
       continue;
     }
 
     // Get the flit from the sender -- multiple checks there for invalid/null concerns
     auto flit = portsVec.at( sending_port )->getInBufFlit();
+    // TODO: Add stat for below case
+    if ( flit == nullptr ) {
+      output.verbose( CALL_INFO, 5, 0, "Port %u cannot receive from %u\n", i, sending_port );
+      output.flush();
+      // can happen if there was a delay due to a lack of credits
+      continue;
+    }
 
     // Give the flit to the receiver
     portsVec.at( i )->recvOutBufFlit( flit );
@@ -208,7 +217,7 @@ bool SimpleRTR::clockTick( Cycle_t cycle ) {
       // The switch allocation could be done more frequently than on a packet basis
       portsVec.at(sending_port)->resetSwitchSendAllocation();
       portsVec.at(i)->resetSwitchRecvAllocation();
-      output.verbose( CALL_INFO, 3, 0, "Tail flit %s observed\n", flit->pktIdStr().c_str() );
+      //output.verbose( CALL_INFO, 3, 0, "Tail flit %s observed\n", flit->pktIdStr().c_str() );
     }
   }
 
