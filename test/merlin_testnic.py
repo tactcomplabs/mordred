@@ -27,7 +27,6 @@ def getNextTopoPort(name):
         rtr_port_nums[name] += 1
     return (rtr_port_nums[name] - 1)
 
-
 # There are local_ports endpoints connected to each router
 # rtr_id is expected to go linearly from 0-((x*y)-1)
 # rtr_id is also expected to be x-dominant (e.g, router id xDim has location x=0,y=1)
@@ -81,16 +80,24 @@ def createMesh(x_size, y_size, local_ports):
                 #print("Add west link with portname=%s to x,y=%d_%d"%(rtr_portname,x,y))
             rtr_portnum += 1
 
-        # router stats
-            #sst.enableAllStatisticsForComponentName("rtr_%d_%d"%(x, y), params, True )
-
-        # local ports
+            # local ports
             for k in range(local_ports):
                 lcl_portname = "port" + str(k+rtr_portnum)
                 # create endpoint
                 ep_name = "local_ep_%d_%d_%d"%(x,y,k)
-                lcl_ep = sst.Component(ep_name, "mordred.test_ep")
-                lcl_ep_iface = lcl_ep.setSubComponent("noc_iface", "mordred.mordredNIC")
+                ep_num = (x*x_size*local_ports) + (y*local_ports) + k
+                num_eps = x_size * y_size * local_ports
+                print("%s Created endpoint %d with num_eps %d"%(ep_name, ep_num, num_eps))
+                #lcl_ep = sst.Component(ep_name, "mordred.test_ep")
+                lcl_ep = sst.Component(ep_name, "merlin.test_nic")
+                #lcl_ep = sst.Component(ep_name, "mordred.testNic")
+                lcl_ep.addParams({
+                    "id" : ep_num,
+                    "num_peers" : num_eps,
+                    "num_messages" : 10,
+                    "message_size" : "16B"
+                })
+                lcl_ep_iface = lcl_ep.setSubComponent("networkIF", "mordred.mordredNIC")
 
                 lcl_ep_iface.addParam("input_buf_size", "1kB")
                 lcl_ep_iface.addParam("output_buf_size", "2kiB")
@@ -207,10 +214,18 @@ class FlattenedButterfly:
             for j in range(self.k):
                 portname = "port" + str(self.local_port_start + j)
                 ep_name = "ep_%d_%d"%(i,j)
-                ep = sst.Component(ep_name, "mordred.test_ep")
-                ep.addParam( "num_peers", self.num_endpoints )
+                #ep = sst.Component(ep_name, "mordred.testNic")
+                ep = sst.Component(ep_name, "merlin.test_nic")
+                ep_num = i*self.k + j
+                ep.addParams({
+                    "id" : ep_num,
+                    "num_peers" : self.num_endpoints,
+                    "num_messages" : 3,
+                    "message_size" : "16B",
+                })
                 endpoints.append(ep)
-                ep_iface = ep.setSubComponent( "noc_iface", "mordred.mordredNIC" )
+                #print("Created endpoint %d"%(ep_num))
+                ep_iface = ep.setSubComponent( "networkIF", "mordred.mordredNIC" )
                 ep_iface.addParams({
                     "input_buf_size" : "1kB",
                     "output_buf_size" : "1kB",
@@ -283,14 +298,14 @@ class Crossbar:
 local_ports = 1 # == concentration
 
 # Mesh/torus Configuration options
-x_size = 3
+x_size = 5
 y_size = 3
 
 #Xbar config
 xbar_size = 6
 
-#print("Do mesh")
-#createMesh(x_size, y_size, local_ports)
+print("Do mesh")
+createMesh(x_size, y_size, local_ports)
 
 ## TODO: ONLY THE FLATTENED BUTTERFLY HAS BEEN FIXED FOR THE NEW NAMING
 ## IN THE ROUTER COMPONENT (nor do we have matching subcomponents)
@@ -306,7 +321,7 @@ xbar_size = 6
 # High-Radix Networks, ISCA 2007
 
 #print("Fig 1D in flat fly paper")
-flatfly = FlattenedButterfly(2, 4) # fig 1d in paper; 16 endpoints
+#flatfly = FlattenedButterfly(2, 4) # fig 1d in paper; 16 endpoints
 
 # For some reason, this version really likes to have double links in its
 # initial construction; haven't quite figured out why - could be related to

@@ -8,6 +8,10 @@
 // See LICENSE in the top level directory for licensing details
 //
 
+#ifndef MORDREDNIC_H
+#define MORDREDNIC_H
+
+
 /**
  * The NIC is designed to get most of its configuration information from the SimpleRtr
  * rather than as outside parameters.  If we modify this behavior, then we'll need to
@@ -116,7 +120,7 @@ public:
          * @return true if a network request is pending in the specified
          * virtual network, false otherwise
          */
-  bool requestToReceive( int vn ) override;
+  bool requestToReceive( int vn ) override; // use with sst version 14
 
   /**
     * Registers a functor which will fire when a new request is
@@ -179,6 +183,8 @@ private:
   UnitAlgebra inbufSize;
   UnitAlgebra outbufSize;
 
+  std::queue<MordredInitEvent*> initEvents; // TODO: baseMordredEvent instead?
+
   // Note: All of the vectors below are sized to the number of VNs
 
   // Packet buffers
@@ -214,3 +220,5 @@ private:
 };  // MordredNIC
 
 }  // namespace SST::Mordred
+
+#endif // MORDREDNIC_H

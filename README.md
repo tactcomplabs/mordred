@@ -41,7 +41,6 @@ Here, most data structures are multi-dimensional arrays contained within a port 
 - Router latency is fixed
 - No maximum packet length (number of flits) set; packet to flit translation is happening only in MordredNIC and there is a minimum of 2 flits per packet
 - Need to review timing of the router and its subcomponents
-- Tried adding a simple stat to the RtrPortControl, but it's not working - no idea why.  Have a simple tick counter implemented in SimpleRtr.
 
 ## Basic Software Architecture/Router Behavior
 The router owns a vector called perPortSharedObjs (one element per port) where each element is a RtrOwnedSharedObjs (in MordredEvents).
@@ -58,3 +57,6 @@ We do a similar thing for the flits that are in need of switch allocation.
 Currently, the SimpleRtr performs a switch allocation on a per packet basis however, it should be able to handle doing allocations
 on a per clock tick basis (this should be tested).
 
+## Note on merlin_test_nic
+This was copied over from merlin and incorporated here so debugging statements and such could be added.  This should not
+be needed in the long term.

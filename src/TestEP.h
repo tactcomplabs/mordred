@@ -28,6 +28,7 @@ public:
   SST_ELI_DOCUMENT_PARAMS(
     { "verbose",       "Sets the output verbsoity",                    "5" },
     {"clock", "Clock frequency of the endpoint", "1GHz"},
+    {"num_peers", "Total number of endpoints in the system", "1"}
     )
 
   SST_ELI_DOCUMENT_SUBCOMPONENT_SLOTS(
@@ -58,6 +59,12 @@ private:
   Output  output;
   TimeConverter*          timeConverter;
   Interfaces::SimpleNetwork*  nocIface;
+
+  uint32_t Id{UINT32_MAX}; // set in init once network is initialized
+  uint32_t numPeers;
+  uint32_t numInitMsgs{0};
+  uint32_t init_state{0};
+
 };  // TestEP
 
 }  // namespace SST::Mordred

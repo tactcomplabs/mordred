@@ -57,7 +57,8 @@ public:
   ~FlatButterflyTopo() override = default;
 
   /// FlatButterflyTopo: necessary lifecycle functions
-  void setup() final;
+  void init( uint32_t phase ) final;
+  //void setup() final {};
 
   int32_t getEndpointId( uint32_t portnum ) override;
 
