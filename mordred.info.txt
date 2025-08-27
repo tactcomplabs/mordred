@@ -2,14 +2,14 @@ PROCESSED 1 .so (SST ELEMENT) FILES FOUND IN DIRECTORY(s) /Users/tdysart/git/for
 Filtering output on Element = "mordred"
 ================================================================================
 ELEMENT LIBRARY 0 = mordred ()
-Components (2 total)
+Components (3 total)
    Component 0: simple_rtr
       Description: Simple NoC router component
       ELI version: 0.9.0
-      Compiled on: May 21 2025 10:17:19, using file: /Users/tdysart/git/mordred/src/SimpleRTR.h
+      Compiled on: Aug 27 2025 12:18:57, using file: /Users/tdysart/git/mordred/src/SimpleRTR.h
       Category: NETWORK COMPONENT
       Parameters (9 total)
-         verbose: Sets the output verbsoity  [5]
+         verbose: Sets the output verbosity  [5]
          id: ID of the router  [<required>]
          clock: Clock frequency of the router  [1GHz]
          num_ports: Number of ports on the router  [3]
@@ -20,22 +20,45 @@ Components (2 total)
          output_buf_size: Size of output buffers specified in b or B (can include SI prefix).  [<required>]
       Ports (1 total)
          port%(portnum)d: Port id.
-      SubComponent Slots (3 total)
+      SubComponent Slots (4 total)
          topology: Topology and routing subcomponent [SST::Mordred::TopologyAPI]
          portcontrol: PortControl blocks; loaded anonymously [SST::Mordred::RtrPortControlAPI]
+         vc_alloc: VC allocator [SST::Mordred::VcAllocAPI]
          arbiter: Arbitration scheme/model [SST::Mordred::ArbAPI]
+      Statistics (3 total)
+         tick10_cnt: Number of cycles/10,  (units = "unitless") Enable level = 3
+         xbar_idle: For each receiving port, num cycles with an idle crossbar,  (units = "unitless") Enable level = 3
+         xbar_blocked: For each receiving port, num cycles crossbar blocked,  (units = "unitless") Enable level = 3
+      Profile Points (0 total)
+      Attributes (0 total)
+
+   Component 1: testNic
+      Description: Simple NIC to test base functionality.
+      ELI version: 0.9.0
+      Compiled on: Aug 27 2025 12:18:57, using file: /Users/tdysart/git/mordred/src/merlin_test_nic.h
+      Category: NETWORK COMPONENT
+      Parameters (5 total)
+         id: Network ID of endpoint.  [-1]
+         num_peers: Total number of endpoints in network.  [-1]
+         num_messages: Total number of messages to send to each endpoint.  [1]
+         message_size: Size of each message to be sent specified in either b or B (can include SI prefix).  [64b]
+         send_untimed_broadcast: Controls whether data is sent in init and complete.  [false]
+      Ports (0 total)
+      SubComponent Slots (1 total)
+         networkIF: Network interface [SST::Interfaces::SimpleNetwork]
       Statistics (0 total)
       Profile Points (0 total)
       Attributes (0 total)
 
-   Component 1: test_ep
+   Component 2: test_ep
       Description: Simple endpoint
       ELI version: 0.9.0
-      Compiled on: May 21 2025 10:42:57, using file: /Users/tdysart/git/mordred/src/TestEP.h
+      Compiled on: Aug 27 2025 12:18:57, using file: /Users/tdysart/git/mordred/src/TestEP.h
       Category: NETWORK COMPONENT
-      Parameters (2 total)
+      Parameters (3 total)
          verbose: Sets the output verbsoity  [5]
          clock: Clock frequency of the endpoint  [1GHz]
+         num_peers: Total number of endpoints in the system  [1]
       Ports (0 total)
       SubComponent Slots (1 total)
          noc_iface: NoC interface [SST::Interfaces::SimpleNetwork]
@@ -43,11 +66,11 @@ Components (2 total)
       Profile Points (0 total)
       Attributes (0 total)
 
-SubComponents (4 total)
+SubComponents (6 total)
    SubComponent 0: MeshTopology
       Description: 2D Mesh Topology for NoC Router
       ELI version: 0.9.0
-      Compiled on: May 21 2025 10:28:46, using file: /Users/tdysart/git/mordred/src/MeshTopology.h
+      Compiled on: Aug 27 2025 12:18:57, using file: /Users/tdysart/git/mordred/src/MeshTopology.h
       Interface: SST::Mordred::TopologyAPI
       Parameters (3 total)
          verbose: Sets the output verbsoity  [5]
@@ -59,11 +82,11 @@ SubComponents (4 total)
       Profile Points (0 total)
       Attributes (0 total)
 
-   SubComponent 1: arbRR
-      Description: Round robin arbitration for the router crossbar
+   SubComponent 1: VcAllocRR
+      Description: Round robin allocation for virtual channels
       ELI version: 0.9.0
-      Compiled on: May 21 2025 10:42:00, using file: /Users/tdysart/git/mordred/src/ArbRR.h
-      Interface: SST::Mordred::ArbAPI
+      Compiled on: Aug 27 2025 12:18:57, using file: /Users/tdysart/git/mordred/src/VcAllocRR.h
+      Interface: SST::Mordred::VcAllocAPI
       Parameters (1 total)
          verbose: Sets the output verbosity  [5]
       Ports (0 total)
@@ -72,10 +95,25 @@ SubComponents (4 total)
       Profile Points (0 total)
       Attributes (0 total)
 
-   SubComponent 2: mordredNIC
+   SubComponent 2: flattenedButterfly
+      Description: Flattened Butterfly Topology for NoC Router
+      ELI version: 0.9.0
+      Compiled on: Aug 27 2025 12:18:57, using file: /Users/tdysart/git/mordred/src/FlatButterflyTopo.h
+      Interface: SST::Mordred::TopologyAPI
+      Parameters (3 total)
+         verbose: Sets the output verbsoity  [5]
+         k: k-ary value of the network (REQUIRED)  [<required>]
+         n: n-fly value of the network (REQUIRED)  [<required>]
+      Ports (0 total)
+      SubComponent Slots (0 total)
+      Statistics (0 total)
+      Profile Points (0 total)
+      Attributes (0 total)
+
+   SubComponent 3: mordredNIC
       Description: Interface for connecting to the Mordred NOC
       ELI version: 0.9.0
-      Compiled on: May 21 2025 10:17:19, using file: /Users/tdysart/git/mordred/src/MordredNIC.h
+      Compiled on: Aug 27 2025 12:18:57, using file: /Users/tdysart/git/mordred/src/MordredNIC.h
       Interface: SST::Interfaces::SimpleNetwork
       Parameters (3 total)
          verbose: Sets the output verbosity  [5]
@@ -84,17 +122,35 @@ SubComponents (4 total)
       Ports (1 total)
          port: Port that connects to a Mordred router.
       SubComponent Slots (0 total)
-      Statistics (0 total)
+      Statistics (2 total)
+         packets_recv: Number of packets received,  (units = "unitless") Enable level = 3
+         average_noc_latency: Average latency (in clocks) of each packet,  (units = "unitless") Enable level = 3
       Profile Points (0 total)
       Attributes (0 total)
 
-   SubComponent 3: rtrPortControl
+   SubComponent 4: rtrPortControl
       Description: Manage a port on the Mordred router
       ELI version: 0.9.0
-      Compiled on: May 21 2025 10:17:19, using file: /Users/tdysart/git/mordred/src/RtrPortControl.h
+      Compiled on: Aug 27 2025 12:18:57, using file: /Users/tdysart/git/mordred/src/RtrPortControl.h
       Interface: SST::Mordred::RtrPortControlAPI
+      Parameters (0 total)
+      Ports (0 total)
+      SubComponent Slots (0 total)
+      Statistics (4 total)
+         recv_flit_cnt: Number of flits received on the link,  (units = "unitless") Enable level = 3
+         sent_flit_cnt: Number of flits sent on the link,  (units = "unitless") Enable level = 3
+         sent_packet_cnt: Number of packets sent on the link,  (units = "unitless") Enable level = 3
+         output_stalls: Number of cycles stalled on sending output,  (units = "unitless") Enable level = 3
+      Profile Points (0 total)
+      Attributes (0 total)
+
+   SubComponent 5: xbarArbRR
+      Description: Round robin arbitration for the crossbar switch within the router
+      ELI version: 0.9.0
+      Compiled on: Aug 27 2025 12:18:57, using file: /Users/tdysart/git/mordred/src/XbarArbRR.h
+      Interface: SST::Mordred::XbarArbAPI
       Parameters (1 total)
-         verbose: Sets the output verbsoity  [5]
+         verbose: Sets the output verbosity  [5]
       Ports (0 total)
       SubComponent Slots (0 total)
       Statistics (0 total)
