@@ -63,6 +63,7 @@ MordredNIC::MordredNIC( ComponentId_t cid, Params& params, int vns = 1 ) :
   // Register stats
   statPacketsRecv = registerStatistic<uint64_t>( "packets_recv" );
   statAvgNocLatency = registerStatistic<double>( "average_noc_latency" );
+  statAvgFlitsPerPacket = registerStatistic<double>( "average_packet_size" );
 
   output->verbose(CALL_INFO, 5, 0, "MordredNIC constructed\n");
   output->flush();
@@ -197,6 +198,8 @@ void MordredNIC::complete( uint32_t phase ) {
     avg_ticks = -1.0;
   statPacketsRecv->addData( totalPackets );
   statAvgNocLatency->addData( avg_ticks );
+  double avg_flits = (double)totalNumFlits / totalPackets;
+  statAvgFlitsPerPacket->addData( avg_flits );
   //output->verbose(CALL_INFO, 7, 0, "MordredNIC complete; phase=%" PRIu32 "\n", phase);
   //output->flush();
 }
@@ -435,6 +438,7 @@ void MordredNIC::handleIncomingPacket( SST::Event* ev ) {
       flit->pktIdStr().c_str(), total_latency, noc_latency, noc_latency_ns );
       totalNocLatency += (uint64_t)noc_latency_ns;
       totalPackets++;
+      totalNumFlits += (flit->flit_id+1);
     }
     // Update num of credits to return to router
     inReturnCredits.at( flit->vn )++;

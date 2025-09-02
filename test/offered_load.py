@@ -6,9 +6,10 @@ stat_params = ( { "rate" : "0ns" } )
 sst.setStatisticOutput("sst.statOutputCSV", { "filepath" : "./stats.csv", "separator" : ", " } )
 
 FixedRtrParams = {
-    "flit_size" : "32b",
+    "num_vcs" : "1",
+    "flit_size" : "16b",
     "input_buf_size" : "32B",
-    "output_buf_size" : "32B"
+    "output_buf_size" : "16b"
 }
 
 links = dict()
@@ -85,16 +86,16 @@ def createMesh(x_size, y_size, local_ports):
                 lcl_portname = "port" + str(k+rtr_portnum)
                 # create endpoint
                 ep_name = "local_ep_%d_%d_%d"%(x,y,k)
-                ep_num = (x*x_size*local_ports) + (y*local_ports) + k
+                ep_num = (x*y_size*local_ports) + (y*local_ports) + k
                 num_eps = x_size * y_size * local_ports
                 print("%s Created endpoint %d with num_eps %d"%(ep_name, ep_num, num_eps))
                 lcl_ep = sst.Component(ep_name, "merlin.offered_load")
                 lcl_ep.addParams({
                     "num_peers" : num_eps,
-                    "link_bw" : "1MB/s",
+                    "link_bw" : "1GB/s",
                     "linkcontrol" : "mordred.mordredNIC",
                     "buffer_size" : "1kiB",
-                    "packet_size" : "16B",
+                    "packet_size" : "64b",
                     "pattern" : "merlin.targetgen.uniform",
                     "offered_load" : "0.4",
                     "warmup_time" : "1us",
@@ -103,8 +104,8 @@ def createMesh(x_size, y_size, local_ports):
                 })
                 lcl_ep_iface = lcl_ep.setSubComponent("networkIF", "mordred.mordredNIC")
 
-                lcl_ep_iface.addParam("input_buf_size", "1kB")
-                lcl_ep_iface.addParam("output_buf_size", "2kiB")
+                lcl_ep_iface.addParam("input_buf_size", "1kiB")
+                lcl_ep_iface.addParam("output_buf_size", "1kiB")
 
                 rtr.addLink(getLink("rtr_%d_%d"%(x, y), ep_name), lcl_portname, "800ps")
                 lcl_ep_iface.addLink(getLink("rtr_%d_%d"%(x, y), ep_name), "port", "800ps")
@@ -317,8 +318,8 @@ y_size = 3
 #Xbar config
 xbar_size = 6
 
-#print("Do mesh")
-#createMesh(x_size, y_size, local_ports)
+print("Do mesh")
+createMesh(x_size, y_size, local_ports)
 
 ## TODO: ONLY THE FLATTENED BUTTERFLY HAS BEEN FIXED FOR THE NEW NAMING
 ## IN THE ROUTER COMPONENT (nor do we have matching subcomponents)
@@ -343,7 +344,7 @@ xbar_size = 6
 #flatfly2 = FlattenedButterfly(4, 2) # fig 1b in paper; 16 endpoints
 
 #print("Fig 3 in Micro2007 FlatFly Paper")
-flatfly3 = FlattenedButterfly(4, 3) # 64 endpoints
+#flatfly3 = FlattenedButterfly(4, 3) # 64 endpoints
 
 # Stats collection - apparently I don't know the secret handshake because I can get the dummy
 # counter in SimpleRtr to count things, but the stat in RtrPortControl is just a NullStatistic

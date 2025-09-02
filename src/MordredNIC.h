@@ -64,7 +64,8 @@ public:
 
   SST_ELI_DOCUMENT_STATISTICS(
     {"packets_recv", "Number of packets received", "unitless", 3},
-    {"average_noc_latency", "Average latency (in clocks) of each packet", "unitless", 3}
+    {"average_noc_latency", "Average latency (in clocks) of each packet", "unitless", 3},
+    {"average_packet_size", "Average packet size in number of flits", "unitless", 3}
     )
 
   MordredNIC( ComponentId_t cid, Params& params, int vns );
@@ -214,8 +215,10 @@ private:
   // Statistics
   uint64_t totalNocLatency{0}; // in clock ticks
   uint64_t totalPackets{0};
+  uint64_t totalNumFlits{0};
   Statistic<uint64_t>* statPacketsRecv;
   Statistic<double>* statAvgNocLatency;
+  Statistic<double>* statAvgFlitsPerPacket;
 
 };  // MordredNIC
 

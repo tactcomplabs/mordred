@@ -6,9 +6,10 @@ stat_params = ( { "rate" : "0ns" } )
 sst.setStatisticOutput("sst.statOutputCSV", { "filepath" : "./stats.csv", "separator" : ", " } )
 
 FixedRtrParams = {
-    "flit_size" : "32b",
+    "num_vcs" : "1",
+    "flit_size" : "16b",
     "input_buf_size" : "32B",
-    "output_buf_size" : "32B"
+    "output_buf_size" : "16b"
 }
 
 links = dict()
@@ -85,7 +86,7 @@ def createMesh(x_size, y_size, local_ports):
                 lcl_portname = "port" + str(k+rtr_portnum)
                 # create endpoint
                 ep_name = "local_ep_%d_%d_%d"%(x,y,k)
-                ep_num = (x*x_size*local_ports) + (y*local_ports) + k
+                ep_num = (x*y_size*local_ports) + (y*local_ports) + k
                 num_eps = x_size * y_size * local_ports
                 print("%s Created endpoint %d with num_eps %d"%(ep_name, ep_num, num_eps))
                 #lcl_ep = sst.Component(ep_name, "mordred.test_ep")
@@ -95,12 +96,12 @@ def createMesh(x_size, y_size, local_ports):
                     "id" : ep_num,
                     "num_peers" : num_eps,
                     "num_messages" : 10,
-                    "message_size" : "16B"
+                    "message_size" : "64b"
                 })
                 lcl_ep_iface = lcl_ep.setSubComponent("networkIF", "mordred.mordredNIC")
 
-                lcl_ep_iface.addParam("input_buf_size", "1kB")
-                lcl_ep_iface.addParam("output_buf_size", "2kiB")
+                lcl_ep_iface.addParam("input_buf_size", "1kiB")
+                lcl_ep_iface.addParam("output_buf_size", "1kiB")
 
                 rtr.addLink(getLink("rtr_%d_%d"%(x, y), ep_name), lcl_portname, "800ps")
                 lcl_ep_iface.addLink(getLink("rtr_%d_%d"%(x, y), ep_name), "port", "800ps")
