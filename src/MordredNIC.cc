@@ -119,9 +119,9 @@ void MordredNIC::init( uint32_t phase ) {
     init_ev = getInitEvent( MordredInitEvent::Commands::BUS_WIDTH );
     channelBusWidth = init_ev->value;
     delete init_ev;
-    //output->verbose( CALL_INFO, 5, 0, "Received init phase=%" PRIu32 " packets with numVCs=%" PRIu32 ", flit_width=%" PRIu32 ", channel_bus_width=%" PRIu32 "\n",
+    //output->verbose( CALL_INFO, 5, 0, "Received init_phase=%" PRIu32 " packets with numVCs=%" PRIu32 ", flit_width=%" PRIu32 ", channel_bus_width=%" PRIu32 "\n",
     //  phase, numVcs, flitSize, channelBusWidth );
-
+    //output->flush();
     resizeVectors();
 
     break;
@@ -193,6 +193,8 @@ void MordredNIC::setup() {
 }
 
 void MordredNIC::complete( uint32_t phase ) {
+  if ( phase > 0 )
+    return;
   double avg_ticks = (double)totalNocLatency / totalPackets;
   if ( totalPackets == 0 ) // need this to avoid some nasty output in sst 14.0.0
     avg_ticks = -1.0;
@@ -342,6 +344,10 @@ bool MordredNIC::clockTick( Cycle_t cycle ) {
           //output->verbose( CALL_INFO, 5, 0, "Sent tail flit %s to link at cycle=%" PRIu64 "; rtrCredits=%" PRId32 "\n",
           //  flit->pktIdStr().c_str(), cycle, rtrCredits.at(vn) );
           //output->flush();
+          if (sendFunctor != nullptr) {
+            bool keep = (*sendFunctor)((int)vn);
+            if ( !keep ) sendFunctor = nullptr;
+          }
         }
         link->send( flit );
         sent = true;
@@ -431,14 +437,18 @@ void MordredNIC::handleIncomingPacket( SST::Event* ev ) {
       // TODO: Do this with the actual clock rate, etc...seems like some things may change in sst 16, so I'm not in a rush
       // to deal with it today
       uint64_t noc_latency = getCurrentSimCycle() - flit->head_inject_cycle;
-      uint64_t total_latency = getCurrentSimCycle() - flit->pkt_created_cycle;
+      //uint64_t total_latency = getCurrentSimCycle() - flit->pkt_created_cycle;
       double noc_latency_ns = ceil( noc_latency / 1000 );
       // Time in ns == clock ticks with 1 GHz clock.
-      output->verbose( CALL_INFO, 5, 0, "Finished receiving %s; total latency=%" PRIu64 "; NoC latency=%" PRIu64 "= %f ns\n",
-      flit->pktIdStr().c_str(), total_latency, noc_latency, noc_latency_ns );
+      //output->verbose( CALL_INFO, 5, 0, "Finished receiving %s; total latency=%" PRIu64 "; NoC latency=%" PRIu64 "= %f ns\n",
+      //  flit->pktIdStr().c_str(), total_latency, noc_latency, noc_latency_ns );
       totalNocLatency += (uint64_t)noc_latency_ns;
       totalPackets++;
       totalNumFlits += (flit->flit_id+1);
+      if ( receiveFunctor != NULL ) {
+        bool keep = (*receiveFunctor)((int)flit->vn);
+        if ( !keep) receiveFunctor = NULL;
+      }
     }
     // Update num of credits to return to router
     inReturnCredits.at( flit->vn )++;

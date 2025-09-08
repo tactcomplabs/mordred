@@ -1,0 +1,53 @@
+log.OL10.txt:    Load    Latency
+log.OL10.txt-     0.10      20.6718 ns
+--
+log.OL15.txt:    Load    Latency
+log.OL15.txt-     0.15      20.1465 ns
+--
+log.OL20.txt:    Load    Latency
+log.OL20.txt-     0.20      20.6076 ns
+--
+log.OL25.txt:    Load    Latency
+log.OL25.txt-     0.25      20.6645 ns
+--
+log.OL30.txt:    Load    Latency
+log.OL30.txt-     0.30      20.1476 ns
+--
+log.OL35.txt:    Load    Latency
+log.OL35.txt-     0.35      20.2245 ns
+--
+log.OL40.txt:    Load    Latency
+log.OL40.txt-     0.40      20.8628 ns
+--
+log.OL45.txt:    Load    Latency
+log.OL45.txt-     0.45      20.6066 ns
+--
+log.OL50.txt:    Load    Latency
+log.OL50.txt-     0.50      21.3864 ns
+--
+log.OL55.txt:    Load    Latency
+log.OL55.txt-     0.55      21.2348 ns
+--
+log.OL60.txt:    Load    Latency
+log.OL60.txt-     0.60      21.6247 ns
+--
+log.OL65.txt:    Load    Latency
+log.OL65.txt-     0.65       22.132 ns
+--
+log.OL70.txt:    Load    Latency
+log.OL70.txt-     0.70      22.7725 ns
+--
+log.OL75.txt:    Load    Latency
+log.OL75.txt-     0.75      23.6136 ns
+--
+log.OL80.txt:    Load    Latency
+log.OL80.txt-     0.80      25.0538 ns
+--
+log.OL85.txt:    Load    Latency
+log.OL85.txt-     0.85      25.9667 ns
+--
+log.OL90.txt:    Load    Latency
+log.OL90.txt-     0.90      27.8768 ns
+--
+log.OL95.txt:    Load    Latency
+log.OL95.txt-     0.95      31.9721 ns

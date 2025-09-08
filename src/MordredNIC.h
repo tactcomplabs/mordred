@@ -131,8 +131,8 @@ public:
     * @param functor Functor to call when request is received
   */
   void setNotifyOnReceive( SimpleNetwork::HandlerBase* functor ) override {
-    output->verbose(CALL_INFO, 5, 0, "MordredNIC Set recv-notify functor\n");
-    recvFunctor = functor;
+    //output->verbose(CALL_INFO, 5, 0, "MordredNIC Set recv-notify functor\n");
+    receiveFunctor = functor;
   }
 
   /**
@@ -143,7 +143,7 @@ public:
     * @param functor Functor to call when request is sent
   */
   void setNotifyOnSend( SimpleNetwork::HandlerBase* functor ) override {
-    output->verbose(CALL_INFO, 5, 0, "MordredNIC Set send-notify functor\n");
+    //output->verbose(CALL_INFO, 5, 0, "MordredNIC Set send-notify functor\n");
     sendFunctor = functor;
   }
 
@@ -178,7 +178,7 @@ private:
   UnitAlgebra bw; // Need? It's currently unused.
 
   HandlerBase* sendFunctor{nullptr};
-  HandlerBase* recvFunctor{nullptr};
+  HandlerBase* receiveFunctor{nullptr};
 
   // in bits
   UnitAlgebra inbufSize;
