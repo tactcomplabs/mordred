@@ -1,0 +1,5 @@
+  Offered   Average
+    Load    Latency
+     0.50      19.3403 ns
+
+Simulation is complete, simulated time: 25 us

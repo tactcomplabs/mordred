@@ -36,10 +36,10 @@ LinkControlParams = {
 
 MeshTopoParams = {
     "network_name" : "noc_mesh",
-    "mesh.shape" : "3x3",
+    "mesh.shape" : "2x2",
     "mesh.width" : "1x1",
     "mesh.local_ports" : "1",
-    "shape" : "3x3",
+    "shape" : "2x2",
     "width" : "1x1",
     "local_ports" : "1"
 }
@@ -106,23 +106,23 @@ def createMesh(x_size, y_size, local_ports):
             rtr_id += 1
             rtr_topo = rtr.setSubComponent( "topology", "merlin.mesh" )
             rtr_topo.addParams(MeshTopoParams)
-            test_nic_id = 9
+            #test_nic_id = 9
             # north links
             rtr_portnum = 0
             rtr_portname = "port" + str(rtr_portnum)
             if y != y_size - 1:
                 rtr.addLink(getLink("rtr_%d_%d"%(x,y), "rtr_%d_%d"%(x,y+1)), rtr_portname, "800ps")
                 #print("Add north link with portname=%s to x,y=%d_%d"%(rtr_portname,x,y))
-            else:
-                rtr.addLink(getLink("rtr_%d_%d"%(x,y), "epTNIC_%d_%d"%(x,y+1)), rtr_portname, "800ps")
-                ep = sst.Component("epTNIC_%d_%d"%(x,y+1), "merlin.test_nic")
-                print("Creating north endpoint epTNIC_%d_%d"%(x,y+1))
-                ep.addParam("id", test_nic_id)
-                test_nic_id += 1
-                ep.addParams(TestNicParams)
-                sub = ep.setSubComponent("networkIF","merlin.linkcontrol")
-                sub.addParam("link_bw","1GB/s")
-                sub.addLink(getLink("rtr_%d_%d"%(x,y), "epTNIC_%d_%d"%(x,y+1)), "rtr_port", "800ps")
+            # else:
+            #     rtr.addLink(getLink("rtr_%d_%d"%(x,y), "epTNIC_%d_%d"%(x,y+1)), rtr_portname, "800ps")
+            #     ep = sst.Component("epTNIC_%d_%d"%(x,y+1), "merlin.test_nic")
+            #     print("Creating north endpoint epTNIC_%d_%d"%(x,y+1))
+            #     ep.addParam("id", test_nic_id)
+            #     test_nic_id += 1
+            #     ep.addParams(TestNicParams)
+            #     sub = ep.setSubComponent("networkIF","merlin.linkcontrol")
+            #     sub.addParam("link_bw","1GB/s")
+            #     sub.addLink(getLink("rtr_%d_%d"%(x,y), "epTNIC_%d_%d"%(x,y+1)), "rtr_port", "800ps")
 
             # east links
             rtr_portnum += 1
@@ -130,16 +130,16 @@ def createMesh(x_size, y_size, local_ports):
             if x != x_size - 1:
                 rtr.addLink(getLink("rtr_%d_%d"%(x,y), "rtr_%d_%d"%(x+1,y)), rtr_portname, "800ps")
                 #print("Add east link with portname=%s to x,y=%d_%d"%(rtr_portname,x,y))
-            else:
-                rtr.addLink(getLink("rtr_%d_%d"%(x,y), "epTNIC_%d_%d"%(x+1,y)), rtr_portname, "800ps")
-                ep = sst.Component("epTNIC_%d_%d"%(x+1,y), "merlin.test_nic")
-                print("Creating east endpoint epTNIC_%d_%d"%(x+1,y))
-                ep.addParam("id", test_nic_id)
-                test_nic_id += 1
-                ep.addParams(TestNicParams)
-                sub = ep.setSubComponent("networkIF","merlin.linkcontrol")
-                sub.addParam("link_bw","1GB/s")
-                sub.addLink(getLink("rtr_%d_%d"%(x,y), "epTNIC_%d_%d"%(x+1,y)), "rtr_port", "800ps")
+            # else:
+            #     rtr.addLink(getLink("rtr_%d_%d"%(x,y), "epTNIC_%d_%d"%(x+1,y)), rtr_portname, "800ps")
+            #     ep = sst.Component("epTNIC_%d_%d"%(x+1,y), "merlin.test_nic")
+            #     print("Creating east endpoint epTNIC_%d_%d"%(x+1,y))
+            #     ep.addParam("id", test_nic_id)
+            #     test_nic_id += 1
+            #     ep.addParams(TestNicParams)
+            #     sub = ep.setSubComponent("networkIF","merlin.linkcontrol")
+            #     sub.addParam("link_bw","1GB/s")
+            #     sub.addLink(getLink("rtr_%d_%d"%(x,y), "epTNIC_%d_%d"%(x+1,y)), "rtr_port", "800ps")
 
             # south links
             rtr_portnum += 1
@@ -147,16 +147,16 @@ def createMesh(x_size, y_size, local_ports):
             if y != 0:
                 rtr.addLink(getLink("rtr_%d_%d"%(x,y-1), "rtr_%d_%d"%(x,y)), rtr_portname, "800ps")
                 #print("Add south link with portname=%s to x,y=%d_%d"%(rtr_portname,x,y))
-            else: # Y == 0
-                rtr.addLink(getLink("rtr_%d_X"%(x), "epTNIC_%d_%d"%(x,y)), rtr_portname, "800ps")
-                ep = sst.Component("epTNIC_%d_X"%(x), "merlin.test_nic")
-                print("Creating south endpoint epTNIC_%d_X"%(x))
-                ep.addParam("id", test_nic_id)
-                test_nic_id += 1
-                ep.addParams(TestNicParams)
-                sub = ep.setSubComponent("networkIF","merlin.linkcontrol")
-                sub.addParam("link_bw","1GB/s")
-                sub.addLink(getLink("rtr_%d_X"%(x), "epTNIC_%d_%d"%(x,y)), "rtr_port", "800ps")
+            # else: # Y == 0
+            #     rtr.addLink(getLink("rtr_%d_X"%(x), "epTNIC_%d_%d"%(x,y)), rtr_portname, "800ps")
+            #     ep = sst.Component("epTNIC_%d_X"%(x), "merlin.test_nic")
+            #     print("Creating south endpoint epTNIC_%d_X"%(x))
+            #     ep.addParam("id", test_nic_id)
+            #     test_nic_id += 1
+            #     ep.addParams(TestNicParams)
+            #     sub = ep.setSubComponent("networkIF","merlin.linkcontrol")
+            #     sub.addParam("link_bw","1GB/s")
+            #     sub.addLink(getLink("rtr_%d_X"%(x), "epTNIC_%d_%d"%(x,y)), "rtr_port", "800ps")
 
             # west links
             rtr_portnum += 1
@@ -164,16 +164,16 @@ def createMesh(x_size, y_size, local_ports):
             if x != 0:
                 rtr.addLink(getLink("rtr_%d_%d"%(x-1,y), "rtr_%d_%d"%(x,y)), rtr_portname, "800ps")
                 #print("Add west link with portname=%s to x,y=%d_%d"%(rtr_portname,x,y))
-            else: # X == 0
-                rtr.addLink(getLink("rtr_X_%d"%(y), "epTNIC_%d_%d"%(x,y)), rtr_portname, "800ps")
-                ep = sst.Component("epTNIC_X_%d"%(y), "merlin.test_nic")
-                print("Creating west endpoint epTNIC_X_%d"%(y))
-                ep.addParam("id", test_nic_id)
-                test_nic_id += 1
-                ep.addParams(TestNicParams)
-                sub = ep.setSubComponent("networkIF","merlin.linkcontrol")
-                sub.addParam("link_bw","1GB/s")
-                sub.addLink(getLink("rtr_X_%d"%(y), "epTNIC_%d_%d"%(x,y)), "rtr_port", "800ps")
+            # else: # X == 0
+            #     rtr.addLink(getLink("rtr_X_%d"%(y), "epTNIC_%d_%d"%(x,y)), rtr_portname, "800ps")
+            #     ep = sst.Component("epTNIC_X_%d"%(y), "merlin.test_nic")
+            #     print("Creating west endpoint epTNIC_X_%d"%(y))
+            #     ep.addParam("id", test_nic_id)
+            #     test_nic_id += 1
+            #     ep.addParams(TestNicParams)
+            #     sub = ep.setSubComponent("networkIF","merlin.linkcontrol")
+            #     sub.addParam("link_bw","1GB/s")
+            #     sub.addLink(getLink("rtr_X_%d"%(y), "epTNIC_%d_%d"%(x,y)), "rtr_port", "800ps")
 
             #rtr.addParam("num_ports", rtr_portnum+local_ports)
             rtr.addParam("num_ports", 5)
@@ -420,8 +420,8 @@ class Crossbar:
 local_ports = 1 # == concentration
 
 # Mesh/torus Configuration options
-x_size = 3
-y_size = 3
+x_size = 2
+y_size = 2
 
 #Xbar config
 xbar_size = 6
