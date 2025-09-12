@@ -4,10 +4,10 @@ from selectors import SelectSelector
 import sst
 from math import floor
 
-load_level = 95
+load_level = 10
 load_factor = (load_level/100)
 
-sst.setProgramOption("stop-at", "1ms")
+sst.setProgramOption("stop-at", "100us")
 
 stat_params = ( { "rate" : "0ns" } )
 sst.setStatisticOutput("sst.statOutputCSV", { "filepath" : "./stats.LF%s.csv"%load_level, "separator" : ", " } )
@@ -33,7 +33,7 @@ OfferedLoadParams = {
     "linkcontrol" : "mordred.mordredNIC",
     "buffer_size" : "1kiB",
     "warmup_time" : "1us",
-    "collect_time" : "1ms",
+    "collect_time" : "25us",
     "drain_time" : "50us"
 }
 
@@ -115,7 +115,7 @@ def createMesh(x_size, y_size, local_ports):
                 num_eps = x_size * y_size * local_ports
                 print("%s Created endpoint %d with num_eps %d"%(ep_name, ep_num, num_eps))
                 if merlin_trafficgen == 0:
-                    lcl_ep = sst.Component(ep_name, "merlin.offered_load")
+                    lcl_ep = sst.Component(ep_name, "merlin.clocked_offered_load")
                     lcl_ep.addParams(OfferedLoadParams)
                 else: # merlin_trafficgen == 1:
                     lcl_ep = sst.Component(ep_name, "merlin.background_traffic")
