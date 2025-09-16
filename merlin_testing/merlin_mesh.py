@@ -7,10 +7,10 @@ from math import floor
 load_level = 10
 load_factor = (load_level/100)
 
-sst.setProgramOption("stop-at", "200us")
+sst.setProgramOption("stop-at", "1ms")
 
 stat_params = ( { "rate" : "0ns" } )
-sst.setStatisticOutput("sst.statOutputCSV", { "filepath" : "./stats.LF%s.csv"%load_level, "separator" : ", " } )
+sst.setStatisticOutput("sst.statOutputCSV", { "filepath" : "./merlin.COL.LF%s.csv"%load_level, "separator" : ", " } )
 
 HrRouterParams = {
     #"id" : 0,
@@ -19,8 +19,8 @@ HrRouterParams = {
     "link_bw" : "1GB/s",
     "flit_size" : "16b",
     "xbar_bw" : "2GiB/s",
-    "input_latency" : "100ps",
-    "output_latency" : "100ps",
+    "input_latency" : "50ps",
+    "output_latency" : "50ps",
     "input_buf_size" : "32B",
     "output_buf_size" : "2B",
     "num_vns" : "1",
@@ -36,10 +36,10 @@ LinkControlParams = {
 
 MeshTopoParams = {
     "network_name" : "noc_mesh",
-    "mesh.shape" : "2x2",
+    "mesh.shape" : "3x3",
     "mesh.width" : "1x1",
     "mesh.local_ports" : "1",
-    "shape" : "2x2",
+    "shape" : "3x3",
     "width" : "1x1",
     "local_ports" : "1"
 }
@@ -55,10 +55,10 @@ MatchingTrafficGenParams = {
 
 OfferedLoadParams = {
     "link_bw" : "1GB/s",
-    "linkcontrol" : "mordred.mordredNIC",
+    "linkcontrol" : "merlin.linkcontrol",
     "buffer_size" : "1kiB",
     "warmup_time" : "1us",
-    "collect_time" : "1ms",
+    "collect_time" : "500us",
     "drain_time" : "50us"
 }
 
