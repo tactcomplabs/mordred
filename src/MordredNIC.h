@@ -64,7 +64,8 @@ public:
 
   SST_ELI_DOCUMENT_STATISTICS(
     {"packets_recv", "Number of packets received", "unitless", 3},
-    {"average_noc_latency", "Average latency (in clocks) of each packet", "unitless", 3}
+    {"average_noc_latency", "Average latency (in clocks) of each packet", "unitless", 3},
+    {"average_packet_size", "Average packet size in number of flits", "unitless", 3}
     )
 
   MordredNIC( ComponentId_t cid, Params& params, int vns );
@@ -130,8 +131,8 @@ public:
     * @param functor Functor to call when request is received
   */
   void setNotifyOnReceive( SimpleNetwork::HandlerBase* functor ) override {
-    output->verbose(CALL_INFO, 5, 0, "MordredNIC Set recv-notify functor\n");
-    recvFunctor = functor;
+    //output->verbose(CALL_INFO, 5, 0, "MordredNIC Set recv-notify functor\n");
+    receiveFunctor = functor;
   }
 
   /**
@@ -142,7 +143,7 @@ public:
     * @param functor Functor to call when request is sent
   */
   void setNotifyOnSend( SimpleNetwork::HandlerBase* functor ) override {
-    output->verbose(CALL_INFO, 5, 0, "MordredNIC Set send-notify functor\n");
+    //output->verbose(CALL_INFO, 5, 0, "MordredNIC Set send-notify functor\n");
     sendFunctor = functor;
   }
 
@@ -177,7 +178,7 @@ private:
   UnitAlgebra bw; // Need? It's currently unused.
 
   HandlerBase* sendFunctor{nullptr};
-  HandlerBase* recvFunctor{nullptr};
+  HandlerBase* receiveFunctor{nullptr};
 
   // in bits
   UnitAlgebra inbufSize;
@@ -214,8 +215,10 @@ private:
   // Statistics
   uint64_t totalNocLatency{0}; // in clock ticks
   uint64_t totalPackets{0};
+  uint64_t totalNumFlits{0};
   Statistic<uint64_t>* statPacketsRecv;
   Statistic<double>* statAvgNocLatency;
+  Statistic<double>* statAvgFlitsPerPacket;
 
 };  // MordredNIC
 

@@ -1,0 +1,192 @@
+graph "sst_simulation" {
+overlap=scale;
+splines=spline;
+node [shape=record];
+graph [style=invis];
+
+subgraph cluster_0 {
+0 [label="{<main> rtr_0_0\nkingsley.noc_mesh}"];
+
+}
+
+subgraph cluster_1 {
+1 [label="{<main> ep0_0_0\nmerlin.offered_load}"];
+
+4294967297 [color=gray,label="{<main> networkIF\nkingsley.linkcontrol}"];
+
+4294967297:"main" -- 1:"main" [style=dotted];
+
+8589934593 [color=gray,label="{<main> pattern_gen\nmerlin.targetgen.uniform}"];
+
+8589934593:"main" -- 1:"main" [style=dotted];
+
+}
+
+subgraph cluster_2 {
+2 [label="{<main> rtr_1_0\nkingsley.noc_mesh}"];
+
+}
+
+subgraph cluster_3 {
+3 [label="{<main> ep0_1_0\nmerlin.offered_load}"];
+
+4294967299 [color=gray,label="{<main> networkIF\nkingsley.linkcontrol}"];
+
+4294967299:"main" -- 3:"main" [style=dotted];
+
+8589934595 [color=gray,label="{<main> pattern_gen\nmerlin.targetgen.uniform}"];
+
+8589934595:"main" -- 3:"main" [style=dotted];
+
+}
+
+subgraph cluster_4 {
+4 [label="{<main> rtr_2_0\nkingsley.noc_mesh}"];
+
+}
+
+subgraph cluster_5 {
+5 [label="{<main> ep0_2_0\nmerlin.offered_load}"];
+
+4294967301 [color=gray,label="{<main> networkIF\nkingsley.linkcontrol}"];
+
+4294967301:"main" -- 5:"main" [style=dotted];
+
+8589934597 [color=gray,label="{<main> pattern_gen\nmerlin.targetgen.uniform}"];
+
+8589934597:"main" -- 5:"main" [style=dotted];
+
+}
+
+subgraph cluster_6 {
+6 [label="{<main> rtr_0_1\nkingsley.noc_mesh}"];
+
+}
+
+subgraph cluster_7 {
+7 [label="{<main> ep0_0_1\nmerlin.offered_load}"];
+
+4294967303 [color=gray,label="{<main> networkIF\nkingsley.linkcontrol}"];
+
+4294967303:"main" -- 7:"main" [style=dotted];
+
+8589934599 [color=gray,label="{<main> pattern_gen\nmerlin.targetgen.uniform}"];
+
+8589934599:"main" -- 7:"main" [style=dotted];
+
+}
+
+subgraph cluster_8 {
+8 [label="{<main> rtr_1_1\nkingsley.noc_mesh}"];
+
+}
+
+subgraph cluster_9 {
+9 [label="{<main> ep0_1_1\nmerlin.offered_load}"];
+
+4294967305 [color=gray,label="{<main> networkIF\nkingsley.linkcontrol}"];
+
+4294967305:"main" -- 9:"main" [style=dotted];
+
+8589934601 [color=gray,label="{<main> pattern_gen\nmerlin.targetgen.uniform}"];
+
+8589934601:"main" -- 9:"main" [style=dotted];
+
+}
+
+subgraph cluster_10 {
+10 [label="{<main> rtr_2_1\nkingsley.noc_mesh}"];
+
+}
+
+subgraph cluster_11 {
+11 [label="{<main> ep0_2_1\nmerlin.offered_load}"];
+
+4294967307 [color=gray,label="{<main> networkIF\nkingsley.linkcontrol}"];
+
+4294967307:"main" -- 11:"main" [style=dotted];
+
+8589934603 [color=gray,label="{<main> pattern_gen\nmerlin.targetgen.uniform}"];
+
+8589934603:"main" -- 11:"main" [style=dotted];
+
+}
+
+subgraph cluster_12 {
+12 [label="{<main> rtr_0_2\nkingsley.noc_mesh}"];
+
+}
+
+subgraph cluster_13 {
+13 [label="{<main> ep0_0_2\nmerlin.offered_load}"];
+
+4294967309 [color=gray,label="{<main> networkIF\nkingsley.linkcontrol}"];
+
+4294967309:"main" -- 13:"main" [style=dotted];
+
+8589934605 [color=gray,label="{<main> pattern_gen\nmerlin.targetgen.uniform}"];
+
+8589934605:"main" -- 13:"main" [style=dotted];
+
+}
+
+subgraph cluster_14 {
+14 [label="{<main> rtr_1_2\nkingsley.noc_mesh}"];
+
+}
+
+subgraph cluster_15 {
+15 [label="{<main> ep0_1_2\nmerlin.offered_load}"];
+
+4294967311 [color=gray,label="{<main> networkIF\nkingsley.linkcontrol}"];
+
+4294967311:"main" -- 15:"main" [style=dotted];
+
+8589934607 [color=gray,label="{<main> pattern_gen\nmerlin.targetgen.uniform}"];
+
+8589934607:"main" -- 15:"main" [style=dotted];
+
+}
+
+subgraph cluster_16 {
+16 [label="{<main> rtr_2_2\nkingsley.noc_mesh}"];
+
+}
+
+subgraph cluster_17 {
+17 [label="{<main> ep0_2_2\nmerlin.offered_load}"];
+
+4294967313 [color=gray,label="{<main> networkIF\nkingsley.linkcontrol}"];
+
+4294967313:"main" -- 17:"main" [style=dotted];
+
+8589934609 [color=gray,label="{<main> pattern_gen\nmerlin.targetgen.uniform}"];
+
+8589934609:"main" -- 17:"main" [style=dotted];
+
+}
+
+
+0 -- 6
+0 -- 2
+0 -- 4294967297
+2 -- 8
+2 -- 4
+2 -- 4294967299
+4 -- 10
+4 -- 4294967301
+6 -- 12
+6 -- 8
+6 -- 4294967303
+8 -- 14
+8 -- 10
+8 -- 4294967305
+10 -- 16
+10 -- 4294967307
+12 -- 14
+12 -- 4294967309
+14 -- 16
+14 -- 4294967311
+16 -- 4294967313
+
+}

@@ -1,14 +1,40 @@
 # Automatically generated SST Python input
+from selectors import SelectSelector
+
 import sst
 from math import floor
 
+load_level = 80
+load_factor = (load_level/100)
+
+sst.setProgramOption("stop-at", "1ms")
+
 stat_params = ( { "rate" : "0ns" } )
-sst.setStatisticOutput("sst.statOutputCSV", { "filepath" : "./stats.csv", "separator" : ", " } )
+sst.setStatisticOutput("sst.statOutputCSV", { "filepath" : "./mordred.COL.LF%s.csv"%load_level, "separator" : ", " } )
 
 FixedRtrParams = {
-    "flit_size" : "32b",
+    "num_vcs" : "1",
+    "flit_size" : "16b",
     "input_buf_size" : "32B",
-    "output_buf_size" : "32B"
+    "output_buf_size" : "16b"
+}
+
+# Will need to fix statmemts using this variable if we add more options
+merlin_trafficgen = 0 # set to 0 is merlin.offered_load, 1 is merlin.background_traffic
+
+MatchingTrafficGenParams = {
+    "packet_size" : "64b",
+    "offered_load" : load_factor,
+    "pattern" : "merlin.targetgen.uniform"
+}
+
+OfferedLoadParams = {
+    "link_bw" : "1GB/s",
+    "linkcontrol" : "mordred.mordredNIC",
+    "buffer_size" : "1kiB",
+    "warmup_time" : "1us",
+    "collect_time" : "500us",
+    "drain_time" : "50us"
 }
 
 links = dict()
@@ -85,31 +111,42 @@ def createMesh(x_size, y_size, local_ports):
                 lcl_portname = "port" + str(k+rtr_portnum)
                 # create endpoint
                 ep_name = "local_ep_%d_%d_%d"%(x,y,k)
-                ep_num = (x*x_size*local_ports) + (y*local_ports) + k
+                ep_num = (x*y_size*local_ports) + (y*local_ports) + k
                 num_eps = x_size * y_size * local_ports
                 print("%s Created endpoint %d with num_eps %d"%(ep_name, ep_num, num_eps))
-                lcl_ep = sst.Component(ep_name, "merlin.offered_load")
-                lcl_ep.addParams({
-                    "num_peers" : num_eps,
-                    "link_bw" : "1MB/s",
-                    "linkcontrol" : "mordred.mordredNIC",
-                    "buffer_size" : "1kiB",
-                    "packet_size" : "16B",
-                    "pattern" : "merlin.targetgen.uniform",
-                    "offered_load" : "0.4",
-                    "warmup_time" : "1us",
-                    "collect_time" : "20us",
-                    "drain_time" : "50us"
-                })
+                if merlin_trafficgen == 0:
+                    lcl_ep = sst.Component(ep_name, "merlin.clocked_offered_load")
+                    lcl_ep.addParams(OfferedLoadParams)
+                else: # merlin_trafficgen == 1:
+                    lcl_ep = sst.Component(ep_name, "merlin.background_traffic")
+                lcl_ep.addParam( "num_peers" , (num_eps) )
+                lcl_ep.addParams(MatchingTrafficGenParams)
+#                lcl_ep.addParams({
+#                    "num_peers" : (num_eps+1),
+#                    "link_bw" : "1GB/s",
+#                    "linkcontrol" : "mordred.mordredNIC",
+#                    "buffer_size" : "1kiB",
+#                    "packet_size" : "64b",
+#                    "pattern" : "merlin.targetgen.uniform",
+#                    "offered_load" : "0.4",
+#                    "warmup_time" : "1us",
+#                    "collect_time" : "20us",
+#                    "drain_time" : "50us"
+#                })
                 lcl_ep_iface = lcl_ep.setSubComponent("networkIF", "mordred.mordredNIC")
 
-                lcl_ep_iface.addParam("input_buf_size", "1kB")
-                lcl_ep_iface.addParam("output_buf_size", "2kiB")
+                lcl_ep_iface.addParam("input_buf_size", "1kiB")
+                lcl_ep_iface.addParam("output_buf_size", "1kiB")
 
                 rtr.addLink(getLink("rtr_%d_%d"%(x, y), ep_name), lcl_portname, "800ps")
                 lcl_ep_iface.addLink(getLink("rtr_%d_%d"%(x, y), ep_name), "port", "800ps")
 
                 pattern_gen = lcl_ep.setSubComponent("pattern_gen", "merlin.targetgen.uniform")
+                # Setting the following params seems to have no effect
+                pattern_gen.addParams({
+                    "min" : "0",
+                    "max" : (num_eps-1),
+                })
 
 # Now, let's do another topology...
 def createSimpleTorus(x_size, y_size, local_ports):
@@ -311,14 +348,14 @@ class Crossbar:
 local_ports = 1 # == concentration
 
 # Mesh/torus Configuration options
-x_size = 5
+x_size = 3
 y_size = 3
 
 #Xbar config
 xbar_size = 6
 
-#print("Do mesh")
-#createMesh(x_size, y_size, local_ports)
+print("Do mesh")
+createMesh(x_size, y_size, local_ports)
 
 ## TODO: ONLY THE FLATTENED BUTTERFLY HAS BEEN FIXED FOR THE NEW NAMING
 ## IN THE ROUTER COMPONENT (nor do we have matching subcomponents)
@@ -343,7 +380,7 @@ xbar_size = 6
 #flatfly2 = FlattenedButterfly(4, 2) # fig 1b in paper; 16 endpoints
 
 #print("Fig 3 in Micro2007 FlatFly Paper")
-flatfly3 = FlattenedButterfly(4, 3) # 64 endpoints
+#flatfly3 = FlattenedButterfly(4, 3) # 64 endpoints
 
 # Stats collection - apparently I don't know the secret handshake because I can get the dummy
 # counter in SimpleRtr to count things, but the stat in RtrPortControl is just a NullStatistic
