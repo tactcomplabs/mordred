@@ -53,12 +53,11 @@ void XbarArbRR::arbitrate( std::vector<RtrPortControlAPI*> &ports, std::vector<R
         // We have a sendable flit, so notify/update send/recv ports; clear flit from shared struct
         ports.at(sendportnum)->sendAllocateToSwitch( rcvportnum, sending_vn, sending_vc );
         auto dest_vc = ports.at( sendportnum )->getDestVc( sending_vn, sending_vc );
-        if ( dest_vc != 0 )
-          output->fatal( CALL_INFO, -1, "Invalid dest_vc - only 0 supported\n" );
         ports.at(rcvportnum)->recvAllocateFromSwitch( sendportnum, sending_vn, dest_vc );
         rtr_shared_objs.at( sendportnum ).needSwitchAlloc.at(sending_vn).at(sending_vc) = nullptr;
         //output->verbose( CALL_INFO, 5, 0, "SwitchArb flit [Port:VN:VC] from [%" PRIu32 ":%" PRIu32 ":%" PRIu32 "] to [%" PRIu32 ":%" PRIu32 ":%" PRIu32 "]\n",
         //  sendportnum, sending_vn, sending_vc, rcvportnum, sending_vn, dest_vc);
+        //output->flush();
         resetSendingVnVc();
         break; // found a matching sender, no need to do another one
       }

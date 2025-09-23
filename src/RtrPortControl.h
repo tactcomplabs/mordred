@@ -89,6 +89,7 @@ public:
   void sendUntimedData(Event* ev) final;
   Event* recvUntimedData() final;
 
+  PortConnectionE getConnectionType() final { return connectionType; }
   uint32_t getPortId() final { return portId; }
 
   void ClockTick(Cycle_t cycle) final;
@@ -98,6 +99,10 @@ public:
   void validateVnVc( uint32_t vn, uint32_t vc ) {
     if ( (vn == UINT32_MAX) || (vc == UINT32_MAX) )
       output->fatal( CALL_INFO, -1, "Invalid vn=%u or vc=%u\n", vn, vc );
+    if ( vn >= numVns )
+      output->fatal( CALL_INFO, -1, "Invalid vn=%u \n", vn );
+    if ( vc >= numVcs )
+      output->fatal( CALL_INFO, -1, "Invalid vc=%u \n", vc );
   }
 
   // VC Alloc interactions
@@ -144,6 +149,9 @@ public:
     switch_alloc_sendto_port = port;
     switch_alloc_sendfrom_vn = vn;
     switch_alloc_sendfrom_vc = vc;
+    //output->verbose( CALL_INFO, 5, 0, "SendTo Port=%u; send vn,vc=[%u,%u]\n",
+    //  port, vn, vc);
+    //output->flush();
   }
   void resetSwitchSendAllocation() final {
     validateVnVc( switch_alloc_sendfrom_vn, switch_alloc_sendfrom_vc );
@@ -164,6 +172,9 @@ public:
     switch_alloc_rcvfrom_port = sending_port;
     switch_alloc_rcvto_vn = vn;
     switch_alloc_rcvto_vc = vc;
+    //output->verbose( CALL_INFO, 5, 0, "RcvFrom Port=%u; recv vn,vc=[%u,%u]\n",
+    //  sending_port, vn, vc);
+    //output->flush();
   }
   void resetSwitchRecvAllocation() final {
     validateVnVc( switch_alloc_rcvto_vn, switch_alloc_rcvto_vc );

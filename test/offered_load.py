@@ -4,7 +4,7 @@ from selectors import SelectSelector
 import sst
 from math import floor
 
-load_level = 80
+load_level = 70
 load_factor = (load_level/100)
 
 sst.setProgramOption("stop-at", "1ms")
@@ -13,14 +13,14 @@ stat_params = ( { "rate" : "0ns" } )
 sst.setStatisticOutput("sst.statOutputCSV", { "filepath" : "./mordred.COL.LF%s.csv"%load_level, "separator" : ", " } )
 
 FixedRtrParams = {
-    "num_vcs" : "1",
+    "num_vcs" : "2",
     "flit_size" : "16b",
     "input_buf_size" : "32B",
     "output_buf_size" : "16b"
 }
 
 # Will need to fix statmemts using this variable if we add more options
-merlin_trafficgen = 0 # set to 0 is merlin.offered_load, 1 is merlin.background_traffic
+merlin_trafficgen = 0 # set to 0 is merlin.offered_load, 1 is merlin.background_traffic, 2 is merlin.clocked_offered_load
 
 MatchingTrafficGenParams = {
     "packet_size" : "64b",
@@ -33,8 +33,12 @@ OfferedLoadParams = {
     "linkcontrol" : "mordred.mordredNIC",
     "buffer_size" : "1kiB",
     "warmup_time" : "1us",
-    "collect_time" : "500us",
+    "collect_time" : "50us",
     "drain_time" : "50us"
+}
+
+ClockedOfferedLoadParams = {
+    "clock_rate" : "1GHz",
 }
 
 links = dict()
@@ -115,24 +119,16 @@ def createMesh(x_size, y_size, local_ports):
                 num_eps = x_size * y_size * local_ports
                 print("%s Created endpoint %d with num_eps %d"%(ep_name, ep_num, num_eps))
                 if merlin_trafficgen == 0:
+                    lcl_ep = sst.Component(ep_name, "merlin.offered_load")
+                    lcl_ep.addParams(OfferedLoadParams)
+                elif merlin_trafficgen == 1: # merlin_trafficgen == 1:
+                    lcl_ep = sst.Component(ep_name, "merlin.background_traffic")
+                else:
                     lcl_ep = sst.Component(ep_name, "merlin.clocked_offered_load")
                     lcl_ep.addParams(OfferedLoadParams)
-                else: # merlin_trafficgen == 1:
-                    lcl_ep = sst.Component(ep_name, "merlin.background_traffic")
+                    lcl_ep.addParams(ClockedOfferedLoadParams)
                 lcl_ep.addParam( "num_peers" , (num_eps) )
                 lcl_ep.addParams(MatchingTrafficGenParams)
-#                lcl_ep.addParams({
-#                    "num_peers" : (num_eps+1),
-#                    "link_bw" : "1GB/s",
-#                    "linkcontrol" : "mordred.mordredNIC",
-#                    "buffer_size" : "1kiB",
-#                    "packet_size" : "64b",
-#                    "pattern" : "merlin.targetgen.uniform",
-#                    "offered_load" : "0.4",
-#                    "warmup_time" : "1us",
-#                    "collect_time" : "20us",
-#                    "drain_time" : "50us"
-#                })
                 lcl_ep_iface = lcl_ep.setSubComponent("networkIF", "mordred.mordredNIC")
 
                 lcl_ep_iface.addParam("input_buf_size", "1kiB")

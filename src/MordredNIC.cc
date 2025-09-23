@@ -343,12 +343,12 @@ bool MordredNIC::clockTick( Cycle_t cycle ) {
           headInjectCycle = UINT64_MAX;
           //output->verbose( CALL_INFO, 5, 0, "Sent tail flit %s to link at cycle=%" PRIu64 "; rtrCredits=%" PRId32 "\n",
           //  flit->pktIdStr().c_str(), cycle, rtrCredits.at(vn) );
-          //output->flush();
           if (sendFunctor != nullptr) {
             bool keep = (*sendFunctor)((int)vn);
             if ( !keep ) sendFunctor = nullptr;
           }
         }
+        //output->flush();
         link->send( flit );
         sent = true;
         rtrCredits.at(vn)--;
@@ -424,7 +424,8 @@ void MordredNIC::handleIncomingPacket( SST::Event* ev ) {
   } // end CREDIT
   case baseMordredEvent::FLIT: {
     auto flit = static_cast<MordredFlit*>( ev );
-    //output->verbose( CALL_INFO, 5, 0, "Received flit vn=%" PRIu32 ", type=%s\n", flit->vn, flit->getFtypeStr().c_str() );
+    //output->verbose( CALL_INFO, 5, 0, "Received flit vn,vc=%" PRIu32 ", %" PRIu32 ", type=%s\n",
+    //  flit->vn, flit->cur_vc, flit->getFtypeStr().c_str() );
     if ( flit->ftype == MordredFlit::TAIL) {
       Request* req = flit->getRequest();
       if ( req == nullptr ) {
@@ -450,6 +451,7 @@ void MordredNIC::handleIncomingPacket( SST::Event* ev ) {
         if ( !keep) receiveFunctor = NULL;
       }
     }
+    //output->flush();
     // Update num of credits to return to router
     inReturnCredits.at( flit->vn )++;
     delete flit;

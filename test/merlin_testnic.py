@@ -6,7 +6,7 @@ stat_params = ( { "rate" : "0ns" } )
 sst.setStatisticOutput("sst.statOutputCSV", { "filepath" : "./stats.csv", "separator" : ", " } )
 
 FixedRtrParams = {
-    "num_vcs" : "1",
+    "num_vcs" : "2",
     "flit_size" : "16b",
     "input_buf_size" : "32B",
     "output_buf_size" : "16b"
@@ -299,7 +299,7 @@ class Crossbar:
 local_ports = 1 # == concentration
 
 # Mesh/torus Configuration options
-x_size = 5
+x_size = 3
 y_size = 3
 
 #Xbar config

@@ -73,7 +73,7 @@ RtrPortControl::RtrPortControl( ComponentId_t id, Params& params, TopologyAPI* t
     output->fatal(CALL_INFO_LONG, 1, "RtrPortControl: output_buf_size must be specified\n");
   }
   if ( !buf_size_ua.hasUnits("b") && !buf_size_ua.hasUnits("B") ) {
-    output->fatal(CALL_INFO,-1,"RtrPortControl: inbuf_size must be specified in either "
+    output->fatal(CALL_INFO,-1,"RtrPortControl: outbuf_size must be specified in either "
                        "bits (b) or bytes (B): %s\n",buf_size_ua.toStringBestSI().c_str());
   }
   if ( buf_size_ua.hasUnits("B") ) {
@@ -98,7 +98,6 @@ RtrPortControl::RtrPortControl( ComponentId_t id, Params& params, TopologyAPI* t
 // Note: It may be "better" to do this in the init phase once we know what the other end of the link is
 void RtrPortControl::allocateBuffers() {
   auto total_credits = outBufSize / flitSize ;
-  auto credits = total_credits / ( numVns * numVcs );
 
   inStateVec.resize( numVns );
   outStateVec.resize( numVns );
@@ -119,7 +118,7 @@ void RtrPortControl::allocateBuffers() {
   for ( uint32_t i = 0; i < numVns; i++ ) {
     for ( uint32_t j = 0; j < numVcs; j++ ) {
       inStateVec.at(i).at(j).reset();
-      outStateVec.at(i).at(j).reset( static_cast<int16_t>( credits ) );
+      outStateVec.at(i).at(j).reset( static_cast<int16_t>( total_credits ) );
     }
   }
 
@@ -224,13 +223,12 @@ void RtrPortControl::init( unsigned int phase ) {
   case 3: {
     // Send router credits
     auto total_credits    = static_cast<int32_t>( inBufSize / flitSize );
-    auto credits  = total_credits / static_cast<int32_t>( numVns * numVcs );
     // Need to do things a little differently here depending on if I'm going to an endpoint or
     // another router
     uint32_t max_vc = ( connectionType == ROUTER ) ? numVcs : 1;
     for( uint32_t i = 0; i < numVns; i++ ) {
       for( uint32_t j = 0; j < max_vc; j++ ) {
-        auto* credit_ev = new MordredCreditEvent( i, j, credits );
+        auto* credit_ev = new MordredCreditEvent( i, j, total_credits );
         link->sendUntimedData( credit_ev );
       }
     }
@@ -244,7 +242,7 @@ void RtrPortControl::init( unsigned int phase ) {
       if( base_ev->getType() == baseMordredEvent::CREDIT ) {
         auto credit_ev = static_cast<MordredCreditEvent*>( ev );
         outStateVec.at( credit_ev->vn ).at ( credit_ev->vc ).destCredits += credit_ev->credits;
-        //output->verbose( CALL_INFO, 5, 0, "Received credit event vc=%d, credits=%d; cur_credits=%d\n", credit_ev->vc, credit_ev->credits, outStateVec.at( credit_ev->vn ).at ( credit_ev->vc ).destCredits );
+        //output->verbose( CALL_INFO, 5, 0, "Received initCredit event vc=%d, credits=%d; cur_credits=%d\n", credit_ev->vc, credit_ev->credits, outStateVec.at( credit_ev->vn ).at ( credit_ev->vc ).destCredits );
         delete ev;
       } else if ( base_ev->getType() == baseMordredEvent::PACKET ) {
         initEvents.push( ev );
@@ -346,8 +344,8 @@ void RtrPortControl::ClockTick( Cycle_t cycle ) {
           statLinkSentFlitCnt.at( vn ).at( vc )->addData( flit->flit_id + 1 );
           statLinkSentPacketCnt.at( vn ).at( vc )->addData( 1 );
         }
-        //output->verbose( CALL_INFO, 5, 0, "Sending output flit %s; remaining_credits=%" PRId32 "\n",
-        //  flit->pktIdStr().c_str(), outStateVec.at(vn).at(vc).destCredits);
+        //output->verbose( CALL_INFO, 5, 0, "Sending output flit %s; outBufCredits=%" PRId32 ", destCredits=%" PRId32 "\n",
+        //  flit->pktIdStr().c_str(), outStateVec.at( vn ).at( vc ).outBufCredits, outStateVec.at(vn).at(vc).destCredits);
         //output->flush();
         break; // can only send one flit out on the link
       }
@@ -375,7 +373,8 @@ void RtrPortControl::inHandler( SST::Event* ev ) {
     validateVnVc( credit->vn, credit->vc );
     outStateVec.at( credit->vn ).at ( credit->vc ).destCredits += credit->credits;
     //output->verbose( CALL_INFO, 5, 0, "Received %" PRId32 " credits to vc=%" PRIu32 ", cur_credits=%" PRIu32 "\n",
-    //  credit->credits, credit->vc, outStateVec.at( credit->vn ).at ( credit->vc ).destCredits );
+    //  credit->credits, credit->vc, outStateVec.at( credit->vn ).at( credit->vc ).destCredits );
+    //output->flush();
     delete bev;
     break;
   } // end CREDIT
@@ -417,6 +416,7 @@ MordredFlit* RtrPortControl::getInBufFlit() {
   inStateVec.at( switch_alloc_sendfrom_vn ).at( switch_alloc_sendfrom_vc ).retCredits++;
 
   //output->verbose( CALL_INFO, 5, 0, "Get flit %s from inBuf\n", flit->pktIdStr().c_str() );
+  //output->flush();
   return flit;
 }
 
@@ -425,8 +425,9 @@ void RtrPortControl::recvOutBufFlit( MordredFlit* flit ) {
   flit->cur_vc = switch_alloc_rcvto_vc;
   outStateVec.at( switch_alloc_rcvto_vn ).at( switch_alloc_rcvto_vc ).outBuf.push( flit );
   outStateVec.at( switch_alloc_rcvto_vn ).at( switch_alloc_rcvto_vc ).outBufCredits--;
-  //output->verbose( CALL_INFO, 5, 0, "Put flit %s in outBuf; flit vn,vc=%" PRIu32 ", %" PRIu32 "\n",
-  //  flit->pktIdStr().c_str(), flit->vn, flit->cur_vc );
+  //output->verbose( CALL_INFO, 5, 0, "Put flit %s in outBuf; flit vn,vc=%" PRIu32 ", %" PRIu32 "; outBufCredits=%" PRId32 "\n",
+  //  flit->pktIdStr().c_str(), flit->vn, flit->cur_vc, outStateVec.at( switch_alloc_rcvto_vn ).at( switch_alloc_rcvto_vc ).outBufCredits);
+  //output->flush();
 }
 
 MordredInitEvent* RtrPortControl::getInitEvent( MordredInitEvent::Commands cmd ) {
