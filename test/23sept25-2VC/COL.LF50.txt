@@ -1,0 +1,330 @@
+Do mesh
+local_ep_0_0_0 Created endpoint 0 with num_eps 9
+local_ep_1_0_0 Created endpoint 3 with num_eps 9
+local_ep_2_0_0 Created endpoint 6 with num_eps 9
+local_ep_0_1_0 Created endpoint 1 with num_eps 9
+local_ep_1_1_0 Created endpoint 4 with num_eps 9
+local_ep_2_1_0 Created endpoint 7 with num_eps 9
+local_ep_0_2_0 Created endpoint 2 with num_eps 9
+local_ep_1_2_0 Created endpoint 5 with num_eps 9
+local_ep_2_2_0 Created endpoint 8 with num_eps 9
+MeshTopology [rtr_0_0:topology:MeshTopology:0]:MeshTopology constructed; rtr_id=0, num_ports=5, local_ports=1
+RtrPortControl[[0.0]:RtrPortControl:0]: Constructor complete; [Rtr.Port]=[0.0], inbuf_size=256b, outbuf_size=16b
+RtrPortControl[[0.1]:RtrPortControl:0]: Constructor complete; [Rtr.Port]=[0.1], inbuf_size=256b, outbuf_size=16b
+SimpleRTR[rtr_0_0:SimpleRTR:0]: Port 2 with name=port2 unconnected
+SimpleRTR[rtr_0_0:SimpleRTR:0]: Port 3 with name=port3 unconnected
+RtrPortControl[[0.4]:RtrPortControl:0]: Constructor complete; [Rtr.Port]=[0.4], inbuf_size=256b, outbuf_size=16b
+SimpleRTR[rtr_0_0:SimpleRTR:0]: Constructor complete for rtr_0_0. local_ports=1; rtr_ports=4
+MordredNIC[local_ep_0_0_0:networkIF:MordredNIC:0]: MordredNIC constructed
+MeshTopology [rtr_1_0:topology:MeshTopology:0]:MeshTopology constructed; rtr_id=1, num_ports=5, local_ports=1
+RtrPortControl[[1.0]:RtrPortControl:0]: Constructor complete; [Rtr.Port]=[1.0], inbuf_size=256b, outbuf_size=16b
+RtrPortControl[[1.1]:RtrPortControl:0]: Constructor complete; [Rtr.Port]=[1.1], inbuf_size=256b, outbuf_size=16b
+SimpleRTR[rtr_1_0:SimpleRTR:0]: Port 2 with name=port2 unconnected
+RtrPortControl[[1.3]:RtrPortControl:0]: Constructor complete; [Rtr.Port]=[1.3], inbuf_size=256b, outbuf_size=16b
+RtrPortControl[[1.4]:RtrPortControl:0]: Constructor complete; [Rtr.Port]=[1.4], inbuf_size=256b, outbuf_size=16b
+SimpleRTR[rtr_1_0:SimpleRTR:0]: Constructor complete for rtr_1_0. local_ports=1; rtr_ports=4
+MordredNIC[local_ep_1_0_0:networkIF:MordredNIC:0]: MordredNIC constructed
+MeshTopology [rtr_2_0:topology:MeshTopology:0]:MeshTopology constructed; rtr_id=2, num_ports=5, local_ports=1
+RtrPortControl[[2.0]:RtrPortControl:0]: Constructor complete; [Rtr.Port]=[2.0], inbuf_size=256b, outbuf_size=16b
+SimpleRTR[rtr_2_0:SimpleRTR:0]: Port 1 with name=port1 unconnected
+SimpleRTR[rtr_2_0:SimpleRTR:0]: Port 2 with name=port2 unconnected
+RtrPortControl[[2.3]:RtrPortControl:0]: Constructor complete; [Rtr.Port]=[2.3], inbuf_size=256b, outbuf_size=16b
+RtrPortControl[[2.4]:RtrPortControl:0]: Constructor complete; [Rtr.Port]=[2.4], inbuf_size=256b, outbuf_size=16b
+SimpleRTR[rtr_2_0:SimpleRTR:0]: Constructor complete for rtr_2_0. local_ports=1; rtr_ports=4
+MordredNIC[local_ep_2_0_0:networkIF:MordredNIC:0]: MordredNIC constructed
+MeshTopology [rtr_0_1:topology:MeshTopology:0]:MeshTopology constructed; rtr_id=3, num_ports=5, local_ports=1
+RtrPortControl[[3.0]:RtrPortControl:0]: Constructor complete; [Rtr.Port]=[3.0], inbuf_size=256b, outbuf_size=16b
+RtrPortControl[[3.1]:RtrPortControl:0]: Constructor complete; [Rtr.Port]=[3.1], inbuf_size=256b, outbuf_size=16b
+RtrPortControl[[3.2]:RtrPortControl:0]: Constructor complete; [Rtr.Port]=[3.2], inbuf_size=256b, outbuf_size=16b
+SimpleRTR[rtr_0_1:SimpleRTR:0]: Port 3 with name=port3 unconnected
+RtrPortControl[[3.4]:RtrPortControl:0]: Constructor complete; [Rtr.Port]=[3.4], inbuf_size=256b, outbuf_size=16b
+SimpleRTR[rtr_0_1:SimpleRTR:0]: Constructor complete for rtr_0_1. local_ports=1; rtr_ports=4
+MordredNIC[local_ep_0_1_0:networkIF:MordredNIC:0]: MordredNIC constructed
+MeshTopology [rtr_1_1:topology:MeshTopology:0]:MeshTopology constructed; rtr_id=4, num_ports=5, local_ports=1
+RtrPortControl[[4.0]:RtrPortControl:0]: Constructor complete; [Rtr.Port]=[4.0], inbuf_size=256b, outbuf_size=16b
+RtrPortControl[[4.1]:RtrPortControl:0]: Constructor complete; [Rtr.Port]=[4.1], inbuf_size=256b, outbuf_size=16b
+RtrPortControl[[4.2]:RtrPortControl:0]: Constructor complete; [Rtr.Port]=[4.2], inbuf_size=256b, outbuf_size=16b
+RtrPortControl[[4.3]:RtrPortControl:0]: Constructor complete; [Rtr.Port]=[4.3], inbuf_size=256b, outbuf_size=16b
+RtrPortControl[[4.4]:RtrPortControl:0]: Constructor complete; [Rtr.Port]=[4.4], inbuf_size=256b, outbuf_size=16b
+SimpleRTR[rtr_1_1:SimpleRTR:0]: Constructor complete for rtr_1_1. local_ports=1; rtr_ports=4
+MordredNIC[local_ep_1_1_0:networkIF:MordredNIC:0]: MordredNIC constructed
+MeshTopology [rtr_2_1:topology:MeshTopology:0]:MeshTopology constructed; rtr_id=5, num_ports=5, local_ports=1
+RtrPortControl[[5.0]:RtrPortControl:0]: Constructor complete; [Rtr.Port]=[5.0], inbuf_size=256b, outbuf_size=16b
+SimpleRTR[rtr_2_1:SimpleRTR:0]: Port 1 with name=port1 unconnected
+RtrPortControl[[5.2]:RtrPortControl:0]: Constructor complete; [Rtr.Port]=[5.2], inbuf_size=256b, outbuf_size=16b
+RtrPortControl[[5.3]:RtrPortControl:0]: Constructor complete; [Rtr.Port]=[5.3], inbuf_size=256b, outbuf_size=16b
+RtrPortControl[[5.4]:RtrPortControl:0]: Constructor complete; [Rtr.Port]=[5.4], inbuf_size=256b, outbuf_size=16b
+SimpleRTR[rtr_2_1:SimpleRTR:0]: Constructor complete for rtr_2_1. local_ports=1; rtr_ports=4
+MordredNIC[local_ep_2_1_0:networkIF:MordredNIC:0]: MordredNIC constructed
+MeshTopology [rtr_0_2:topology:MeshTopology:0]:MeshTopology constructed; rtr_id=6, num_ports=5, local_ports=1
+SimpleRTR[rtr_0_2:SimpleRTR:0]: Port 0 with name=port0 unconnected
+RtrPortControl[[6.1]:RtrPortControl:0]: Constructor complete; [Rtr.Port]=[6.1], inbuf_size=256b, outbuf_size=16b
+RtrPortControl[[6.2]:RtrPortControl:0]: Constructor complete; [Rtr.Port]=[6.2], inbuf_size=256b, outbuf_size=16b
+SimpleRTR[rtr_0_2:SimpleRTR:0]: Port 3 with name=port3 unconnected
+RtrPortControl[[6.4]:RtrPortControl:0]: Constructor complete; [Rtr.Port]=[6.4], inbuf_size=256b, outbuf_size=16b
+SimpleRTR[rtr_0_2:SimpleRTR:0]: Constructor complete for rtr_0_2. local_ports=1; rtr_ports=4
+MordredNIC[local_ep_0_2_0:networkIF:MordredNIC:0]: MordredNIC constructed
+MeshTopology [rtr_1_2:topology:MeshTopology:0]:MeshTopology constructed; rtr_id=7, num_ports=5, local_ports=1
+SimpleRTR[rtr_1_2:SimpleRTR:0]: Port 0 with name=port0 unconnected
+RtrPortControl[[7.1]:RtrPortControl:0]: Constructor complete; [Rtr.Port]=[7.1], inbuf_size=256b, outbuf_size=16b
+RtrPortControl[[7.2]:RtrPortControl:0]: Constructor complete; [Rtr.Port]=[7.2], inbuf_size=256b, outbuf_size=16b
+RtrPortControl[[7.3]:RtrPortControl:0]: Constructor complete; [Rtr.Port]=[7.3], inbuf_size=256b, outbuf_size=16b
+RtrPortControl[[7.4]:RtrPortControl:0]: Constructor complete; [Rtr.Port]=[7.4], inbuf_size=256b, outbuf_size=16b
+SimpleRTR[rtr_1_2:SimpleRTR:0]: Constructor complete for rtr_1_2. local_ports=1; rtr_ports=4
+MordredNIC[local_ep_1_2_0:networkIF:MordredNIC:0]: MordredNIC constructed
+MeshTopology [rtr_2_2:topology:MeshTopology:0]:MeshTopology constructed; rtr_id=8, num_ports=5, local_ports=1
+SimpleRTR[rtr_2_2:SimpleRTR:0]: Port 0 with name=port0 unconnected
+SimpleRTR[rtr_2_2:SimpleRTR:0]: Port 1 with name=port1 unconnected
+RtrPortControl[[8.2]:RtrPortControl:0]: Constructor complete; [Rtr.Port]=[8.2], inbuf_size=256b, outbuf_size=16b
+RtrPortControl[[8.3]:RtrPortControl:0]: Constructor complete; [Rtr.Port]=[8.3], inbuf_size=256b, outbuf_size=16b
+RtrPortControl[[8.4]:RtrPortControl:0]: Constructor complete; [Rtr.Port]=[8.4], inbuf_size=256b, outbuf_size=16b
+SimpleRTR[rtr_2_2:SimpleRTR:0]: Constructor complete for rtr_2_2. local_ports=1; rtr_ports=4
+MordredNIC[local_ep_2_2_0:networkIF:MordredNIC:0]: MordredNIC constructed
+RtrPortControl[[8.2]:init:0]: Received init packets from [Rtr.Port]=[5.0]
+RtrPortControl[[8.3]:init:0]: Received init packets from [Rtr.Port]=[7.1]
+RtrPortControl[[7.1]:init:0]: Received init packets from [Rtr.Port]=[8.3]
+RtrPortControl[[7.2]:init:0]: Received init packets from [Rtr.Port]=[4.0]
+RtrPortControl[[7.3]:init:0]: Received init packets from [Rtr.Port]=[6.1]
+RtrPortControl[[0.0]:init:0]: Received init packets from [Rtr.Port]=[3.2]
+RtrPortControl[[0.1]:init:0]: Received init packets from [Rtr.Port]=[1.3]
+RtrPortControl[[1.0]:init:0]: Received init packets from [Rtr.Port]=[4.2]
+RtrPortControl[[1.1]:init:0]: Received init packets from [Rtr.Port]=[2.3]
+RtrPortControl[[1.3]:init:0]: Received init packets from [Rtr.Port]=[0.1]
+RtrPortControl[[2.0]:init:0]: Received init packets from [Rtr.Port]=[5.2]
+RtrPortControl[[2.3]:init:0]: Received init packets from [Rtr.Port]=[1.1]
+RtrPortControl[[3.0]:init:0]: Received init packets from [Rtr.Port]=[6.2]
+RtrPortControl[[3.1]:init:0]: Received init packets from [Rtr.Port]=[4.3]
+RtrPortControl[[3.2]:init:0]: Received init packets from [Rtr.Port]=[0.0]
+RtrPortControl[[4.0]:init:0]: Received init packets from [Rtr.Port]=[7.2]
+RtrPortControl[[4.1]:init:0]: Received init packets from [Rtr.Port]=[5.3]
+RtrPortControl[[4.2]:init:0]: Received init packets from [Rtr.Port]=[1.0]
+RtrPortControl[[4.3]:init:0]: Received init packets from [Rtr.Port]=[3.1]
+RtrPortControl[[5.0]:init:0]: Received init packets from [Rtr.Port]=[8.2]
+RtrPortControl[[5.2]:init:0]: Received init packets from [Rtr.Port]=[2.0]
+RtrPortControl[[5.3]:init:0]: Received init packets from [Rtr.Port]=[4.1]
+RtrPortControl[[6.1]:init:0]: Received init packets from [Rtr.Port]=[7.3]
+RtrPortControl[[6.2]:init:0]: Received init packets from [Rtr.Port]=[3.0]
+SimpleRTR[rtr_0_1:clockTick:5397000]: Port 2 cannot receive from 0
+SimpleRTR[rtr_0_1:clockTick:5398000]: Port 2 cannot receive from 0
+SimpleRTR[rtr_0_1:clockTick:5399000]: Port 2 cannot receive from 0
+SimpleRTR[rtr_0_1:clockTick:5400000]: Port 2 cannot receive from 0
+SimpleRTR[rtr_0_1:clockTick:5401000]: Port 2 cannot receive from 0
+SimpleRTR[rtr_1_1:clockTick:11663000]: Port 4 cannot receive from 1
+SimpleRTR[rtr_1_1:clockTick:11664000]: Port 4 cannot receive from 1
+SimpleRTR[rtr_1_2:clockTick:23383000]: Port 2 cannot receive from 3
+SimpleRTR[rtr_1_2:clockTick:23384000]: Port 2 cannot receive from 3
+SimpleRTR[rtr_1_1:clockTick:35491000]: Port 4 cannot receive from 0
+SimpleRTR[rtr_1_1:clockTick:35492000]: Port 4 cannot receive from 0
+SimpleRTR[rtr_1_0:clockTick:37270000]: Port 1 cannot receive from 3
+SimpleRTR[rtr_1_0:clockTick:37271000]: Port 1 cannot receive from 3
+SimpleRTR[rtr_0_1:clockTick:55785000]: Port 4 cannot receive from 0
+SimpleRTR[rtr_0_1:clockTick:55786000]: Port 4 cannot receive from 0
+SimpleRTR[rtr_0_1:clockTick:55787000]: Port 4 cannot receive from 0
+SimpleRTR[rtr_0_1:clockTick:55788000]: Port 4 cannot receive from 0
+SimpleRTR[rtr_0_1:clockTick:55789000]: Port 4 cannot receive from 0
+SimpleRTR[rtr_0_1:clockTick:55790000]: Port 4 cannot receive from 0
+SimpleRTR[rtr_0_1:clockTick:55791000]: Port 4 cannot receive from 0
+SimpleRTR[rtr_0_1:clockTick:55792000]: Port 4 cannot receive from 0
+SimpleRTR[rtr_0_1:clockTick:55793000]: Port 4 cannot receive from 0
+SimpleRTR[rtr_0_1:clockTick:55794000]: Port 4 cannot receive from 0
+SimpleRTR[rtr_0_1:clockTick:55795000]: Port 4 cannot receive from 0
+SimpleRTR[rtr_0_1:clockTick:55796000]: Port 4 cannot receive from 0
+SimpleRTR[rtr_0_1:clockTick:55797000]: Port 4 cannot receive from 0
+SimpleRTR[rtr_0_1:clockTick:55798000]: Port 4 cannot receive from 0
+SimpleRTR[rtr_0_1:clockTick:55799000]: Port 4 cannot receive from 0
+SimpleRTR[rtr_0_1:clockTick:55800000]: Port 4 cannot receive from 0
+SimpleRTR[rtr_0_1:clockTick:55801000]: Port 4 cannot receive from 0
+SimpleRTR[rtr_0_1:clockTick:55802000]: Port 4 cannot receive from 0
+SimpleRTR[rtr_0_1:clockTick:55803000]: Port 4 cannot receive from 0
+SimpleRTR[rtr_0_1:clockTick:55804000]: Port 4 cannot receive from 0
+SimpleRTR[rtr_0_1:clockTick:55805000]: Port 4 cannot receive from 0
+SimpleRTR[rtr_0_1:clockTick:69766000]: Port 4 cannot receive from 2
+SimpleRTR[rtr_0_1:clockTick:69767000]: Port 4 cannot receive from 2
+SimpleRTR[rtr_0_1:clockTick:69768000]: Port 4 cannot receive from 2
+SimpleRTR[rtr_0_1:clockTick:69769000]: Port 4 cannot receive from 2
+SimpleRTR[rtr_0_1:clockTick:69770000]: Port 4 cannot receive from 2
+SimpleRTR[rtr_0_1:clockTick:69771000]: Port 4 cannot receive from 2
+SimpleRTR[rtr_0_1:clockTick:69772000]: Port 4 cannot receive from 2
+SimpleRTR[rtr_0_1:clockTick:69773000]: Port 4 cannot receive from 2
+SimpleRTR[rtr_0_1:clockTick:69774000]: Port 4 cannot receive from 2
+SimpleRTR[rtr_0_1:clockTick:69775000]: Port 4 cannot receive from 2
+SimpleRTR[rtr_0_1:clockTick:69776000]: Port 4 cannot receive from 2
+SimpleRTR[rtr_0_1:clockTick:69777000]: Port 4 cannot receive from 2
+SimpleRTR[rtr_0_1:clockTick:69778000]: Port 4 cannot receive from 2
+SimpleRTR[rtr_0_1:clockTick:69779000]: Port 4 cannot receive from 2
+SimpleRTR[rtr_0_1:clockTick:69780000]: Port 4 cannot receive from 2
+SimpleRTR[rtr_0_1:clockTick:69781000]: Port 4 cannot receive from 2
+SimpleRTR[rtr_0_1:clockTick:69782000]: Port 4 cannot receive from 2
+SimpleRTR[rtr_0_1:clockTick:69783000]: Port 4 cannot receive from 2
+SimpleRTR[rtr_1_2:clockTick:77802000]: Port 4 cannot receive from 2
+SimpleRTR[rtr_1_2:clockTick:77803000]: Port 4 cannot receive from 2
+SimpleRTR[rtr_1_2:clockTick:77804000]: Port 4 cannot receive from 2
+SimpleRTR[rtr_1_2:clockTick:77805000]: Port 4 cannot receive from 2
+SimpleRTR[rtr_1_2:clockTick:77806000]: Port 4 cannot receive from 2
+SimpleRTR[rtr_1_2:clockTick:77807000]: Port 4 cannot receive from 2
+SimpleRTR[rtr_1_2:clockTick:77808000]: Port 4 cannot receive from 2
+SimpleRTR[rtr_1_2:clockTick:77809000]: Port 4 cannot receive from 2
+SimpleRTR[rtr_1_2:clockTick:77810000]: Port 4 cannot receive from 2
+SimpleRTR[rtr_2_2:clockTick:78912000]: Port 4 cannot receive from 2
+SimpleRTR[rtr_1_2:clockTick:120214000]: Port 3 cannot receive from 1
+SimpleRTR[rtr_1_2:clockTick:120215000]: Port 3 cannot receive from 1
+SimpleRTR[rtr_0_1:clockTick:121982000]: Port 4 cannot receive from 2
+SimpleRTR[rtr_0_1:clockTick:121983000]: Port 4 cannot receive from 2
+SimpleRTR[rtr_0_1:clockTick:121984000]: Port 4 cannot receive from 2
+SimpleRTR[rtr_0_1:clockTick:121985000]: Port 4 cannot receive from 2
+SimpleRTR[rtr_0_1:clockTick:121986000]: Port 4 cannot receive from 2
+SimpleRTR[rtr_0_1:clockTick:121987000]: Port 4 cannot receive from 2
+SimpleRTR[rtr_0_1:clockTick:121988000]: Port 4 cannot receive from 2
+SimpleRTR[rtr_0_1:clockTick:121989000]: Port 4 cannot receive from 2
+SimpleRTR[rtr_0_1:clockTick:121990000]: Port 4 cannot receive from 2
+SimpleRTR[rtr_0_1:clockTick:121991000]: Port 4 cannot receive from 2
+SimpleRTR[rtr_0_1:clockTick:121992000]: Port 4 cannot receive from 2
+SimpleRTR[rtr_1_2:clockTick:131252000]: Port 2 cannot receive from 3
+SimpleRTR[rtr_1_2:clockTick:131253000]: Port 2 cannot receive from 3
+SimpleRTR[rtr_1_2:clockTick:131254000]: Port 2 cannot receive from 3
+SimpleRTR[rtr_1_2:clockTick:131255000]: Port 2 cannot receive from 3
+SimpleRTR[rtr_1_2:clockTick:131256000]: Port 2 cannot receive from 3
+SimpleRTR[rtr_1_2:clockTick:131257000]: Port 2 cannot receive from 3
+SimpleRTR[rtr_1_2:clockTick:131258000]: Port 2 cannot receive from 3
+SimpleRTR[rtr_1_2:clockTick:131259000]: Port 2 cannot receive from 3
+SimpleRTR[rtr_1_2:clockTick:131260000]: Port 2 cannot receive from 3
+SimpleRTR[rtr_1_2:clockTick:131261000]: Port 2 cannot receive from 3
+SimpleRTR[rtr_1_1:clockTick:131262000]: Port 4 cannot receive from 0
+SimpleRTR[rtr_1_1:clockTick:136168000]: Port 3 cannot receive from 1
+SimpleRTR[rtr_1_1:clockTick:136169000]: Port 3 cannot receive from 1
+SimpleRTR[rtr_1_2:clockTick:139560000]: Port 2 cannot receive from 1
+SimpleRTR[rtr_1_2:clockTick:139561000]: Port 2 cannot receive from 1
+SimpleRTR[rtr_0_2:clockTick:160883000]: Port 4 cannot receive from 2
+SimpleRTR[rtr_0_2:clockTick:160884000]: Port 4 cannot receive from 2
+SimpleRTR[rtr_1_0:clockTick:183640000]: Port 4 cannot receive from 1
+SimpleRTR[rtr_1_0:clockTick:183641000]: Port 4 cannot receive from 1
+SimpleRTR[rtr_1_0:clockTick:183642000]: Port 4 cannot receive from 1
+SimpleRTR[rtr_1_0:clockTick:183643000]: Port 4 cannot receive from 1
+SimpleRTR[rtr_1_0:clockTick:183644000]: Port 4 cannot receive from 1
+SimpleRTR[rtr_1_0:clockTick:183645000]: Port 4 cannot receive from 1
+SimpleRTR[rtr_1_0:clockTick:183646000]: Port 4 cannot receive from 1
+SimpleRTR[rtr_1_0:clockTick:183647000]: Port 4 cannot receive from 1
+SimpleRTR[rtr_1_0:clockTick:183648000]: Port 4 cannot receive from 1
+SimpleRTR[rtr_1_1:clockTick:207109000]: Port 1 cannot receive from 3
+SimpleRTR[rtr_1_1:clockTick:207110000]: Port 1 cannot receive from 3
+SimpleRTR[rtr_1_1:clockTick:252512000]: Port 2 cannot receive from 0
+SimpleRTR[rtr_1_1:clockTick:252513000]: Port 2 cannot receive from 0
+SimpleRTR[rtr_1_1:clockTick:252514000]: Port 2 cannot receive from 0
+SimpleRTR[rtr_1_1:clockTick:252515000]: Port 2 cannot receive from 0
+SimpleRTR[rtr_1_1:clockTick:252516000]: Port 2 cannot receive from 0
+SimpleRTR[rtr_1_0:clockTick:252517000]: Port 4 cannot receive from 0
+SimpleRTR[rtr_1_1:clockTick:252517000]: Port 2 cannot receive from 0
+SimpleRTR[rtr_1_0:clockTick:252518000]: Port 4 cannot receive from 0
+SimpleRTR[rtr_1_1:clockTick:252518000]: Port 2 cannot receive from 0
+SimpleRTR[rtr_1_0:clockTick:252519000]: Port 4 cannot receive from 0
+SimpleRTR[rtr_1_1:clockTick:252519000]: Port 2 cannot receive from 0
+SimpleRTR[rtr_1_0:clockTick:252520000]: Port 4 cannot receive from 0
+SimpleRTR[rtr_1_1:clockTick:252520000]: Port 2 cannot receive from 0
+SimpleRTR[rtr_1_0:clockTick:252521000]: Port 4 cannot receive from 0
+SimpleRTR[rtr_1_1:clockTick:252521000]: Port 2 cannot receive from 0
+SimpleRTR[rtr_1_0:clockTick:252522000]: Port 4 cannot receive from 0
+SimpleRTR[rtr_1_1:clockTick:252522000]: Port 2 cannot receive from 0
+SimpleRTR[rtr_1_0:clockTick:252523000]: Port 4 cannot receive from 0
+SimpleRTR[rtr_1_1:clockTick:252523000]: Port 2 cannot receive from 0
+SimpleRTR[rtr_1_0:clockTick:252524000]: Port 4 cannot receive from 0
+SimpleRTR[rtr_1_1:clockTick:252524000]: Port 2 cannot receive from 0
+SimpleRTR[rtr_1_0:clockTick:252525000]: Port 4 cannot receive from 0
+SimpleRTR[rtr_1_2:clockTick:252620000]: Port 3 cannot receive from 1
+SimpleRTR[rtr_1_2:clockTick:252621000]: Port 3 cannot receive from 1
+SimpleRTR[rtr_1_2:clockTick:252622000]: Port 3 cannot receive from 1
+SimpleRTR[rtr_1_2:clockTick:252623000]: Port 3 cannot receive from 1
+SimpleRTR[rtr_1_2:clockTick:252624000]: Port 3 cannot receive from 1
+SimpleRTR[rtr_1_2:clockTick:252625000]: Port 3 cannot receive from 1
+SimpleRTR[rtr_1_2:clockTick:252626000]: Port 3 cannot receive from 1
+SimpleRTR[rtr_0_2:clockTick:252627000]: Port 4 cannot receive from 1
+SimpleRTR[rtr_1_2:clockTick:252627000]: Port 3 cannot receive from 1
+SimpleRTR[rtr_0_2:clockTick:252628000]: Port 4 cannot receive from 1
+SimpleRTR[rtr_1_2:clockTick:252628000]: Port 3 cannot receive from 1
+SimpleRTR[rtr_0_2:clockTick:252629000]: Port 4 cannot receive from 1
+SimpleRTR[rtr_1_2:clockTick:252629000]: Port 3 cannot receive from 1
+SimpleRTR[rtr_0_2:clockTick:252630000]: Port 4 cannot receive from 1
+SimpleRTR[rtr_1_2:clockTick:256644000]: Port 2 cannot receive from 3
+SimpleRTR[rtr_1_2:clockTick:256645000]: Port 2 cannot receive from 3
+SimpleRTR[rtr_1_0:clockTick:266320000]: Port 0 cannot receive from 1
+SimpleRTR[rtr_1_0:clockTick:266321000]: Port 0 cannot receive from 1
+SimpleRTR[rtr_1_0:clockTick:266322000]: Port 0 cannot receive from 1
+SimpleRTR[rtr_1_0:clockTick:266323000]: Port 0 cannot receive from 1
+SimpleRTR[rtr_1_0:clockTick:266324000]: Port 0 cannot receive from 1
+SimpleRTR[rtr_1_0:clockTick:266325000]: Port 0 cannot receive from 1
+SimpleRTR[rtr_1_1:clockTick:266325000]: Port 0 cannot receive from 2
+SimpleRTR[rtr_1_0:clockTick:266326000]: Port 0 cannot receive from 1
+SimpleRTR[rtr_1_1:clockTick:266326000]: Port 0 cannot receive from 2
+SimpleRTR[rtr_1_0:clockTick:266327000]: Port 0 cannot receive from 1
+SimpleRTR[rtr_1_1:clockTick:266327000]: Port 0 cannot receive from 2
+SimpleRTR[rtr_1_0:clockTick:266328000]: Port 0 cannot receive from 1
+SimpleRTR[rtr_1_1:clockTick:266328000]: Port 0 cannot receive from 2
+SimpleRTR[rtr_1_0:clockTick:266329000]: Port 0 cannot receive from 1
+SimpleRTR[rtr_1_1:clockTick:266329000]: Port 0 cannot receive from 2
+SimpleRTR[rtr_1_0:clockTick:266330000]: Port 0 cannot receive from 1
+SimpleRTR[rtr_1_1:clockTick:266330000]: Port 0 cannot receive from 2
+SimpleRTR[rtr_1_0:clockTick:266331000]: Port 0 cannot receive from 1
+SimpleRTR[rtr_1_1:clockTick:266331000]: Port 0 cannot receive from 2
+SimpleRTR[rtr_1_2:clockTick:266331000]: Port 4 cannot receive from 2
+SimpleRTR[rtr_1_0:clockTick:266332000]: Port 0 cannot receive from 1
+SimpleRTR[rtr_1_1:clockTick:266332000]: Port 0 cannot receive from 2
+SimpleRTR[rtr_1_2:clockTick:266332000]: Port 4 cannot receive from 2
+SimpleRTR[rtr_1_0:clockTick:266333000]: Port 0 cannot receive from 1
+SimpleRTR[rtr_1_1:clockTick:266333000]: Port 0 cannot receive from 2
+SimpleRTR[rtr_1_2:clockTick:266333000]: Port 4 cannot receive from 2
+SimpleRTR[rtr_1_1:clockTick:266334000]: Port 0 cannot receive from 2
+SimpleRTR[rtr_1_2:clockTick:266334000]: Port 4 cannot receive from 2
+SimpleRTR[rtr_1_2:clockTick:266335000]: Port 4 cannot receive from 2
+SimpleRTR[rtr_1_2:clockTick:267344000]: Port 1 cannot receive from 3
+SimpleRTR[rtr_1_2:clockTick:267345000]: Port 1 cannot receive from 3
+SimpleRTR[rtr_1_0:clockTick:273061000]: Port 0 cannot receive from 3
+SimpleRTR[rtr_1_2:clockTick:293782000]: Port 1 cannot receive from 3
+SimpleRTR[rtr_1_2:clockTick:293783000]: Port 1 cannot receive from 3
+SimpleRTR[rtr_0_1:clockTick:312967000]: Port 0 cannot receive from 2
+SimpleRTR[rtr_0_1:clockTick:312968000]: Port 0 cannot receive from 2
+SimpleRTR[rtr_0_1:clockTick:312969000]: Port 0 cannot receive from 2
+SimpleRTR[rtr_0_1:clockTick:312970000]: Port 0 cannot receive from 2
+SimpleRTR[rtr_0_1:clockTick:312971000]: Port 0 cannot receive from 2
+SimpleRTR[rtr_0_2:clockTick:312972000]: Port 4 cannot receive from 2
+SimpleRTR[rtr_2_1:clockTick:398040000]: Port 4 cannot receive from 0
+SimpleRTR[rtr_2_1:clockTick:398041000]: Port 4 cannot receive from 0
+SimpleRTR[rtr_2_1:clockTick:398042000]: Port 4 cannot receive from 0
+SimpleRTR[rtr_2_1:clockTick:398043000]: Port 4 cannot receive from 0
+SimpleRTR[rtr_2_1:clockTick:398044000]: Port 4 cannot receive from 0
+SimpleRTR[rtr_2_1:clockTick:398045000]: Port 4 cannot receive from 0
+SimpleRTR[rtr_2_1:clockTick:398046000]: Port 4 cannot receive from 0
+SimpleRTR[rtr_2_1:clockTick:398047000]: Port 4 cannot receive from 0
+SimpleRTR[rtr_2_1:clockTick:398048000]: Port 4 cannot receive from 0
+SimpleRTR[rtr_2_1:clockTick:398049000]: Port 4 cannot receive from 0
+SimpleRTR[rtr_2_1:clockTick:398050000]: Port 4 cannot receive from 0
+SimpleRTR[rtr_2_1:clockTick:398051000]: Port 4 cannot receive from 0
+SimpleRTR[rtr_1_1:clockTick:411564000]: Port 2 cannot receive from 1
+SimpleRTR[rtr_1_1:clockTick:411565000]: Port 2 cannot receive from 1
+SimpleRTR[rtr_2_1:clockTick:426352000]: Port 0 cannot receive from 2
+SimpleRTR[rtr_2_1:clockTick:426353000]: Port 0 cannot receive from 2
+SimpleRTR[rtr_2_1:clockTick:426354000]: Port 0 cannot receive from 2
+SimpleRTR[rtr_2_1:clockTick:426355000]: Port 0 cannot receive from 2
+SimpleRTR[rtr_2_1:clockTick:426356000]: Port 0 cannot receive from 2
+SimpleRTR[rtr_1_2:clockTick:432224000]: Port 4 cannot receive from 1
+SimpleRTR[rtr_1_2:clockTick:432225000]: Port 4 cannot receive from 1
+SimpleRTR[rtr_1_2:clockTick:432226000]: Port 4 cannot receive from 1
+SimpleRTR[rtr_1_2:clockTick:432227000]: Port 4 cannot receive from 1
+SimpleRTR[rtr_1_2:clockTick:432228000]: Port 4 cannot receive from 1
+SimpleRTR[rtr_1_2:clockTick:432229000]: Port 4 cannot receive from 1
+SimpleRTR[rtr_1_2:clockTick:432230000]: Port 4 cannot receive from 1
+SimpleRTR[rtr_1_2:clockTick:432231000]: Port 4 cannot receive from 1
+SimpleRTR[rtr_1_1:clockTick:481934000]: Port 3 cannot receive from 1
+SimpleRTR[rtr_1_1:clockTick:481935000]: Port 3 cannot receive from 1
+SimpleRTR[rtr_1_1:clockTick:481936000]: Port 3 cannot receive from 1
+SimpleRTR[rtr_1_1:clockTick:481937000]: Port 3 cannot receive from 1
+SimpleRTR[rtr_1_2:clockTick:484108000]: Port 2 cannot receive from 1
+SimpleRTR[rtr_1_2:clockTick:484109000]: Port 2 cannot receive from 1
+SimpleRTR[rtr_1_2:clockTick:484110000]: Port 2 cannot receive from 1
+SimpleRTR[rtr_1_2:clockTick:484111000]: Port 2 cannot receive from 1
+SimpleRTR[rtr_1_2:clockTick:484112000]: Port 2 cannot receive from 1
+SimpleRTR[rtr_1_2:clockTick:484113000]: Port 2 cannot receive from 1
+SimpleRTR[rtr_1_1:clockTick:491778000]: Port 0 cannot receive from 2
+  Offered   Average
+    Load    Latency
+     0.50      28.1244 ns
+
+Simulation is complete, simulated time: 501 us
