@@ -10,7 +10,7 @@ load_factor = (load_level/100)
 sst.setProgramOption("stop-at", "1ms")
 
 stat_params = ( { "rate" : "0ns" } )
-sst.setStatisticOutput("sst.statOutputCSV", { "filepath" : "./mordred.COL.LF%s.csv"%load_level, "separator" : ", " } )
+sst.setStatisticOutput("sst.statOutputCSV", { "filepath" : "./mordred.OL.LF%s.csv"%load_level, "separator" : ", " } )
 
 FixedRtrParams = {
     "num_vcs" : "2",
