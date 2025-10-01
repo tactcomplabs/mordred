@@ -110,6 +110,7 @@ public:
   virtual void sendUntimedData(Event *ev) = 0;
   virtual Event* recvUntimedData() = 0;
 
+  virtual PortConnectionE getConnectionType() = 0;
   virtual uint32_t getPortId() = 0;
 
   // No separate clock - run off the router clock

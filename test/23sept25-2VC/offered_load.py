@@ -4,13 +4,13 @@ from selectors import SelectSelector
 import sst
 from math import floor
 
-load_level = 70
+load_level = 80
 load_factor = (load_level/100)
 
 sst.setProgramOption("stop-at", "1ms")
 
 stat_params = ( { "rate" : "0ns" } )
-sst.setStatisticOutput("sst.statOutputCSV", { "filepath" : "./mordred.COL.LF%s.csv"%load_level, "separator" : ", " } )
+sst.setStatisticOutput("sst.statOutputCSV", { "filepath" : "./mordred.OL.LF%s.csv"%load_level, "separator" : ", " } )
 
 FixedRtrParams = {
     "num_vcs" : "2",
@@ -33,7 +33,7 @@ OfferedLoadParams = {
     "linkcontrol" : "mordred.mordredNIC",
     "buffer_size" : "1kiB",
     "warmup_time" : "1us",
-    "collect_time" : "50us",
+    "collect_time" : "500us",
     "drain_time" : "50us"
 }
 

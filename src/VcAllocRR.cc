@@ -72,9 +72,14 @@ MordredFlit* VcAllocRR::findMappableFlit( RtrOwnedSharedObjs* obj ) {
 
 // For this port and VN, see if there's an IDLE VC; if not, we can't map this packet
 uint32_t VcAllocRR::findDestVc( RtrPortControlAPI* &port ) const {
-  for ( uint32_t i = 0, cur_vc = rr_dest_vc; i < numVcs; i++, cur_vc = ( cur_vc+1 ) % numVcs ) {
-    if ( port->getOutputState( src_vn, cur_vc ) == OUT_IDLE )
-      return cur_vc;
+  if ( port->getConnectionType() == RtrPortControlAPI::ENDPOINT ) {
+    if ( port->getOutputState( src_vn, 0 ) == OUT_IDLE )
+      return 0;
+  } else {
+    for ( uint32_t i = 0, cur_vc = rr_dest_vc; i < numVcs; i++, cur_vc = ( cur_vc+1 ) % numVcs ) {
+      if ( port->getOutputState( src_vn, cur_vc ) == OUT_IDLE )
+        return cur_vc;
+    }
   }
   return UINT32_MAX;
 }
