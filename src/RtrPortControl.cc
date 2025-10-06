@@ -179,7 +179,7 @@ void RtrPortControl::init( unsigned int phase ) {
 
       init_ev = getInitEvent( MordredInitEvent::PORT_NUM );
       connectedPortId = init_ev->value;
-      output->verbose( CALL_INFO, 5, 0, "Received init packets from [Rtr.Port]=[%" PRIu32 ".%" PRIu32 "]\n", connectedRtrId, connectedPortId );
+      //output->verbose( CALL_INFO, 5, 0, "Received init packets from [Rtr.Port]=[%" PRIu32 ".%" PRIu32 "]\n", connectedRtrId, connectedPortId );
       delete init_ev;
     } else if ( connectionType == ENDPOINT ) {
       init_ev = new MordredInitEvent();

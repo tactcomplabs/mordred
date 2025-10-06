@@ -24,6 +24,8 @@ set(MordredSrcs
         VcAllocRR.cc
         FlatButterflyTopo.h
         FlatButterflyTopo.cc
+        Torus2dTopo.h
+        Torus2dTopo.cc
         merlin_test_nic.h
         merlin_test_nic.cc
 )
