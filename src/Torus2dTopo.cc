@@ -95,9 +95,9 @@ uint32_t TorusTopo::routePacket( uint32_t dest ) {
     if ( dest_x != xId ) {
       // do X routing
       int32_t dx_neg = (int32_t)xId - (int32_t)dest_x;
-      if ( dx_neg < 0 ) dx_neg += xDim;
+      if ( dx_neg < 0 ) dx_neg += (int32_t)xDim;
       int32_t dx_pos = (int32_t)dest_x - (int32_t)xId;
-      if ( dx_pos < 0 ) dx_pos += xDim;
+      if ( dx_pos < 0 ) dx_pos += (int32_t)xDim;
 
       if ( dx_pos <= dx_neg )
         outport = PortDirE::EAST;
@@ -106,9 +106,9 @@ uint32_t TorusTopo::routePacket( uint32_t dest ) {
     } else {
       // do Y routing
       int32_t dy_neg = (int32_t)yId - (int32_t)dest_y;
-      if ( dy_neg < 0 ) dy_neg += yDim;
+      if ( dy_neg < 0 ) dy_neg += (int32_t)yDim;
       int32_t dy_pos = (int32_t)dest_y - (int32_t)yId;
-      if ( dy_pos < 0 ) dy_pos += yDim;
+      if ( dy_pos < 0 ) dy_pos += (int32_t)yDim;
 
       if ( dy_pos <= dy_neg )
         outport = PortDirE::NORTH;

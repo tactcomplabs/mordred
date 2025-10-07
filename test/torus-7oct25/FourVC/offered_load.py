@@ -25,7 +25,7 @@ else:
     sst.setStatisticOutput("sst.statOutputCSV", { "filepath" : "./mordred.OL.LF%s.csv"%load_level, "separator" : ", " } )
 
 FixedRtrParams = {
-    "num_vcs" : "1",
+    "num_vcs" : "4",
     "flit_size" : "16b",
     "input_buf_size" : "32B",
     "output_buf_size" : "16b"
