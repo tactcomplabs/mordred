@@ -32,12 +32,6 @@
 
 // TODO: Configure verbosity control (use constants in MordredEvents)
 
-/**
- * Currently, we assume that all ports linked to the router (so both from endpoints and other routers),
- * have the same number of virtual networks and virtual channels.  Since we're only using 1 of each for
- * now, we can get away with this.
- */
-
 namespace SST::Mordred {
 
 class SimpleRTR : public SST::Component {
@@ -91,9 +85,9 @@ public:
   )
 
   SST_ELI_DOCUMENT_STATISTICS(
-    {"tick10_cnt", "Number of cycles/10", "unitless", 3},
     { "xbar_idle", "For each receiving port, num cycles with an idle crossbar", "unitless", 3},
-    { "xbar_blocked", "For each receiving port, num cycles crossbar blocked", "unitless", 3}
+    { "xbar_blocked", "For each receiving port, num cycles crossbar blocked", "unitless", 3},
+    {"flit_unavailable", "Port does not have the flit to send thru the crossbar", "unitless", 3}
   )
 
   SimpleRTR( ComponentId_t cid, Params& params );
@@ -134,9 +128,9 @@ private:
   std::queue<Event*> untimedInitEventsQ;
 
   // Stats
-  Statistic<uint64_t>* tickCounter;
   std::vector<Statistic<uint64_t>*> statPerPortXbarIdle;
   std::vector<Statistic<uint64_t>*> statPerPortXbarBlocked;
+  std::vector<Statistic<uint64_t>*> statPerPortFlitUnavailable;
 
 };  // SimpleRTR
 

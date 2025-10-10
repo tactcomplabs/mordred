@@ -75,11 +75,11 @@ SimpleRTR::SimpleRTR( ComponentId_t cid, Params& params ) : Component( cid ) {
   }
 
   // Register Stats
-  tickCounter = registerStatistic<uint64_t>( "tick10_cnt" );
   for ( uint32_t i = 0; i < numPorts; i++ ) {
     std::string portstr = "port" + std::to_string( i );
     statPerPortXbarIdle.push_back( registerStatistic<uint64_t>( "xbar_idle", portstr.c_str() ) );
     statPerPortXbarBlocked.push_back( registerStatistic<uint64_t>( "xbar_blocked", portstr.c_str() ) );
+    statPerPortFlitUnavailable.push_back( registerStatistic<uint64_t>( "flit_unavailable", portstr.c_str() ) );
   }
 
   output.verbose(
@@ -173,11 +173,7 @@ void SimpleRTR::finish() {
 
 
 bool SimpleRTR::clockTick( Cycle_t cycle ) {
-  //output.flush();
   // May want/need to look at how we want to time/order ticking the ports and running the crossbar/arbitration here
-
-  if ( cycle % 10 == 0 )
-    tickCounter->addData( 1 );
 
   // For all router ports, see if we can receive a flit through the crossbar
   // portsVec.at(i) is the receiving port in this loop
@@ -190,19 +186,15 @@ bool SimpleRTR::clockTick( Cycle_t cycle ) {
       statPerPortXbarIdle.at(i)->addData( 1 );
       continue;
     } if ( sending_port == ( UINT32_MAX - 1 ) ) {
-      //output.verbose( CALL_INFO, 5, 0, "Port %u cannot receive - out of credits\n", i );
-      //output.flush();
       statPerPortXbarBlocked.at(i)->addData( 1 );
       continue;
     }
 
     // Get the flit from the sender -- multiple checks there for invalid/null concerns
     auto flit = portsVec.at( sending_port )->getInBufFlit();
-    // TODO: Add stat for below case
     if ( flit == nullptr ) {
-      output.verbose( CALL_INFO, 5, 0, "Port %u cannot receive from %u\n", i, sending_port );
-      output.flush();
       // can happen if there was a delay due to a lack of credits
+      statPerPortFlitUnavailable.at( sending_port )->addData( 1 );
       continue;
     }
 
