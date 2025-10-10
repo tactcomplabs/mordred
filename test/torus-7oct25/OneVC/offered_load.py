@@ -1,15 +1,53 @@
 # Automatically generated SST Python input
+from selectors import SelectSelector
+
 import sst
+import sys
 from math import floor
 
+# SCRIPT ARGUMENTS
+# argv[1] = load level (should be 1-100)
+# argv[2] = boolean: set to true to do merlin.clocked_offered_load, false for merlin.offered_load
+
+load_level = int(sys.argv[1])
+load_factor = (load_level/100)
+
+sst.setProgramOption("stop-at", "1ms")
+
+# Will need to fix statmemts using this variable if we add more options
+merlin_trafficgen = 0 # set to 0 is merlin.offered_load, 1 is merlin.background_traffic, 2 is merlin.clocked_offered_load
+
 stat_params = ( { "rate" : "0ns" } )
-sst.setStatisticOutput("sst.statOutputCSV", { "filepath" : "./stats.csv", "separator" : ", " } )
+if sys.argv[2] == "true":
+    merlin_trafficgen = 2
+    sst.setStatisticOutput("sst.statOutputCSV", { "filepath" : "./mordred.COL.LF%s.csv"%load_level, "separator" : ", " } )
+else:
+    sst.setStatisticOutput("sst.statOutputCSV", { "filepath" : "./mordred.OL.LF%s.csv"%load_level, "separator" : ", " } )
 
 FixedRtrParams = {
-    "num_vcs" : "2",
+    "num_vcs" : "1",
     "flit_size" : "16b",
     "input_buf_size" : "32B",
     "output_buf_size" : "16b"
+}
+
+MatchingTrafficGenParams = {
+    "packet_size" : "64b",
+    "offered_load" : load_factor,
+    "pattern" : "merlin.targetgen.uniform"
+}
+
+OfferedLoadParams = {
+    "link_bw" : "1GB/s",
+    "linkcontrol" : "mordred.mordredNIC",
+    "buffer_size" : "1kiB",
+    "warmup_time" : "1us",
+    "collect_time" : "500us",
+    "drain_time" : "50us"
+}
+
+ClockedOfferedLoadParams = {
+    "clock_rate" : "1GHz",
 }
 
 links = dict()
@@ -89,22 +127,28 @@ def createMesh(x_size, y_size, local_ports):
                 ep_num = (x*y_size*local_ports) + (y*local_ports) + k
                 num_eps = x_size * y_size * local_ports
                 print("%s Created endpoint %d with num_eps %d"%(ep_name, ep_num, num_eps))
-                #lcl_ep = sst.Component(ep_name, "mordred.test_ep")
-                lcl_ep = sst.Component(ep_name, "merlin.test_nic")
-                #lcl_ep = sst.Component(ep_name, "mordred.testNic")
-                lcl_ep.addParams({
-                    "id" : ep_num,
-                    "num_peers" : num_eps,
-                    "num_messages" : 10,
-                    "message_size" : "64b"
-                })
-                lcl_ep_iface = lcl_ep.setSubComponent("networkIF", "mordred.mordredNIC")
+                if merlin_trafficgen == 0:
+                    #lcl_ep = sst.Component(ep_name, "merlin.clocked_offered_load")
+                    lcl_ep = sst.Component(ep_name, "merlin.offered_load")
+                    lcl_ep.addParams(OfferedLoadParams)
+                else: # merlin_trafficgen == 1:
+                    lcl_ep = sst.Component(ep_name, "merlin.background_traffic")
+                lcl_ep.addParam( "num_peers" , (num_eps) )
+                lcl_ep.addParams(MatchingTrafficGenParams)
 
+                lcl_ep_iface = lcl_ep.setSubComponent("networkIF", "mordred.mordredNIC")
                 lcl_ep_iface.addParam("input_buf_size", "1kiB")
                 lcl_ep_iface.addParam("output_buf_size", "1kiB")
 
                 rtr.addLink(getLink("rtr_%d_%d"%(x, y), ep_name), lcl_portname, "800ps")
                 lcl_ep_iface.addLink(getLink("rtr_%d_%d"%(x, y), ep_name), "port", "800ps")
+
+                pattern_gen = lcl_ep.setSubComponent("pattern_gen", "merlin.targetgen.uniform")
+                # Setting the following params seems to have no effect
+                pattern_gen.addParams({
+                    "min" : "0",
+                    "max" : (num_eps-1),
+                })
 
 # Now, let's do another topology...
 def createSimpleTorus(x_size, y_size, local_ports):
@@ -169,15 +213,17 @@ def createSimpleTorus(x_size, y_size, local_ports):
                 ep_num = (x*y_size*local_ports) + (y*local_ports) + k
                 num_eps = x_size * y_size * local_ports
                 print("%s Created endpoint %d with num_eps %d"%(ep_name, ep_num, num_eps))
-                #lcl_ep = sst.Component(ep_name, "mordred.test_ep")
-                lcl_ep = sst.Component(ep_name, "merlin.test_nic")
-                #lcl_ep = sst.Component(ep_name, "mordred.testNic")
-                lcl_ep.addParams({
-                    "id" : ep_num,
-                    "num_peers" : num_eps,
-                    "num_messages" : 1,
-                    "message_size" : "64b"
-                })
+                if merlin_trafficgen == 0:
+                    lcl_ep = sst.Component(ep_name, "merlin.offered_load")
+                    lcl_ep.addParams(OfferedLoadParams)
+                elif merlin_trafficgen == 1: # merlin_trafficgen == 1:
+                    lcl_ep = sst.Component(ep_name, "merlin.background_traffic")
+                else:
+                    lcl_ep = sst.Component(ep_name, "merlin.clocked_offered_load")
+                    lcl_ep.addParams(OfferedLoadParams)
+                    lcl_ep.addParams(ClockedOfferedLoadParams)
+                lcl_ep.addParam( "num_peers" , (num_eps) )
+                lcl_ep.addParams(MatchingTrafficGenParams)
                 lcl_ep_iface = lcl_ep.setSubComponent("networkIF", "mordred.mordredNIC")
 
                 lcl_ep_iface.addParam("input_buf_size", "1kiB")
@@ -185,6 +231,13 @@ def createSimpleTorus(x_size, y_size, local_ports):
 
                 rtr.addLink(getLink("rtr_%d_%d"%(x, y), ep_name), lcl_portname, "800ps")
                 lcl_ep_iface.addLink(getLink("rtr_%d_%d"%(x, y), ep_name), "port", "800ps")
+
+                pattern_gen = lcl_ep.setSubComponent("pattern_gen", "merlin.targetgen.uniform")
+                # Setting the following params seems to have no effect
+                pattern_gen.addParams({
+                    "min" : "0",
+                    "max" : (num_eps-1),
+                })
 
 class FlattenedButterfly:
     def __init__(self, k, n):
@@ -253,14 +306,19 @@ class FlattenedButterfly:
             for j in range(self.k):
                 portname = "port" + str(self.local_port_start + j)
                 ep_name = "ep_%d_%d"%(i,j)
-                #ep = sst.Component(ep_name, "mordred.testNic")
-                ep = sst.Component(ep_name, "merlin.test_nic")
                 ep_num = i*self.k + j
+                ep = sst.Component(ep_name, "merlin.offered_load")
                 ep.addParams({
-                    "id" : ep_num,
                     "num_peers" : self.num_endpoints,
-                    "num_messages" : 3,
-                    "message_size" : "16B",
+                    "link_bw" : "500MB/s",
+                    "linkcontrol" : "mordred.mordredNIC",
+                    "buffer_size" : "1kiB",
+                    "packet_size" : "16B",
+                    "pattern" : "merlin.targetgen.uniform",
+                    "offered_load" : "0.5",
+                    "warmup_time" : "1us",
+                    "collect_time" : "200us",
+                    "drain_time" : "50us"
                 })
                 endpoints.append(ep)
                 #print("Created endpoint %d"%(ep_num))
@@ -276,6 +334,8 @@ class FlattenedButterfly:
                     print("WARN Failed to create ep link")
                 self.routers[i].addLink(link_name, portname, "800ps")
                 ep_iface.addLink(link_name, "port", "800ps")
+
+                pattern_gen = ep.setSubComponent("pattern_gen", "merlin.targetgen.uniform")
 
     def createEpRtrLink(self, rtr_id, ep_id):
         name = "link.%s_%s"%(rtr_id, ep_id)
@@ -337,23 +397,14 @@ class Crossbar:
 local_ports = 1 # == concentration
 
 # Mesh/torus Configuration options
-x_size = 8
-y_size = 5
-
-#Xbar config
-xbar_size = 6
+x_size = 3
+y_size = 3
 
 #print("Do mesh")
-# createMesh(x_size, y_size, local_ports)
+#createMesh(x_size, y_size, local_ports)
 
-## TODO: ONLY THE FLATTENED BUTTERFLY HAS BEEN FIXED FOR THE NEW NAMING
-## IN THE ROUTER COMPONENT (nor do we have matching subcomponents)
-
-print("Do simple torus")
+print("Do torus")
 createSimpleTorus(x_size, y_size, local_ports)
-
-#print("Do crossbar")
-#xbar_net = Crossbar(xbar_size, local_ports)
 
 # Flattened Butterfly Paper
 # Flattened Butterfly : A Cost-Efficient Topology for

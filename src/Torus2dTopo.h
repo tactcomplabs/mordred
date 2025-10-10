@@ -1,5 +1,5 @@
 //
-// MeshTopology.h
+// Torus2dTopo.h
 //
 // Copyright (C) 2025-2025 Tactical Computing Laboratories, LLC
 // All Rights Reserved
@@ -8,8 +8,8 @@
 // See LICENSE in the top level directory for licensing details
 //
 
-#ifndef MESHTOPOLOGY_H
-#define MESHTOPOLOGY_H
+#ifndef TORUS2DTOPO_H
+#define TORUS2DTOPO_H
 
 // Standard headers
 #include <cstdint>
@@ -23,16 +23,16 @@
 
 namespace SST::Mordred {
 
-class MeshTopology : public TopologyAPI {
+class TorusTopo : public TopologyAPI {
 
 public:
   // register with the SST Core
   SST_ELI_REGISTER_SUBCOMPONENT(
-    MeshTopology,
+    TorusTopo,
     "mordred",       // component library
-    "MeshTopology",  // component name
+    "torusTopo",  // component name
     SST_ELI_ELEMENT_VERSION( 0, 0, 1 ),
-    "2D Mesh Topology for NoC Router",
+    "2D Torus Topology for NoC Router",
     SST::Mordred::TopologyAPI
   )
 
@@ -49,13 +49,14 @@ public:
   // register the subcomponent slots
   SST_ELI_DOCUMENT_SUBCOMPONENT_SLOTS()
 
-  /// MeshTopology: constructor
-  MeshTopology( ComponentId_t id, Params& params, uint32_t rtr_id, uint32_t num_ports, uint32_t num_local_ports, std::vector<uint32_t>* connected_ports );
+  /// TORUS2DTOPO: constructor
+  TorusTopo( ComponentId_t id, Params& params, uint32_t rtr_id, uint32_t num_ports, uint32_t num_local_ports, std::vector<uint32_t>* connected_ports );
 
-  /// MeshTopology: destructor
-  ~MeshTopology() override = default;
+  /// TORUS2DTOPO: destructor
+  ~TorusTopo() override = default;
 
   // Lifecycle functions
+  void init( uint32_t phase ) final;
   void setup() final;
 
   int32_t getEndpointId( uint32_t portnum ) override;
@@ -72,11 +73,14 @@ private:
   uint32_t numPorts;
   uint32_t numLocalPorts;
 
-  // Mesh parameters
+  // Torus parameters
   uint32_t xId{UINT32_MAX};
   uint32_t yId{UINT32_MAX};
   uint32_t xDim{UINT32_MAX};
   uint32_t yDim{UINT32_MAX};
+  // these will be floor(Dim/2)
+  uint32_t halfXDim{UINT32_MAX};
+  uint32_t halfYDim{UINT32_MAX};
 
   // Port mapping
   enum PortDirE : uint32_t {NORTH = 0, EAST = 1, SOUTH = 2, WEST = 3};
