@@ -1,0 +1,14 @@
+Creating COL endpoint
+Creating COL endpoint
+Creating COL endpoint
+Creating COL endpoint
+Creating COL endpoint
+Creating COL endpoint
+Creating COL endpoint
+Creating COL endpoint
+Creating COL endpoint
+  Offered   Average
+    Load    Latency
+     0.40      6.62126 ns
+
+Simulation is complete, simulated time: 501 us

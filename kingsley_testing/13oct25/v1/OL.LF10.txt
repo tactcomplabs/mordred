@@ -1,0 +1,14 @@
+Creating endpoint ep0_0_0
+Creating endpoint ep0_1_0
+Creating endpoint ep0_2_0
+Creating endpoint ep0_0_1
+Creating endpoint ep0_1_1
+Creating endpoint ep0_2_1
+Creating endpoint ep0_0_2
+Creating endpoint ep0_1_2
+Creating endpoint ep0_2_2
+  Offered   Average
+    Load    Latency
+     0.10      7.42166 ns
+
+Simulation is complete, simulated time: 501 us
