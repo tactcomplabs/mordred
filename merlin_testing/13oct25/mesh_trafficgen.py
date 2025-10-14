@@ -34,9 +34,9 @@ stat_params = ( { "rate" : "0ns" } )
 sst.setStatisticLoadLevel(7)
 if sys.argv[2] == "true":
     merlin_trafficgen = 2
-    sst.setStatisticOutput("sst.statOutputCSV", { "filepath" : "./mordred.COL.LF%s.csv"%load_level, "separator" : ", " } )
+    sst.setStatisticOutput("sst.statOutputCSV", { "filepath" : "./merlin.COL.LF%s.csv"%load_level, "separator" : ", " } )
 else:
-    sst.setStatisticOutput("sst.statOutputCSV", { "filepath" : "./mordred.OL.LF%s.csv"%load_level, "separator" : ", " } )
+    sst.setStatisticOutput("sst.statOutputCSV", { "filepath" : "./merlin.OL.LF%s.csv"%load_level, "separator" : ", " } )
 
 sst.merlin._params["flit_size"] = "2B"
 sst.merlin._params["link_bw"] = "2.0GB/s" # 2B/flit - 1GHz clock equivalent

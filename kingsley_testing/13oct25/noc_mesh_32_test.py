@@ -23,9 +23,9 @@ merlin_trafficgen = 0 # set to 0 is merlin.offered_load, 1 is merlin.background_
 sst.setStatisticLoadLevel(7)
 if sys.argv[2] == "true":
     merlin_trafficgen = 2
-    sst.setStatisticOutput("sst.statOutputCSV", { "filepath" : "./mordred.COL.LF%s.csv"%load_level, "separator" : ", " } )
+    sst.setStatisticOutput("sst.statOutputCSV", { "filepath" : "./kingsley.COL.LF%s.csv"%load_level, "separator" : ", " } )
 else:
-    sst.setStatisticOutput("sst.statOutputCSV", { "filepath" : "./mordred.OL.LF%s.csv"%load_level, "separator" : ", " } )
+    sst.setStatisticOutput("sst.statOutputCSV", { "filepath" : "./kingsley.OL.LF%s.csv"%load_level, "separator" : ", " } )
 
 x_size = 3
 y_size = 3
