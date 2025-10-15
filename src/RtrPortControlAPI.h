@@ -122,6 +122,9 @@ public:
   /// RtrPortControlAPI: constructor
   RtrPortControlAPI( ComponentId_t id ) : SubComponent( id ) {}
 
+  /// RtrPortControlAPI : constructor for serialization
+  RtrPortControlAPI() : SubComponent() {}
+
   /// RtrPortControlAPI: default destructor
   ~RtrPortControlAPI() override = default;
 

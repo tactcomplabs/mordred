@@ -63,6 +63,9 @@ public:
   /// Get the output port for a flit
   uint32_t routePacket( uint32_t dest ) final;
 
+  /// default constructor
+  MeshTopology() : SST::Mordred::TopologyAPI() {}
+
   /// serialization
   void serialize_order(SST::Core::Serialization::serializer& ser) override {
     SST_SER(output);

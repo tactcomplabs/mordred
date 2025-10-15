@@ -61,7 +61,7 @@ constexpr uint32_t DEBUG_INIT_PHASE   = (1UL << 1);
 // This is a very simple event being sent by the TestEP.
 class simpleTestEvent final : public Event {
 public:
-  simpleTestEvent() { /* empty */ }
+  simpleTestEvent() : Event() { /* empty */ }
   simpleTestEvent( std::string str_ ) : str( std::move(str_) ) { /* empty */ }
 
   void serialize_order(Core::Serialization::serializer& ser) override {
@@ -81,6 +81,8 @@ public:
 
   baseMordredEvent( MordredEventType type_ ) : type( type_ ) { /* empty */ }
 
+  baseMordredEvent() : SST::Event() {}
+
   void serialize_order(Core::Serialization::serializer& ser) override {
     Event::serialize_order(ser);
     ser & type;
@@ -89,7 +91,6 @@ public:
   MordredEventType getType() { return type; }
 
 private:
-  baseMordredEvent() {} // for serialization
   MordredEventType type;
 
   ImplementSerializable( SST::Mordred::baseMordredEvent );

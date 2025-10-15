@@ -102,6 +102,9 @@ public:
   // Clock Handler
   bool clockTick( Cycle_t cycle );
 
+  /// default constructor
+  SimpleRTR() : SST::Component() {}
+
   /// serialization
   void serialize_order(SST::Core::Serialization::serializer& ser) override {
     SST_SER(output);

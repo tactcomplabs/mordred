@@ -51,6 +51,9 @@ public:
 
   bool clockTick( Cycle_t cycle );
 
+  /// default constructor
+  TestEP() : SST::Component() {}
+
   /// serialization
   void serialize_order(SST::Core::Serialization::serializer& ser) override {
     SST_SER(output);

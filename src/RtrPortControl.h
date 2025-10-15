@@ -219,6 +219,9 @@ public:
 
   uint32_t getConnectedRtrId() const final { return connectedRtrId; }
 
+  /// default constructor
+  RtrPortControl() : RtrPortControlAPI() {}
+
   /// serialization
   void serialize_order(SST::Core::Serialization::serializer& ser) override {
     SST_SER(output);
