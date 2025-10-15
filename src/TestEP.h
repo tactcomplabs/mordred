@@ -51,6 +51,17 @@ public:
 
   bool clockTick( Cycle_t cycle );
 
+  /// serialization
+  void serialize_order(SST::Core::Serialization::serializer& ser) override {
+    SST_SER(output);
+    SST_SER(timeConverter);
+    SST_SER(nocIface);
+    SST_SER(Id);
+    SST_SER(numPeers);
+    SST_SER(numInitMsgs);
+    SST_SER(init_state);
+  }
+
 private:
   // event handlers
   //void handleIncomingPacket( SST::Event* ev );

@@ -65,6 +65,19 @@ public:
   /// Get the output port for a flit -- dest should be the destination endpoint
   uint32_t routePacket( uint32_t dest ) final;
 
+  /// serialization
+  void serialize_order(SST::Core::Serialization::serializer& ser) override {
+    SST_SER(output);
+    SST_SER(k);
+    SST_SER(n);
+    SST_SER(rtrId);
+    SST_SER(numPorts);
+    SST_SER(numLocalPorts);
+    SST_SER(numRtrPorts);
+    SST_SER(myAddress);
+    SST_SER(perPortConnectedRtr);
+    SST_SER(connectedRtrsByBase);
+  }
 
 private:
   Output* output;

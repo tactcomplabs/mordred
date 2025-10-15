@@ -60,6 +60,27 @@ public:
         {"networkIF", "Network interface", "SST::Interfaces::SimpleNetwork" }
     )
 
+    /// serialization
+    void serialize_order(SST::Core::Serialization::serializer& ser) override {
+      SST_SER(id);
+      SST_SER(net_id);
+      SST_SER(num_peers);
+      SST_SER(msg_size);
+      SST_SER(num_msg);
+      SST_SER(packets_sent);
+      SST_SER(packets_recd);
+      SST_SER(stalled_cycles);
+      SST_SER(expected_recv_count);
+      SST_SER(done);
+      SST_SER(init_state);
+      SST_SER(init_count);
+      SST_SER(init_broadcast_count);
+      SST_SER(send_untimed_bcast);
+      SST_SER(last_target);
+      SST_SER(next_seq);
+      SST_SER(output);
+    }
+
 private:
 
     // SST::Interfaces::SimpleNetwork::nid_t id;

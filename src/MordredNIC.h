@@ -154,6 +154,36 @@ public:
 
   bool clockTick( Cycle_t cycle );
 
+  /// serialization
+  void serialize_order(SST::Core::Serialization::serializer& ser) override {
+    SST_SER(output);
+    SST_SER(link);
+    SST_SER(netID);
+    SST_SER(rtrId);
+    SST_SER(rtrPort);
+    SST_SER(initialized);
+    SST_SER(numVns);
+    SST_SER(numVcs);
+    SST_SER(flitSize);
+    SST_SER(channelBusWidth);
+    SST_SER(packetId);
+    SST_SER(headInjectCycle);
+    SST_SER(bw);
+    SST_SER(inbufSize);
+    SST_SER(outbufSize);
+    SST_SER(initEvents);
+    SST_SER(inBuf);
+    SST_SER(outBuf);
+    SST_SER(rtrCredits);
+    SST_SER(outbufCredits);
+    SST_SER(totalNocLatency);
+    SST_SER(totalPackets);
+    SST_SER(totalNumFlits);
+    SST_SER(statPacketsRecv);
+    SST_SER(statAvgNocLatency);
+    SST_SER(statAvgFlitsPerPacket);
+  }
+
 private:
   void resizeVectors();
   MordredInitEvent* getInitEvent( MordredInitEvent::Commands cmd );

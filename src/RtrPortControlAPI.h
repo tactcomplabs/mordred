@@ -70,6 +70,15 @@ struct perVcInState {
     outVc = UINT32_MAX;
     retCredits = 0;
   }
+
+  void serialize_order(SST::Core::Serialization::serializer& ser){
+    SST_SER(inVcState);
+    SST_SER(outPort);
+    SST_SER(outVn);
+    SST_SER(outVc);
+    SST_SER(retCredits);
+    SST_SER(inBuf);
+  }
 };
 
 struct perVcOutState {
@@ -90,6 +99,16 @@ struct perVcOutState {
     inVc = UINT32_MAX;
     outBufCredits = ob_creds;
     destCredits = 0;
+  }
+
+  void serialize_order(SST::Core::Serialization::serializer& ser){
+    SST_SER(outVcState);
+    SST_SER(inPort);
+    SST_SER(inVn);
+    SST_SER(inVc);
+    SST_SER(outBufCredits);
+    SST_SER(destCredits);
+    SST_SER(outBuf);
   }
 };
 

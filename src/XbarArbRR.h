@@ -50,6 +50,21 @@ public:
 
   void arbitrate( std::vector<RtrPortControlAPI*> &ports, std::vector<RtrOwnedSharedObjs> &rtr_shared_objs ) final;
 
+  /// serialization
+  void serialize_order(SST::Core::Serialization::serializer& ser) override {
+    SST_SER(output);
+    SST_SER(rtrId);
+    SST_SER(numPorts);
+    SST_SER(numVns);
+    SST_SER(numVcs);
+    SST_SER(recv_rr_port);
+    SST_SER(send_rr_port);
+    SST_SER(send_rr_vn);
+    SST_SER(send_rr_vc);
+    SST_SER(sending_vn);
+    SST_SER(sending_vc);
+  }
+
 private:
   Output   *output;
   uint32_t rtrId;

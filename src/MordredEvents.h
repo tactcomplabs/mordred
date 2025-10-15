@@ -108,6 +108,13 @@ public:
   value(0),
   req(r) {}
 
+  void serialize_order(Core::Serialization::serializer& ser) override {
+    Event::serialize_order(ser);
+    ser & command;
+    ser & ua_value;
+    ser & req;
+  }
+
   Commands command;
   uint32_t value;
   UnitAlgebra ua_value;
@@ -233,6 +240,12 @@ struct RtrOwnedSharedObjs {
       needVcAlloc[i].resize( num_vcs, nullptr );
       needSwitchAlloc[i].resize( num_vcs, nullptr );
     }
+  }
+
+  void serialize_order(SST::Core::Serialization::serializer& ser){
+    SST_SER(isValid);
+    SST_SER(needVcAlloc);
+    SST_SER(needSwitchAlloc);
   }
 };
 
