@@ -81,6 +81,9 @@ public:
     SST_SER(perPortConnectedRtr);
   }
 
+  /// serialization implementations
+  ImplementSerializable(SST::Mordred::TorusTopo);
+
 private:
   Output* output;
 

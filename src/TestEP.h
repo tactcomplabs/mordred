@@ -65,6 +65,9 @@ public:
     SST_SER(init_state);
   }
 
+  /// serialization implementations
+  ImplementSerializable(SST::Mordred::TestEP);
+
 private:
   // event handlers
   //void handleIncomingPacket( SST::Event* ev );

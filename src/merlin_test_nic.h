@@ -60,6 +60,9 @@ public:
         {"networkIF", "Network interface", "SST::Interfaces::SimpleNetwork" }
     )
 
+    /// default constructor
+    nic() : SST::Component() {}
+
     /// serialization
     void serialize_order(SST::Core::Serialization::serializer& ser) override {
       SST_SER(id);
@@ -80,6 +83,9 @@ public:
       SST_SER(next_seq);
       SST_SER(output);
     }
+
+    /// serialization implementations
+    ImplementSerializable(SST::Mordred::nic);
 
 private:
 

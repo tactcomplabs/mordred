@@ -68,6 +68,9 @@ public:
     SST_SER(sending_vc);
   }
 
+  /// serialization implementations
+  ImplementSerializable(SST::Mordred::XbarArbRR);
+
 private:
   Output   *output;
   uint32_t rtrId;

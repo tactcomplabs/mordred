@@ -76,6 +76,9 @@ public:
     SST_SER(rr_dest_vc);
   }
 
+  /// serialization implementations
+  ImplementSerializable(SST::Mordred::VcAllocRR);
+
 private:
   Output   *output;
   uint32_t rtrId;

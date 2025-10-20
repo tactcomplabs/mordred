@@ -82,6 +82,9 @@ public:
     SST_SER(connectedRtrsByBase);
   }
 
+  /// serialization implementations
+  ImplementSerializable(SST::Mordred::FlatButterflyTopo);
+
 private:
   Output* output;
 

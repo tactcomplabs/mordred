@@ -187,6 +187,9 @@ public:
     SST_SER(statAvgFlitsPerPacket);
   }
 
+  /// serialization implementations
+  ImplementSerializable(SST::Mordred::MordredNIC);
+
 private:
   void resizeVectors();
   MordredInitEvent* getInitEvent( MordredInitEvent::Commands cmd );

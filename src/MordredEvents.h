@@ -83,17 +83,18 @@ public:
 
   baseMordredEvent() : SST::Event() {}
 
+  MordredEventType getType() { return type; }
+
   void serialize_order(Core::Serialization::serializer& ser) override {
     Event::serialize_order(ser);
     ser & type;
   }
 
-  MordredEventType getType() { return type; }
+  ImplementSerializable( SST::Mordred::baseMordredEvent );
 
 private:
   MordredEventType type;
 
-  ImplementSerializable( SST::Mordred::baseMordredEvent );
 };
 
 // Used to initialize the network
@@ -116,14 +117,16 @@ public:
     ser & req;
   }
 
+  ImplementSerializable( SST::Mordred::MordredInitEvent );
+
+public:
   Commands command;
   uint32_t value;
   UnitAlgebra ua_value;
   Interfaces::SimpleNetwork::Request  *req{nullptr};
 
-
 private:
-  ImplementSerializable( SST::Mordred::MordredInitEvent )
+
 };
 
 // This is intended to be the basic Flit running around the NoC.
@@ -212,8 +215,9 @@ public:
     ser & credits;
   }
 
-private:
   ImplementSerializable( SST::Mordred::MordredCreditEvent );
+
+private:
 };
 
 /**

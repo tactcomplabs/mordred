@@ -126,6 +126,9 @@ public:
     SST_SER(statPerPortFlitUnavailable);
   }
 
+  /// serialization implementations
+  ImplementSerializable(SST::Mordred::SimpleRTR);
+
 private:
   Output                  output;
   uint32_t                id;

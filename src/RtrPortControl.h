@@ -260,6 +260,9 @@ public:
     SST_SER(statLinkOutputStalledCnt);
   }
 
+  /// serialization implementations
+  ImplementSerializable(SST::Mordred::RtrPortControl);
+
 private:
   void allocateBuffers(); // this also registers the stats
   MordredInitEvent* getInitEvent( MordredInitEvent::Commands cmd );

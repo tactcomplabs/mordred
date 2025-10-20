@@ -80,6 +80,9 @@ public:
     SST_SER(perPortConnectedRtr);
   }
 
+  /// serialization implementations
+  ImplementSerializable(SST::Mordred::MeshTopology);
+
 private:
   Output* output;
 
