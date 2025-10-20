@@ -64,6 +64,25 @@ public:
   /// Get the output port for a flit
   uint32_t routePacket( uint32_t dest ) final;
 
+  /// default constructor
+  TorusTopo() : TopologyAPI() {}
+
+  /// serialization
+  void serialize_order(SST::Core::Serialization::serializer& ser) override {
+    SST_SER(output);
+    SST_SER(rtrId);
+    SST_SER(numPorts);
+    SST_SER(numLocalPorts);
+    SST_SER(xId);
+    SST_SER(yId);
+    SST_SER(yDim);
+    SST_SER(halfXDim);
+    SST_SER(halfYDim);
+    SST_SER(perPortConnectedRtr);
+  }
+
+  /// serialization implementations
+  ImplementSerializable(SST::Mordred::TorusTopo);
 
 private:
   Output* output;

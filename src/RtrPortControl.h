@@ -219,6 +219,50 @@ public:
 
   uint32_t getConnectedRtrId() const final { return connectedRtrId; }
 
+  /// default constructor
+  RtrPortControl() : RtrPortControlAPI() {}
+
+  /// serialization
+  void serialize_order(SST::Core::Serialization::serializer& ser) override {
+    SST_SER(output);
+    SST_SER(link);
+    SST_SER(topo);
+    SST_SER(connectionType);
+    SST_SER(rtrId);
+    SST_SER(portId);
+    SST_SER(connectedRtrId);
+    SST_SER(connectedPortId);
+    SST_SER(numVns);
+    SST_SER(numVcs);
+    SST_SER(flitSize);
+    SST_SER(channelBusWidth);
+    SST_SER(flit_vn_rr);
+    SST_SER(flit_vc_rr);
+    SST_SER(credit_ret_vn_rr);
+    SST_SER(credit_ret_vc_rr);
+    SST_SER(switch_alloc_sendto_port);
+    SST_SER(switch_alloc_sendfrom_vn);
+    SST_SER(switch_alloc_sendfrom_vc);
+    SST_SER(switch_alloc_rcvfrom_port);
+    SST_SER(switch_alloc_rcvto_vn);
+    SST_SER(switch_alloc_rcvto_vc);
+    SST_SER(param_link_bw);
+    SST_SER(param_flit_size);
+    SST_SER(inBufSize);
+    SST_SER(outBufSize);
+    SST_SER(initEvents);
+    SST_SER(inStateVec);
+    SST_SER(outStateVec);
+    SST_SER(rtrSharedObjs);
+    SST_SER(statLinkRecvFlitCnt);
+    SST_SER(statLinkSentFlitCnt);
+    SST_SER(statLinkSentPacketCnt);
+    SST_SER(statLinkOutputStalledCnt);
+  }
+
+  /// serialization implementations
+  ImplementSerializable(SST::Mordred::RtrPortControl);
+
 private:
   void allocateBuffers(); // this also registers the stats
   MordredInitEvent* getInitEvent( MordredInitEvent::Commands cmd );

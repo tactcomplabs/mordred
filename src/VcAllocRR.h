@@ -58,6 +58,27 @@ public:
 
   void arbitrate( std::vector<RtrPortControlAPI*>& ports, std::vector<RtrOwnedSharedObjs>& rtr_shared_objs ) final;
 
+  /// default constructor
+  VcAllocRR() : VcAllocAPI() {}
+
+  /// serialization
+  void serialize_order(SST::Core::Serialization::serializer& ser) override {
+    SST_SER(output);
+    SST_SER(rtrId);
+    SST_SER(numPorts);
+    SST_SER(numVns);
+    SST_SER(numVcs);
+    SST_SER(rr_port);
+    SST_SER(rr_vn);
+    SST_SER(rr_vc);
+    SST_SER(src_vn);
+    SST_SER(src_vc);
+    SST_SER(rr_dest_vc);
+  }
+
+  /// serialization implementations
+  ImplementSerializable(SST::Mordred::VcAllocRR);
+
 private:
   Output   *output;
   uint32_t rtrId;

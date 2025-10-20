@@ -35,6 +35,9 @@ class VcAllocAPI : public SubComponent {
   /// VcAllocAPI: constructor
   VcAllocAPI( ComponentId_t id ) : SubComponent( id ) {}
 
+  /// VcAllocAPI: default constructor for serialization
+  VcAllocAPI() : SubComponent() {}
+
   /// ArbAPI: default destructor
   ~VcAllocAPI() override = default;
 

@@ -32,6 +32,9 @@ public:
   /// TopologyAPI: constructor
   TopologyAPI( ComponentId_t id ) : SubComponent( id ) {}
 
+  /// TopologyAPI: constructor
+  TopologyAPI() : SubComponent() {}
+
   /// TopologyAPI: default destructor
   ~TopologyAPI() override  = default;
 

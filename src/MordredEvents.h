@@ -61,7 +61,7 @@ constexpr uint32_t DEBUG_INIT_PHASE   = (1UL << 1);
 // This is a very simple event being sent by the TestEP.
 class simpleTestEvent final : public Event {
 public:
-  simpleTestEvent() { /* empty */ }
+  simpleTestEvent() : Event() { /* empty */ }
   simpleTestEvent( std::string str_ ) : str( std::move(str_) ) { /* empty */ }
 
   void serialize_order(Core::Serialization::serializer& ser) override {
@@ -81,18 +81,20 @@ public:
 
   baseMordredEvent( MordredEventType type_ ) : type( type_ ) { /* empty */ }
 
+  baseMordredEvent() : SST::Event() {}
+
+  MordredEventType getType() { return type; }
+
   void serialize_order(Core::Serialization::serializer& ser) override {
     Event::serialize_order(ser);
     ser & type;
   }
 
-  MordredEventType getType() { return type; }
+  ImplementSerializable( SST::Mordred::baseMordredEvent );
 
 private:
-  baseMordredEvent() {} // for serialization
   MordredEventType type;
 
-  ImplementSerializable( SST::Mordred::baseMordredEvent );
 };
 
 // Used to initialize the network
@@ -108,14 +110,23 @@ public:
   value(0),
   req(r) {}
 
+  void serialize_order(Core::Serialization::serializer& ser) override {
+    Event::serialize_order(ser);
+    ser & command;
+    ser & ua_value;
+    ser & req;
+  }
+
+  ImplementSerializable( SST::Mordred::MordredInitEvent );
+
+public:
   Commands command;
   uint32_t value;
   UnitAlgebra ua_value;
   Interfaces::SimpleNetwork::Request  *req{nullptr};
 
-
 private:
-  ImplementSerializable( SST::Mordred::MordredInitEvent )
+
 };
 
 // This is intended to be the basic Flit running around the NoC.
@@ -204,8 +215,9 @@ public:
     ser & credits;
   }
 
-private:
   ImplementSerializable( SST::Mordred::MordredCreditEvent );
+
+private:
 };
 
 /**
@@ -233,6 +245,12 @@ struct RtrOwnedSharedObjs {
       needVcAlloc[i].resize( num_vcs, nullptr );
       needSwitchAlloc[i].resize( num_vcs, nullptr );
     }
+  }
+
+  void serialize_order(SST::Core::Serialization::serializer& ser){
+    SST_SER(isValid);
+    SST_SER(needVcAlloc);
+    SST_SER(needSwitchAlloc);
   }
 };
 

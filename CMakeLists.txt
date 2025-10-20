@@ -6,6 +6,22 @@
 
 # Heavily borrowed from forzarev/CMakeLists.txt
 
+# ---------------------------------------------------
+# string_contains_number
+# ---------------------------------------------------
+function(string_contains_number str result)
+  string(REGEX MATCH "[0-9]" has_number "${str}")
+  if(has_number)
+    set(${result} TRUE PARENT_SCOPE)
+  else()
+    set(${result} FALSE PARENT_SCOPE)
+  endif()
+endfunction()
+
+
+# ---------------------------------------------------
+# main
+# ---------------------------------------------------
 # Prevent in-source builds
 if(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
     message(FATAL_ERROR "DO NOT BUILD in-tree.")
@@ -52,6 +68,38 @@ execute_process(COMMAND sst-config --ELEMENT_LDFLAGS
         OUTPUT_STRIP_TRAILING_WHITESPACE
 )
 set(LDFLAGS "${SST_LDFLAGS}  -fno-stack-protector")
+
+
+execute_process(COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/scripts/sst-major-version.sh
+                OUTPUT_VARIABLE SST_MAJOR_VERSION
+                OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+execute_process(COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/scripts/sst-minor-version.sh
+                OUTPUT_VARIABLE SST_MINOR_VERSION
+                OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+
+string_contains_number("${SST_MAJOR_VERSION}" contains_num)
+if(NOT contains_num)
+  set(SST_MAJOR_VERSION "DEV")
+  set(SST_MINOR_VERSION "DEV")
+  execute_process(COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/scripts/sst-git-hash.sh
+                  OUTPUT_VARIABLE SST_GIT_HASH
+                  OUTPUT_STRIP_TRAILING_WHITESPACE
+  )
+  message(STATUS "SST GIT HASH=${SST_GIT_HASH}")
+endif()
+
+message(STATUS "SST MAJOR VERSION=${SST_MAJOR_VERSION}")
+message(STATUS "SST MINOR VERSION=${SST_MINOR_VERSION}")
+string(CONCAT SST_VERSION  ${SST_MAJOR_VERSION} "." ${SST_MINOR_VERSION})
+message(STATUS "SST FULL VERSION=${SST_VERSION}")
+
+if(NOT "${SST_MAJOR_VERSION}" STREQUAL "DEV")
+  if(${SST_VERSION} VERSION_LESS "15.0")
+    message(FATAL_ERROR "Mordred requires SST 15.0.0+")
+  endif()
+endif()
 
 # Compiler Options
 if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")

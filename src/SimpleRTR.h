@@ -102,6 +102,33 @@ public:
   // Clock Handler
   bool clockTick( Cycle_t cycle );
 
+  /// default constructor
+  SimpleRTR() : SST::Component() {}
+
+  /// serialization
+  void serialize_order(SST::Core::Serialization::serializer& ser) override {
+    SST_SER(output);
+    SST_SER(id);
+    SST_SER(timeConverter);
+    SST_SER(numPorts);
+    SST_SER(numLocalPorts);
+    SST_SER(numVns);
+    SST_SER(numVcs);
+    SST_SER(topology);
+    SST_SER(arbiter);
+    SST_SER(vcAlloc);
+    SST_SER(portsVec);
+    SST_SER(perPortConnectedRtr);
+    SST_SER(perPortSharedObjs);
+    SST_SER(untimedInitEventsQ);
+    SST_SER(statPerPortXbarIdle);
+    SST_SER(statPerPortXbarBlocked);
+    SST_SER(statPerPortFlitUnavailable);
+  }
+
+  /// serialization implementations
+  ImplementSerializable(SST::Mordred::SimpleRTR);
+
 private:
   Output                  output;
   uint32_t                id;

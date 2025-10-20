@@ -35,6 +35,9 @@ class XbarArbAPI : public SubComponent {
   /// XbarArbAPI: constructor
   XbarArbAPI( ComponentId_t id ) : SubComponent( id ) {}
 
+  // XbarArbAPI: default constructor for serialization
+  XbarArbAPI() : SubComponent() {}
+
   /// XbarArbAPI: default destructor
   ~XbarArbAPI() override = default;
 

@@ -65,6 +65,25 @@ public:
   /// Get the output port for a flit -- dest should be the destination endpoint
   uint32_t routePacket( uint32_t dest ) final;
 
+  /// default constructor
+  FlatButterflyTopo() : SST::Mordred::TopologyAPI() {}
+
+  /// serialization
+  void serialize_order(SST::Core::Serialization::serializer& ser) override {
+    SST_SER(output);
+    SST_SER(k);
+    SST_SER(n);
+    SST_SER(rtrId);
+    SST_SER(numPorts);
+    SST_SER(numLocalPorts);
+    SST_SER(numRtrPorts);
+    SST_SER(myAddress);
+    SST_SER(perPortConnectedRtr);
+    SST_SER(connectedRtrsByBase);
+  }
+
+  /// serialization implementations
+  ImplementSerializable(SST::Mordred::FlatButterflyTopo);
 
 private:
   Output* output;
