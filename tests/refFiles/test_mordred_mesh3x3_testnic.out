@@ -1,0 +1,28 @@
+90:  0 Finished sending packets (total of 10)
+90:  1 Finished sending packets (total of 10)
+90:  2 Finished sending packets (total of 10)
+90:  3 Finished sending packets (total of 10)
+90:  4 Finished sending packets (total of 10)
+90:  5 Finished sending packets (total of 10)
+90:  6 Finished sending packets (total of 10)
+90:  7 Finished sending packets (total of 10)
+90:  8 Finished sending packets (total of 10)
+683: NIC 4 received all packets (total of 90)!
+684: NIC 1 received all packets (total of 90)!
+684: NIC 3 received all packets (total of 90)!
+685: NIC 6 received all packets (total of 90)!
+689: NIC 2 received all packets (total of 90)!
+691: NIC 0 received all packets (total of 90)!
+692: NIC 5 received all packets (total of 90)!
+692: NIC 7 received all packets (total of 90)!
+704: NIC 8 received all packets (total of 90)!
+Nic 8 had 0 stalled cycles.
+Nic 7 had 0 stalled cycles.
+Nic 6 had 0 stalled cycles.
+Nic 5 had 0 stalled cycles.
+Nic 4 had 0 stalled cycles.
+Nic 3 had 0 stalled cycles.
+Nic 2 had 0 stalled cycles.
+Nic 1 had 0 stalled cycles.
+Nic 0 had 0 stalled cycles.
+Simulation is complete, simulated time: 704 ns

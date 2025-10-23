@@ -57,7 +57,7 @@ public:
 
   // All of the parameters are handled/passed in from the SimpleRtr
   SST_ELI_DOCUMENT_PARAMS(
-    //{ "verbose", "Sets the output verbsoity", "5" },
+    { "verbose", "Sets the output verbsoity", "5" },
     //{"link_bw",       "Bandwidth of the links specified in either b/s or B/s (can include SI prefix)."},
     //{"flit_size",     "Size of a flit in either b or B (can include SI prefix)."},
     //{ "link_bw",        "Bandwidth of the links specified in either b/s or B/s (can include SI prefix)."},
@@ -83,7 +83,7 @@ public:
   // Lifecycle functions
   void init(unsigned int phase) final;
   void setup() final;
-  void complete(unsigned int phase) override { /* empty */ }
+  void complete(unsigned int phase) final;
   void finish() override { /* empty */ }
 
   void sendUntimedData(Event* ev) final;
@@ -323,7 +323,7 @@ private:
   std::vector<std::vector<Statistic<uint64_t>*>> statLinkRecvFlitCnt;
   std::vector<std::vector<Statistic<uint64_t>*>> statLinkSentFlitCnt;
   std::vector<std::vector<Statistic<uint64_t>*>> statLinkSentPacketCnt;
-  Statistic<uint64_t>* statLinkOutputStalledCnt; // TODO: Currently unused; see comments in ClockTick()
+  Statistic<uint64_t>* statLinkOutputStalledCnt{}; // TODO: Currently unused; see comments in ClockTick()
 };
 
 } // namespace SST::Mordred

@@ -193,8 +193,30 @@ void MordredNIC::setup() {
 }
 
 void MordredNIC::complete( uint32_t phase ) {
-  if ( phase > 0 )
-    return;
+  //output->verbose(CALL_INFO, 7, 0, "MordredNIC complete; phase=%" PRIu32 "\n", phase);
+  //output->flush();
+  Event *ev;
+
+  while ( ( ev = link->recvUntimedData() ) != nullptr ) {
+    auto base_ev = static_cast<baseMordredEvent*>( ev );
+    if( base_ev->getType() == baseMordredEvent::CREDIT ) {
+      auto credit_ev = static_cast<MordredCreditEvent*>( ev );
+      rtrCredits.at( credit_ev->vn ) += credit_ev->credits;
+      //output->verbose( CALL_INFO, 5, 0, "Received credit event vn=%" PRIu32 ", credits=%" PRId32 "; cur_credits=%" PRId32 "\n",
+      //  credit_ev->vn, credit_ev->credits, rtrCredits.at( credit_ev->vn ) );
+      delete ev;
+    } else if ( base_ev->getType() == baseMordredEvent::PACKET ) {
+      //output->verbose( CALL_INFO, 5, 0, "Received untimed packet\n" );
+      //output->flush();
+      initEvents.push( static_cast<MordredInitEvent*>(ev) );
+    } else {
+      output->verbose( CALL_INFO, 5, 0, "Received unexpected event type=%d\n", (int) base_ev->getType() );
+      delete ev;
+    }
+  }
+}
+
+void MordredNIC::finish() {
   double avg_ticks = (double)totalNocLatency / totalPackets;
   if ( totalPackets == 0 ) // need this to avoid some nasty output in sst 14.0.0
     avg_ticks = -1.0;
@@ -202,11 +224,6 @@ void MordredNIC::complete( uint32_t phase ) {
   statAvgNocLatency->addData( avg_ticks );
   double avg_flits = (double)totalNumFlits / totalPackets;
   statAvgFlitsPerPacket->addData( avg_flits );
-  //output->verbose(CALL_INFO, 7, 0, "MordredNIC complete; phase=%" PRIu32 "\n", phase);
-  //output->flush();
-}
-
-void MordredNIC::finish() {
   //output->verbose(CALL_INFO, 7, 0, "MordredNIC finish\n");
   //output->flush();
 }

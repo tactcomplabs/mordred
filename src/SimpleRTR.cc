@@ -155,9 +155,19 @@ void SimpleRTR::complete( uint32_t phase ) {
   topology->complete( phase );
   vcAlloc->complete( phase );
   arbiter->complete( phase );
-  for ( auto &port : portsVec )
-    if ( port != nullptr )
-      port->complete( phase );
+  for ( auto &port : portsVec ) {
+    if ( port == nullptr )
+      continue;
+
+    port->complete( phase );
+    while( true ) {
+      Event* ev = port->recvUntimedData();
+      if ( ev == nullptr ) break; // jump out of while loop
+      auto init_ev   = static_cast<MordredInitEvent*>( ev );
+      auto dest_port = topology->routePacket( init_ev->req->dest );
+      portsVec.at( dest_port )->sendUntimedData( ev );
+    }
+  }
 }
 
 void SimpleRTR::finish() {
