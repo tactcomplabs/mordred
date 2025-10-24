@@ -3,12 +3,15 @@
 import sst
 
 # Use to set the stats output filename
-testname = "mesh3x3_testnic"
+testname = "torus5x5_2vc_testnic"
+
+## TEST NOTE(S)
+## - If either dimension >= 5, use multiple VCs otherwise deadlock may occur
 
 FixedRtrParams = {
-    "verbose" : "0",
+    "verbose" : 0,
     "clock" : "1GHz",
-    "num_vcs" : "1",
+    "num_vcs" : "2",
     "flit_size" : "16b",
     "input_buf_size" : "32B", # 16 flits
     "output_buf_size" : "16b" # 1 flit
@@ -22,8 +25,8 @@ FixedTestNicParams = {
 
 MordredNICParams = {
     "verbose" : 0,
-    "input_buf_size" : "1kiB",
-    "output_buf_size" : "1kiB",
+    "input_buf_size" : "2kiB",
+    "output_buf_size" : "2kiB",
 }
 
 links = dict()
@@ -38,7 +41,7 @@ def getLink(name1, name2):
 # rtr_id is expected to go linearly from 0-((x*y)-1)
 # rtr_id is also expected to be x-dominant (e.g, router id xDim has location x=0,y=1)
 # links are expected to be ordered as n,e,s,w
-def createMesh(x_size, y_size, local_ports):
+def createTorus(x_size, y_size, local_ports):
     # Create the routers
     rtr_id = 0
     nports = 4 + local_ports
@@ -53,7 +56,7 @@ def createMesh(x_size, y_size, local_ports):
             rtr.addParams(FixedRtrParams)
             rtr.addParams(rtr_params)
             rtr_id += 1
-            rtr_topo = rtr.setSubComponent( "topology", "mordred.MeshTopology" )
+            rtr_topo = rtr.setSubComponent( "topology", "mordred.torusTopo" )
             rtr_topo.addParams({
                 "verbose" : 0,
                 "xDim" : x_size,
@@ -62,18 +65,26 @@ def createMesh(x_size, y_size, local_ports):
             # north links
             if y != y_size - 1:
                 rtr.addLink(getLink("rtr_%d_%d"%(x,y), "rtr_%d_%d"%(x,y+1)), "port0", "800ps")
+            else: # connect to y = 0 routers; y=y_size-1
+                rtr.addLink(getLink("rtr_%d_%d"%(x,y), "rtr_%d_%d"%(x,0)), "port0", "800ps")
 
             # east links
             if x != x_size - 1:
                 rtr.addLink(getLink("rtr_%d_%d"%(x,y), "rtr_%d_%d"%(x+1,y)), "port1", "800ps")
+            else: # x=x_size-1 case; connect to x=0 rtrs
+                rtr.addLink(getLink("rtr_%d_%d"%(x,y), "rtr_%d_%d"%(0,y)), "port1", "800ps")
 
             # south links
             if y != 0:
                 rtr.addLink(getLink("rtr_%d_%d"%(x,y-1), "rtr_%d_%d"%(x,y)), "port2", "800ps")
+            else: # y=0 case, should already have a link from the "north" links
+                rtr.addLink(getLink("rtr_%d_%d"%(x,y_size-1), "rtr_%d_%d"%(x,0)), "port2", "800ps")
 
             # west links
             if x != 0:
                 rtr.addLink(getLink("rtr_%d_%d"%(x-1,y), "rtr_%d_%d"%(x,y)), "port3", "800ps")
+            else: # x=0 case; already have a link from the "east" links
+                rtr.addLink(getLink("rtr_%d_%d"%(x_size-1,y), "rtr_%d_%d"%(0,y)), "port3", "800ps")
 
             # local ports
             for k in range(local_ports):
@@ -100,11 +111,11 @@ def createMesh(x_size, y_size, local_ports):
 # General params
 local_ports = 1 # == concentration
 
-# Mesh Configuration options
-x_size = 3
-y_size = 3
+# Configuration options
+x_size = 5
+y_size = 5
 
-createMesh(x_size, y_size, local_ports)
+createTorus(x_size, y_size, local_ports)
 
 # Do stats
 sst.setStatisticLoadLevel(7)

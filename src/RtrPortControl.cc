@@ -476,9 +476,11 @@ void RtrPortControl::returnCredit() {
     for( uint32_t j = 0, vc = credit_ret_vc_rr; j < numVcs; j++, vc = ( ( vc != ( numVcs - 1 ) ) ? vc + 1 : 0 ) ) {
       if( inStateVec.at( vn ).at ( vc ).retCredits != 0 ) {
         auto credit = new MordredCreditEvent( vn, vc, inStateVec.at( vn ).at ( vc ).retCredits );
+        //output->verbose( CALL_INFO, 5, 0, "Sending credit event with %d credits\n",
+        //  inStateVec.at( vn ).at ( vc ).retCredits );
+        //output->flush();
         link->send( credit );
         inStateVec.at( vn ).at ( vc ).retCredits = 0;
-        //output->verbose( CALL_INFO, 5, 0, "Sending credit event\n" );
         break;  // only send one packet on the link
       }
     }

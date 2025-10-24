@@ -18,6 +18,8 @@ class testcase_mordred(SSTTestCase):
     def test_mordred_mesh3x3_testnic(self):
         self.mordred_test_template("mesh3x3_testnic")
 
+    def test_mordred_torus5x5_2vc_testnic(self):
+        self.mordred_test_template("torus5x5_2vc_testnic")
     # Add subsequent tests here...
 
 #####
