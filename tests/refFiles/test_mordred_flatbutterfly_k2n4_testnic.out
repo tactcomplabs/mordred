@@ -1,0 +1,49 @@
+263:  5 Finished sending packets (total of 10)
+263:  13 Finished sending packets (total of 10)
+275:  1 Finished sending packets (total of 10)
+275:  9 Finished sending packets (total of 10)
+280:  3 Finished sending packets (total of 10)
+280:  7 Finished sending packets (total of 10)
+280:  11 Finished sending packets (total of 10)
+280:  15 Finished sending packets (total of 10)
+286:  4 Finished sending packets (total of 10)
+286:  12 Finished sending packets (total of 10)
+287:  0 Finished sending packets (total of 10)
+287:  8 Finished sending packets (total of 10)
+289:  6 Finished sending packets (total of 10)
+289:  14 Finished sending packets (total of 10)
+290:  2 Finished sending packets (total of 10)
+290:  10 Finished sending packets (total of 10)
+1500: NIC 2 received all packets (total of 160)!
+1500: NIC 10 received all packets (total of 160)!
+1514: NIC 3 received all packets (total of 160)!
+1514: NIC 11 received all packets (total of 160)!
+1518: NIC 1 received all packets (total of 160)!
+1518: NIC 9 received all packets (total of 160)!
+1528: NIC 4 received all packets (total of 160)!
+1528: NIC 12 received all packets (total of 160)!
+1533: NIC 0 received all packets (total of 160)!
+1533: NIC 8 received all packets (total of 160)!
+1542: NIC 5 received all packets (total of 160)!
+1542: NIC 13 received all packets (total of 160)!
+1554: NIC 6 received all packets (total of 160)!
+1554: NIC 14 received all packets (total of 160)!
+1561: NIC 7 received all packets (total of 160)!
+1561: NIC 15 received all packets (total of 160)!
+Nic 15 had 120 stalled cycles.
+Nic 14 had 129 stalled cycles.
+Nic 13 had 103 stalled cycles.
+Nic 12 had 126 stalled cycles.
+Nic 11 had 120 stalled cycles.
+Nic 10 had 130 stalled cycles.
+Nic 9 had 115 stalled cycles.
+Nic 8 had 127 stalled cycles.
+Nic 7 had 120 stalled cycles.
+Nic 6 had 129 stalled cycles.
+Nic 5 had 103 stalled cycles.
+Nic 4 had 126 stalled cycles.
+Nic 3 had 120 stalled cycles.
+Nic 2 had 130 stalled cycles.
+Nic 1 had 115 stalled cycles.
+Nic 0 had 127 stalled cycles.
+Simulation is complete, simulated time: 1.561 us
