@@ -193,8 +193,30 @@ void MordredNIC::setup() {
 }
 
 void MordredNIC::complete( uint32_t phase ) {
-  if ( phase > 0 )
-    return;
+  //output->verbose(CALL_INFO, 7, 0, "MordredNIC complete; phase=%" PRIu32 "\n", phase);
+  //output->flush();
+  Event *ev;
+
+  while ( ( ev = link->recvUntimedData() ) != nullptr ) {
+    auto base_ev = static_cast<baseMordredEvent*>( ev );
+    if( base_ev->getType() == baseMordredEvent::CREDIT ) {
+      auto credit_ev = static_cast<MordredCreditEvent*>( ev );
+      rtrCredits.at( credit_ev->vn ) += credit_ev->credits;
+      //output->verbose( CALL_INFO, 5, 0, "Received credit event vn=%" PRIu32 ", credits=%" PRId32 "; cur_credits=%" PRId32 "\n",
+      //  credit_ev->vn, credit_ev->credits, rtrCredits.at( credit_ev->vn ) );
+      delete ev;
+    } else if ( base_ev->getType() == baseMordredEvent::PACKET ) {
+      //output->verbose( CALL_INFO, 5, 0, "Received untimed packet\n" );
+      //output->flush();
+      initEvents.push( static_cast<MordredInitEvent*>(ev) );
+    } else {
+      output->verbose( CALL_INFO, 5, 0, "Received unexpected event type=%d\n", (int) base_ev->getType() );
+      delete ev;
+    }
+  }
+}
+
+void MordredNIC::finish() {
   double avg_ticks = (double)totalNocLatency / totalPackets;
   if ( totalPackets == 0 ) // need this to avoid some nasty output in sst 14.0.0
     avg_ticks = -1.0;
@@ -202,11 +224,6 @@ void MordredNIC::complete( uint32_t phase ) {
   statAvgNocLatency->addData( avg_ticks );
   double avg_flits = (double)totalNumFlits / totalPackets;
   statAvgFlitsPerPacket->addData( avg_flits );
-  //output->verbose(CALL_INFO, 7, 0, "MordredNIC complete; phase=%" PRIu32 "\n", phase);
-  //output->flush();
-}
-
-void MordredNIC::finish() {
   //output->verbose(CALL_INFO, 7, 0, "MordredNIC finish\n");
   //output->flush();
 }
@@ -260,6 +277,7 @@ bool MordredNIC::send( Request* req, int32_t vn ) {
   auto u_num_flits = static_cast<uint32_t>( num_flits );
   // Head flit
   auto flit = new MordredFlit( req, MordredFlit::HEAD, packetId, 0 );
+  // auto head_flit = flit;
   outBuf.at(u_vn).push( flit );
 
   // Body flits
@@ -274,8 +292,8 @@ bool MordredNIC::send( Request* req, int32_t vn ) {
   flit->pkt_created_cycle = getCurrentSimCycle();
   outBuf.at(u_vn).push( flit );
 
-  //output->verbose( CALL_INFO, 5, 0, "EPNIC Send to [RTR.Port]=[%u,%u] with dest=%" PRIu64 "; num_flits=%u\n",
-  //  rtrId, rtrPort, req->dest, u_num_flits );
+  //output->verbose( CALL_INFO, 7, 0, "EPNIC Send to [RTR.Port]=[%u,%u] with dest=%" PRIu64 "; head_flit=%s, num_flits=%u\n",
+  //  rtrId, rtrPort, req->dest, head_flit->pktIdStr().c_str(), u_num_flits );
   //output->flush();
 
   return true;
@@ -336,7 +354,7 @@ bool MordredNIC::clockTick( Cycle_t cycle ) {
         outBuf.at(vn).pop();
         if ( flit->ftype == MordredFlit::HEAD ) {
           headInjectCycle = getCurrentSimCycle();
-          //output->verbose( CALL_INFO, 5, 0, "Sent head flit %s to link at cycle=%" PRIu64 "; rtrCredits=%" PRId32 "\n",
+          //output->verbose( CALL_INFO, 7, 0, "Sent head flit %s to link at cycle=%" PRIu64 "; rtrCredits=%" PRId32 "\n",
           //  flit->pktIdStr().c_str(), cycle, rtrCredits.at(vn) );
         } else if ( flit->ftype == MordredFlit::TAIL ) {
           flit->head_inject_cycle = headInjectCycle;
@@ -353,8 +371,9 @@ bool MordredNIC::clockTick( Cycle_t cycle ) {
         sent = true;
         rtrCredits.at(vn)--;
         outbufCredits.at(vn)++;
-        //output->verbose( CALL_INFO, 5, 0, "Sent flit %s to link at cycle=%" PRIu64 "; rtrCredits=%" PRId32 "\n",
-        //  flit->pktIdStr().c_str(), cycle, rtrCredits.at(vn) );
+        output->verbose( CALL_INFO, 7, 0, "Sent flit %s to link at cycle=%" PRIu64 "; rtrCredits=%" PRId32 "\n",
+          flit->pktIdStr().c_str(), cycle, rtrCredits.at(vn) );
+        output->flush();
       }
     }
   }
@@ -417,15 +436,15 @@ void MordredNIC::handleIncomingPacket( SST::Event* ev ) {
     if ( credit->vn != 0 )
       output->fatal( CALL_INFO, -1, "Unsupported vn=%u\n", credit->vn );
     rtrCredits.at(credit->vn) += credit->credits;
-    //output->verbose( CALL_INFO, 5, 0, "Received %" PRId32 " credits to vn=%" PRIu32 ", cur_credits=%" PRIu32 "\n",
-    //  credit->credits, credit->vn, rtrCredits.at( credit->vn ) );
+    output->verbose( CALL_INFO, 7, 0, "Received %" PRId32 " credits to vn=%" PRIu32 ", cur_credits=%" PRIu32 "\n",
+      credit->credits, credit->vn, rtrCredits.at( credit->vn ) );
     delete bev;
     break;
   } // end CREDIT
   case baseMordredEvent::FLIT: {
     auto flit = static_cast<MordredFlit*>( ev );
-    //output->verbose( CALL_INFO, 5, 0, "Received flit vn,vc=%" PRIu32 ", %" PRIu32 ", type=%s\n",
-    //  flit->vn, flit->cur_vc, flit->getFtypeStr().c_str() );
+    output->verbose( CALL_INFO, 7, 0, "Received flit vn,vc=%" PRIu32 ", %" PRIu32 ", type=%s\n",
+      flit->vn, flit->cur_vc, flit->getFtypeStr().c_str() );
     if ( flit->ftype == MordredFlit::TAIL) {
       Request* req = flit->getRequest();
       if ( req == nullptr ) {
@@ -441,7 +460,7 @@ void MordredNIC::handleIncomingPacket( SST::Event* ev ) {
       //uint64_t total_latency = getCurrentSimCycle() - flit->pkt_created_cycle;
       double noc_latency_ns = ceil( noc_latency / 1000 );
       // Time in ns == clock ticks with 1 GHz clock.
-      //output->verbose( CALL_INFO, 5, 0, "Finished receiving %s; total latency=%" PRIu64 "; NoC latency=%" PRIu64 "= %f ns\n",
+      //output->verbose( CALL_INFO, 7, 0, "Finished receiving %s; total latency=%" PRIu64 "; NoC latency=%" PRIu64 "= %f ns\n",
       //  flit->pktIdStr().c_str(), total_latency, noc_latency, noc_latency_ns );
       totalNocLatency += (uint64_t)noc_latency_ns;
       totalPackets++;

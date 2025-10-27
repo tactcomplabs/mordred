@@ -269,6 +269,30 @@ void RtrPortControl::setup() {
 #endif
 }
 
+void RtrPortControl::complete( unsigned int phase ) {
+  Event* ev = nullptr;
+  while( ( ev = link->recvUntimedData() ) != nullptr ) {
+    auto base_ev = static_cast<baseMordredEvent*>( ev );
+    if( base_ev->getType() == baseMordredEvent::CREDIT ) {
+      auto credit_ev = static_cast<MordredCreditEvent*>( ev );
+      outStateVec.at( credit_ev->vn ).at ( credit_ev->vc ).destCredits += credit_ev->credits;
+      //output->verbose( CALL_INFO, 5, 0, "Received initCredit event vc=%d, credits=%d; cur_credits=%d\n", credit_ev->vc, credit_ev->credits, outStateVec.at( credit_ev->vn ).at ( credit_ev->vc ).destCredits );
+      delete ev;
+    } else if ( base_ev->getType() == baseMordredEvent::PACKET ) {
+      initEvents.push( ev );
+      //auto init_ev = static_cast<MordredInitEvent*>( ev );
+      //output->verbose( CALL_INFO, 5, 0, "Received startup packet; src=%" PRIu64 "; dest=%" PRIu64 "\n",
+      //  init_ev->req->src, init_ev->req->dest );
+      //output->flush();
+      //delete ev;
+    } else {
+      output->verbose( CALL_INFO, 5, 0, "Received unexpected event type=%d\n", (int) base_ev->getType() );
+      delete ev;
+    }
+  }
+}
+
+
 void RtrPortControl::sendUntimedData( Event* ev ) {
   link->sendUntimedData( ev );
   //output->verbose( CALL_INFO, 5, 0, "Sent untimed data\n");
@@ -452,9 +476,11 @@ void RtrPortControl::returnCredit() {
     for( uint32_t j = 0, vc = credit_ret_vc_rr; j < numVcs; j++, vc = ( ( vc != ( numVcs - 1 ) ) ? vc + 1 : 0 ) ) {
       if( inStateVec.at( vn ).at ( vc ).retCredits != 0 ) {
         auto credit = new MordredCreditEvent( vn, vc, inStateVec.at( vn ).at ( vc ).retCredits );
+        //output->verbose( CALL_INFO, 5, 0, "Sending credit event with %d credits\n",
+        //  inStateVec.at( vn ).at ( vc ).retCredits );
+        //output->flush();
         link->send( credit );
         inStateVec.at( vn ).at ( vc ).retCredits = 0;
-        //output->verbose( CALL_INFO, 5, 0, "Sending credit event\n" );
         break;  // only send one packet on the link
       }
     }
