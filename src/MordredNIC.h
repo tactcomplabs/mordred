@@ -50,9 +50,10 @@ public:
   )
 
   SST_ELI_DOCUMENT_PARAMS(
-    { "verbose",      "Sets the output verbosity", "5" },
+    { "verbose",         "Sets the output verbosity", "5" },
     //{"link_bw",       "Bandwidth of the links specified in either b/s or B/s (can include SI prefix)."},
     //{"flit_size",     "Size of a flit in either b or B (can include SI prefix)."},
+    { "channel_width",   "Number of bits per channel/link (not UnitAlgebra)", "32"},
     { "input_buf_size",  "Size of input buffers specified in b or B (can include SI prefix).", "1kiB"},
     { "output_buf_size", "Size of output buffers specified in b or B (can include SI prefix).", "1kiB"}
     )
@@ -168,7 +169,7 @@ public:
     SST_SER(numVns);
     SST_SER(numVcs);
     SST_SER(flitSize);
-    SST_SER(channelBusWidth);
+    SST_SER(channelWidth);
     SST_SER(packetId);
     SST_SER(headInjectCycle);
     SST_SER(bw);
@@ -193,6 +194,7 @@ public:
 private:
   void resizeVectors();
   MordredInitEvent* getInitEvent( MordredInitEvent::Commands cmd );
+  void negotiateChannelWidth( uint32_t rtr_channel_width );
   int32_t           calcNumFlits( uint32_t num_bits );
 
   // event handlers
@@ -207,7 +209,7 @@ private:
   uint32_t    numVns{UINT32_MAX};
   uint32_t    numVcs{UINT32_MAX}; // Tracked, but unused
   uint32_t    flitSize{};
-  uint32_t    channelBusWidth{}; // TODO: Make UnitAlgebra if we're going to use it
+  uint32_t    channelWidth{};
   uint64_t    packetId{};
   uint64_t    headInjectCycle{UINT64_MAX};
 

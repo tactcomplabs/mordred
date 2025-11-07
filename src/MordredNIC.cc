@@ -24,12 +24,15 @@ MordredNIC::MordredNIC( ComponentId_t cid, Params& params, int vns = 1 ) :
 {
   const auto verbosity = params.find<uint32_t>("verbose", 5);
   output = new SST::Output("MordredNIC[" + getName() + ":@p:@t]: ", verbosity, 0, Output::STDOUT);
+  output->setVerboseMask( DEBUG_INIT_PHASE );
 
   // Validate vns
   if ( vns != 1 ) {
     output->fatal( CALL_INFO, -1, "Invalid number of vns=%" PRId32 "; must be == 1\n", vns );
   }
   numVns = static_cast<uint32_t>(vns);
+
+  channelWidth = params.find<uint32_t>( "channel_width", 32 );
 
   // Set up buffers (partially borrowed from Kingsley)
   inbufSize = params.find<UnitAlgebra>("input_buf_size", "1kiB");
@@ -116,8 +119,9 @@ void MordredNIC::init( uint32_t phase ) {
     flitSize = init_ev->value;
     delete init_ev;
 
-    init_ev = getInitEvent( MordredInitEvent::Commands::BUS_WIDTH );
-    channelBusWidth = init_ev->value;
+    init_ev = getInitEvent( MordredInitEvent::Commands::CHANNEL_WIDTH );
+    negotiateChannelWidth( init_ev->value );
+
     delete init_ev;
     //output->verbose( CALL_INFO, 5, 0, "Received init_phase=%" PRIu32 " packets with numVCs=%" PRIu32 ", flit_width=%" PRIu32 ", channel_bus_width=%" PRIu32 "\n",
     //  phase, numVcs, flitSize, channelBusWidth );
@@ -125,24 +129,6 @@ void MordredNIC::init( uint32_t phase ) {
     resizeVectors();
 
     break;
-
-#if 0
-    // from Kingsley
-    init_ev = static_cast<MordredInitEvent*>(ev);
-    UnitAlgebra flit_size_ua = init_ev->ua_value;
-    flit_size = flit_size_ua.getRoundedValue();
-
-    UnitAlgebra link_clock = link_bw / flit_size_ua;
-
-    TimeConverter* tc = getTimeConverter(link_clock);
-    output->timing->setDefaultTimeBase(tc);
-
-    for ( int i = 0; i < req_vns; ++i ) {
-      outbuf_credits[i] = outbuf_size.getRoundedValue() / flit_size;
-      in_ret_credits[i] = inbuf_size.getRoundedValue() /flit_size;
-    }
-
-#endif
   }
 
   case 3: {
@@ -152,8 +138,19 @@ void MordredNIC::init( uint32_t phase ) {
     //output->verbose( CALL_INFO, 5, 0, "Received endpoint id = %" PRId64 "\n", netID );
     delete init_ev;
 
+    // Send negotiated channel width to the router
+    init_ev = new MordredInitEvent();
+    init_ev->command = MordredInitEvent::AGREED_CHANNEL_WIDTH;
+    init_ev->value = channelWidth;
+    link->sendUntimedData( init_ev );
+  } break;
+
+  case 4: {
     // Send router credits equal to num_flits inBuf can hold
     auto credits = static_cast<int32_t>( inbufSize.getRoundedValue() / flitSize );
+    if ( credits == 0 )
+      output->fatal( CALL_INFO, -1, "Invalid configuration; flit_size=%" PRIu32 "b > input_buf_size=%" PRId64 "b (buf cannot hold a flit)\n",
+        flitSize, inbufSize.getRoundedValue() );
     for ( uint32_t i = 0; i < numVns; i++ ) {
       auto* credit_ev = new MordredCreditEvent( i, 0, credits );
       link->sendUntimedData( credit_ev );
@@ -182,12 +179,14 @@ void MordredNIC::init( uint32_t phase ) {
     }
     break;
   }
+  //output->verbose( CALL_INFO, 5, DEBUG_INIT_PHASE, " END init phase=%" PRIu32 "\n", phase );
+  //output->flush();
 }
 
 void MordredNIC::setup() {
 #if 0
   output->verbose(CALL_INFO, 5, 0, "MordredNIC SETUP nid=%" PRId64 ", rtrId=%" PRIu32 ", rtrPort=%" PRIu32 "\n", netID, rtrId, rtrPort);
-  output->verbose( CALL_INFO, 5, 0, "MordredNIC SETUP numVCs=%" PRIu32 ", flitWidth=%" PRIu32 ", channelBusWidth=%" PRIu32 "\n", numVcs, flitSize, channelBusWidth );
+  output->verbose( CALL_INFO, 5, 0, "MordredNIC SETUP numVCs=%" PRIu32 ", flitWidth=%" PRIu32 ", channelBusWidth=%" PRIu32 "\n", numVcs, flitSize, channelWidth );
   output->flush();
 #endif
 }
@@ -426,6 +425,19 @@ MordredInitEvent* MordredNIC::getInitEvent( MordredInitEvent::Commands cmd ) {
   }
   return init_ev;
 }
+
+void MordredNIC::negotiateChannelWidth( uint32_t rtr_channel_width ) {
+  if ( rtr_channel_width == channelWidth ) // both sides of link agree, no changes needed
+    return;
+
+  // channelWidth is min(channelWidth, rtr_channel_width) (and channelWidth is already initialized)
+  if ( rtr_channel_width < channelWidth )
+    channelWidth = rtr_channel_width;
+  // TODO: Notify if we change the width?
+  output->verbose( CALL_INFO, 5, 0, "flit_size=%" PRIu32 ", channel_width=%" PRIu32 "\n",
+        flitSize, channelWidth);
+}
+
 
 void MordredNIC::handleIncomingPacket( SST::Event* ev ) {
   // if it's a flit, add it to a buffer for the surrounding unit to reassemble, etc

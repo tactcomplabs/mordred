@@ -32,6 +32,7 @@ RtrPortControl::RtrPortControl( ComponentId_t id, Params& params, TopologyAPI* t
   const auto verbosity = params.find<uint32_t>("verbose", 5);
   output = new Output("RtrPortControl[[" + std::to_string( rtrId ) + "." + std::to_string( portId ) + "]:@p:@t]: ",
     verbosity, 0, Output::STDOUT);
+  output->setVerboseMask( DEBUG_INIT_PHASE );
 
   if ( rtrSharedObjs == nullptr )
     output->fatal(CALL_INFO_LONG, 1, "RtrPortControl: vn_objs must be specified\n");
@@ -50,7 +51,18 @@ RtrPortControl::RtrPortControl( ComponentId_t id, Params& params, TopologyAPI* t
     flit_size_ua *= UnitAlgebra("8b");
   }
   flitSize = static_cast<uint32_t>( flit_size_ua.getRoundedValue() );
-  channelBusWidth = params.find<uint32_t>( "channel_bus_width", flitSize );
+  channelWidth = params.find<uint32_t>( "channel_width", flitSize );
+
+  if ( channelWidth > flitSize ) {
+    output->fatal( CALL_INFO, 1, "RtrPortControl: flit_size must be greater than or equal to channel_width\n" );
+  }
+
+  if ( (flitSize % channelWidth) != 0) {
+    channelWidth = flitSize / channelWidth; // force to round down
+    output->output( CALL_INFO, "WARNING: flit_size%%channel_width != 0; new channel_width=%" PRIu32 "\n",
+      channelWidth);
+    output->flush();
+  }
 
   // Get buffer sizes
   bool found = false;
@@ -66,7 +78,11 @@ RtrPortControl::RtrPortControl( ComponentId_t id, Params& params, TopologyAPI* t
     buf_size_ua *= UnitAlgebra("8b/B");
   }
   inBufSize = static_cast<uint32_t>( buf_size_ua.getRoundedValue() );
-  //TODO: Validate size
+  //TODO: An other validations/size checks?
+  if ( flitSize > inBufSize ) {
+    output->fatal( CALL_INFO, 1, "Invalid configuration; flit_size=%" PRIu32 "b > input_buf_size=%" PRIu32 "b (buf cannot hold a flit)\n",
+      flitSize, inBufSize);
+  }
 
   buf_size_ua = params.find<UnitAlgebra>("output_buf_size",found);
   if ( !found ) {
@@ -80,7 +96,11 @@ RtrPortControl::RtrPortControl( ComponentId_t id, Params& params, TopologyAPI* t
     buf_size_ua *= UnitAlgebra("8b/B");
   }
   outBufSize = static_cast<uint32_t>( buf_size_ua.getRoundedValue() );
-  //TODO: Validate size
+  //TODO: An other validations/size checks?
+  if ( flitSize > outBufSize ) {
+    output->fatal( CALL_INFO, 1, "Invalid configuration; flit_size=%" PRIu32 "b > output_buf_size=%" PRIu32 "b (buf cannot hold a flit)\n",
+      flitSize, outBufSize);
+  }
 
   const std::string pname = "port" + std::to_string(port_num);
   link = configureLink( pname, new Event::Handler2<RtrPortControl, &RtrPortControl::inHandler>( this ) );
@@ -135,8 +155,6 @@ void RtrPortControl::allocateBuffers() {
 }
 
 void RtrPortControl::init( unsigned int phase ) {
-  //output->verbose( CALL_INFO, 5, 0, " init phase=%" PRIu32 "\n", phase );
-
   // Similar to MordredNIC, could set this up to use sendUntimedData here instead of using the
   // link directly
   switch( phase ) {
@@ -198,8 +216,8 @@ void RtrPortControl::init( unsigned int phase ) {
       link->sendUntimedData( init_ev );
 
       init_ev = new MordredInitEvent();
-      init_ev->command = MordredInitEvent::BUS_WIDTH;
-      init_ev->value = channelBusWidth;
+      init_ev->command = MordredInitEvent::CHANNEL_WIDTH;
+      init_ev->value = channelWidth;
       link->sendUntimedData( init_ev );
 
       output->verbose( CALL_INFO, 5, DEBUG_INIT_PHASE, " Send flit and bus widths init_phase=%" PRIu32 "\n", phase );
@@ -221,6 +239,16 @@ void RtrPortControl::init( unsigned int phase ) {
   }
 
   case 3: {
+    // IDLE
+  } break;
+
+  case 4: {
+    if ( connectionType == ENDPOINT ) {
+      auto *init_ev = getInitEvent( MordredInitEvent::AGREED_CHANNEL_WIDTH );
+      channelWidth = init_ev->value;
+      delete init_ev;
+    }
+
     // Send router credits
     auto total_credits    = static_cast<int32_t>( inBufSize / flitSize );
     // Need to do things a little differently here depending on if I'm going to an endpoint or
@@ -258,13 +286,15 @@ void RtrPortControl::init( unsigned int phase ) {
     }
   }  // end default
   }
+  //output->verbose( CALL_INFO, 5, DEBUG_INIT_PHASE, " END init phase=%" PRIu32 "\n", phase );
+  //output->flush();
 }
 
 void RtrPortControl::setup() {
 #if 0
   output->verbose(CALL_INFO, 5, 0, "RtrPortControl SETUP rtrId=%" PRIu32 ", rtrPort=%" PRIu32 ", connected Rtr ID=%" PRIu32 ", connected Port ID=%" PRIu32 "\n",
     rtrId, portId, connectedRtrId, connectedPortId);
-  output->verbose( CALL_INFO, 5, 0, "flitWidth=%" PRIu32 ", channelBusWidth=%" PRIu32 "\n", flitSize, channelBusWidth );
+  output->verbose( CALL_INFO, 5, 0, "flitWidth=%" PRIu32 ", channelBusWidth=%" PRIu32 "\n", flitSize, channelWidth );
   output->flush();
 #endif
 }

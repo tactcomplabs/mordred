@@ -57,13 +57,10 @@ public:
 
   // All of the parameters are handled/passed in from the SimpleRtr
   SST_ELI_DOCUMENT_PARAMS(
-    { "verbose", "Sets the output verbsoity", "5" },
-    //{"link_bw",       "Bandwidth of the links specified in either b/s or B/s (can include SI prefix)."},
-    //{"flit_size",     "Size of a flit in either b or B (can include SI prefix)."},
-    //{ "link_bw",        "Bandwidth of the links specified in either b/s or B/s (can include SI prefix)."},
-    //{ "in_buf_size",    "Size of input buffers specified in b or B (can include SI prefix).", "1kB"},
-    //{ "out_buf_size",   "Size of output buffers specified in b or B (can include SI prefix).", "1kB"}
+//    { "verbose", "Sets the output verbsoity", "5" },
     )
+  // For reference, params from SimpleRtr:
+  // verbose, flit_size, channel_width, input_buf_size, output_buf_size,
 
   // Use the parent ports -- assume anonymous loading
   SST_ELI_DOCUMENT_PORTS()
@@ -235,7 +232,7 @@ public:
     SST_SER(numVns);
     SST_SER(numVcs);
     SST_SER(flitSize);
-    SST_SER(channelBusWidth);
+    SST_SER(channelWidth);
     SST_SER(flit_vn_rr);
     SST_SER(flit_vc_rr);
     SST_SER(credit_ret_vn_rr);
@@ -279,7 +276,7 @@ private:
   uint32_t numVns{UINT32_MAX}; // from size of vn_objs
   uint32_t numVcs{UINT32_MAX}; // from size of vector in vn_objs
   uint32_t flitSize{}; // in bits
-  uint32_t channelBusWidth{}; // in bits
+  uint32_t channelWidth{}; // in bits
   uint32_t flit_vn_rr{};
   uint32_t flit_vc_rr{};
   uint32_t credit_ret_vn_rr{};
