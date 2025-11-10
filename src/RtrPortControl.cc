@@ -51,18 +51,6 @@ RtrPortControl::RtrPortControl( ComponentId_t id, Params& params, TopologyAPI* t
     flit_size_ua *= UnitAlgebra("8b");
   }
   flitSize = static_cast<uint32_t>( flit_size_ua.getRoundedValue() );
-  channelWidth = params.find<uint32_t>( "channel_width", flitSize );
-
-  if ( channelWidth > flitSize ) {
-    output->fatal( CALL_INFO, 1, "RtrPortControl: flit_size must be greater than or equal to channel_width\n" );
-  }
-
-  if ( (flitSize % channelWidth) != 0) {
-    channelWidth = flitSize / channelWidth; // force to round down
-    output->output( CALL_INFO, "WARNING: flit_size%%channel_width != 0; new channel_width=%" PRIu32 "\n",
-      channelWidth);
-    output->flush();
-  }
 
   // Get buffer sizes
   bool found = false;
@@ -215,11 +203,6 @@ void RtrPortControl::init( unsigned int phase ) {
       init_ev->value = flitSize;
       link->sendUntimedData( init_ev );
 
-      init_ev = new MordredInitEvent();
-      init_ev->command = MordredInitEvent::CHANNEL_WIDTH;
-      init_ev->value = channelWidth;
-      link->sendUntimedData( init_ev );
-
       output->verbose( CALL_INFO, 5, DEBUG_INIT_PHASE, " Send flit and bus widths init_phase=%" PRIu32 "\n", phase );
     }
     break;
@@ -239,16 +222,11 @@ void RtrPortControl::init( unsigned int phase ) {
   }
 
   case 3: {
-    // IDLE
+    // IDLE - this was moved to an IDLE state when starting to look at variable channel depths (which has been backburnered);
+    // however, going to leave it like this to allow for flexibility in the future if we pursue it again
   } break;
 
   case 4: {
-    if ( connectionType == ENDPOINT ) {
-      auto *init_ev = getInitEvent( MordredInitEvent::AGREED_CHANNEL_WIDTH );
-      channelWidth = init_ev->value;
-      delete init_ev;
-    }
-
     // Send router credits
     auto total_credits    = static_cast<int32_t>( inBufSize / flitSize );
     // Need to do things a little differently here depending on if I'm going to an endpoint or

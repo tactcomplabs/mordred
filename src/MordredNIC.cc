@@ -32,8 +32,6 @@ MordredNIC::MordredNIC( ComponentId_t cid, Params& params, int vns = 1 ) :
   }
   numVns = static_cast<uint32_t>(vns);
 
-  channelWidth = params.find<uint32_t>( "channel_width", 32 );
-
   // Set up buffers (partially borrowed from Kingsley)
   inbufSize = params.find<UnitAlgebra>("input_buf_size", "1kiB");
   if ( !inbufSize.hasUnits("b") && !inbufSize.hasUnits("B") ) {
@@ -119,10 +117,6 @@ void MordredNIC::init( uint32_t phase ) {
     flitSize = init_ev->value;
     delete init_ev;
 
-    init_ev = getInitEvent( MordredInitEvent::Commands::CHANNEL_WIDTH );
-    negotiateChannelWidth( init_ev->value );
-
-    delete init_ev;
     //output->verbose( CALL_INFO, 5, 0, "Received init_phase=%" PRIu32 " packets with numVCs=%" PRIu32 ", flit_width=%" PRIu32 ", channel_bus_width=%" PRIu32 "\n",
     //  phase, numVcs, flitSize, channelBusWidth );
     //output->flush();
@@ -137,12 +131,6 @@ void MordredNIC::init( uint32_t phase ) {
     initialized = true;
     //output->verbose( CALL_INFO, 5, 0, "Received endpoint id = %" PRId64 "\n", netID );
     delete init_ev;
-
-    // Send negotiated channel width to the router
-    init_ev = new MordredInitEvent();
-    init_ev->command = MordredInitEvent::AGREED_CHANNEL_WIDTH;
-    init_ev->value = channelWidth;
-    link->sendUntimedData( init_ev );
   } break;
 
   case 4: {
@@ -425,19 +413,6 @@ MordredInitEvent* MordredNIC::getInitEvent( MordredInitEvent::Commands cmd ) {
   }
   return init_ev;
 }
-
-void MordredNIC::negotiateChannelWidth( uint32_t rtr_channel_width ) {
-  if ( rtr_channel_width == channelWidth ) // both sides of link agree, no changes needed
-    return;
-
-  // channelWidth is min(channelWidth, rtr_channel_width) (and channelWidth is already initialized)
-  if ( rtr_channel_width < channelWidth )
-    channelWidth = rtr_channel_width;
-  // TODO: Notify if we change the width?
-  output->verbose( CALL_INFO, 5, 0, "flit_size=%" PRIu32 ", channel_width=%" PRIu32 "\n",
-        flitSize, channelWidth);
-}
-
 
 void MordredNIC::handleIncomingPacket( SST::Event* ev ) {
   // if it's a flit, add it to a buffer for the surrounding unit to reassemble, etc

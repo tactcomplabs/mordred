@@ -16,7 +16,6 @@ FixedRtrParams = {
     "clock" : clk,
     "num_vcs" : "1",
     "flit_size" : "32b",
-    "channel_width" : 16,
     "input_buf_size" : "32B", # 16 flits
     "output_buf_size" : "32b" # 1 flit - there is an interplay with this and the flit size that causes a failure
 }
@@ -29,7 +28,6 @@ FixedTestNicParams = {
 
 MordredNICParams = {
     "verbose" : "0",
-    "channel_width" : 16,
     "input_buf_size" : "1kiB",
     "output_buf_size" : "1kiB",
 }

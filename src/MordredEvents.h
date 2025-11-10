@@ -101,7 +101,7 @@ private:
 class MordredInitEvent final : public baseMordredEvent {
 public:
   enum Commands { REPORT_ENDPOINT, REPORT_ROUTER, ROUTER_ID, PORT_NUM, ENDPOINT_ID, NUM_VNS,
-                  NUM_VCS, FLIT_WIDTH, CHANNEL_WIDTH, EP_PACKET, AGREED_CHANNEL_WIDTH, NUM_COMMANDS };
+                  NUM_VCS, FLIT_WIDTH, CHANNEL_WIDTH, EP_PACKET, NUM_COMMANDS };
   MordredInitEvent() : baseMordredEvent( INITIALIZATION ) {}
 
   MordredInitEvent(Interfaces::SimpleNetwork::Request *r) :

@@ -232,7 +232,6 @@ public:
     SST_SER(numVns);
     SST_SER(numVcs);
     SST_SER(flitSize);
-    SST_SER(channelWidth);
     SST_SER(flit_vn_rr);
     SST_SER(flit_vc_rr);
     SST_SER(credit_ret_vn_rr);
@@ -276,7 +275,6 @@ private:
   uint32_t numVns{UINT32_MAX}; // from size of vn_objs
   uint32_t numVcs{UINT32_MAX}; // from size of vector in vn_objs
   uint32_t flitSize{}; // in bits
-  uint32_t channelWidth{}; // in bits
   uint32_t flit_vn_rr{};
   uint32_t flit_vc_rr{};
   uint32_t credit_ret_vn_rr{};
