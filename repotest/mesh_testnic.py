@@ -1,13 +1,19 @@
 # Automatically generated SST Python input
 
 import sst
+from sst import UnitAlgebra
 
 # Use to set the stats output filename
 testname = "mesh_testnic"
 
+# Set up some parameters via UnitAlgebra
+clk = UnitAlgebra("1GHz")
+clk_pd = clk.invert()
+link_latency = UnitAlgebra(0.8) * clk_pd
+
 FixedRtrParams = {
     "verbose" : "0",
-    "clock" : "1GHz",
+    "clock" : clk,
     "num_vcs" : "1",
     "flit_size" : "32b",
     "channel_width" : 16,
@@ -63,19 +69,19 @@ def createMesh(x_size, y_size, local_ports):
             })
             # north links
             if y != y_size - 1:
-                rtr.addLink(getLink("rtr_%d_%d"%(x,y), "rtr_%d_%d"%(x,y+1)), "port0", "800ps")
+                rtr.addLink(getLink("rtr_%d_%d"%(x,y), "rtr_%d_%d"%(x,y+1)), "port0", link_latency)
 
             # east links
             if x != x_size - 1:
-                rtr.addLink(getLink("rtr_%d_%d"%(x,y), "rtr_%d_%d"%(x+1,y)), "port1", "800ps")
+                rtr.addLink(getLink("rtr_%d_%d"%(x,y), "rtr_%d_%d"%(x+1,y)), "port1", link_latency)
 
             # south links
             if y != 0:
-                rtr.addLink(getLink("rtr_%d_%d"%(x,y-1), "rtr_%d_%d"%(x,y)), "port2", "800ps")
+                rtr.addLink(getLink("rtr_%d_%d"%(x,y-1), "rtr_%d_%d"%(x,y)), "port2", link_latency)
 
             # west links
             if x != 0:
-                rtr.addLink(getLink("rtr_%d_%d"%(x-1,y), "rtr_%d_%d"%(x,y)), "port3", "800ps")
+                rtr.addLink(getLink("rtr_%d_%d"%(x-1,y), "rtr_%d_%d"%(x,y)), "port3", link_latency)
 
             # local ports
             for k in range(local_ports):
@@ -96,8 +102,8 @@ def createMesh(x_size, y_size, local_ports):
                 ep_iface.addParams(MordredNICParams)
 
                 # Add link
-                rtr.addLink(getLink("rtr_%d_%d"%(x, y), ep_name), lcl_portname, "800ps")
-                ep_iface.addLink(getLink("rtr_%d_%d"%(x, y), ep_name), "port", "800ps")
+                rtr.addLink(getLink("rtr_%d_%d"%(x, y), ep_name), lcl_portname, link_latency)
+                ep_iface.addLink(getLink("rtr_%d_%d"%(x, y), ep_name), "port", link_latency)
 
 # General params
 local_ports = 1 # == concentration
