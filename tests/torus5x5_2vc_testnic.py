@@ -1,6 +1,7 @@
 # Automatically generated SST Python input
 
 import sst
+from sst import UnitAlgebra
 
 # Use to set the stats output filename
 testname = "torus5x5_2vc_testnic"
@@ -8,25 +9,31 @@ testname = "torus5x5_2vc_testnic"
 ## TEST NOTE(S)
 ## - If either dimension >= 5, use multiple VCs otherwise deadlock may occur
 
+# Set up some parameters via UnitAlgebra
+clk = UnitAlgebra("1GHz")
+clk_pd = clk.invert()
+link_latency = UnitAlgebra(0.8) * clk_pd
+flit_size = UnitAlgebra("16b")
+
 FixedRtrParams = {
     "verbose" : 0,
-    "clock" : "1GHz",
+    "clock" : clk,
     "num_vcs" : "2",
-    "flit_size" : "16b",
-    "input_buf_size" : "32B", # 16 flits
-    "output_buf_size" : "16b" # 1 flit
+    "flit_size" : flit_size,
+    "input_buf_size" : UnitAlgebra(16)*flit_size,
+    "output_buf_size" : UnitAlgebra(1)*flit_size
 }
 
 FixedTestNicParams = {
     "num_messages" : 10,
-    "message_size" : "8B",
+    "message_size" : UnitAlgebra(4)*flit_size,
     "send_untimed_broadcast" : "false", # matches default
 }
 
 MordredNICParams = {
     "verbose" : 0,
-    "input_buf_size" : "2kiB",
-    "output_buf_size" : "2kiB",
+    "input_buf_size" : "1kiB",
+    "output_buf_size" : "1kiB",
 }
 
 links = dict()
@@ -64,27 +71,27 @@ def createTorus(x_size, y_size, local_ports):
             })
             # north links
             if y != y_size - 1:
-                rtr.addLink(getLink("rtr_%d_%d"%(x,y), "rtr_%d_%d"%(x,y+1)), "port0", "800ps")
+                rtr.addLink(getLink("rtr_%d_%d"%(x,y), "rtr_%d_%d"%(x,y+1)), "port0", link_latency)
             else: # connect to y = 0 routers; y=y_size-1
-                rtr.addLink(getLink("rtr_%d_%d"%(x,y), "rtr_%d_%d"%(x,0)), "port0", "800ps")
+                rtr.addLink(getLink("rtr_%d_%d"%(x,y), "rtr_%d_%d"%(x,0)), "port0", link_latency)
 
             # east links
             if x != x_size - 1:
-                rtr.addLink(getLink("rtr_%d_%d"%(x,y), "rtr_%d_%d"%(x+1,y)), "port1", "800ps")
+                rtr.addLink(getLink("rtr_%d_%d"%(x,y), "rtr_%d_%d"%(x+1,y)), "port1", link_latency)
             else: # x=x_size-1 case; connect to x=0 rtrs
-                rtr.addLink(getLink("rtr_%d_%d"%(x,y), "rtr_%d_%d"%(0,y)), "port1", "800ps")
+                rtr.addLink(getLink("rtr_%d_%d"%(x,y), "rtr_%d_%d"%(0,y)), "port1", link_latency)
 
             # south links
             if y != 0:
-                rtr.addLink(getLink("rtr_%d_%d"%(x,y-1), "rtr_%d_%d"%(x,y)), "port2", "800ps")
+                rtr.addLink(getLink("rtr_%d_%d"%(x,y-1), "rtr_%d_%d"%(x,y)), "port2", link_latency)
             else: # y=0 case, should already have a link from the "north" links
-                rtr.addLink(getLink("rtr_%d_%d"%(x,y_size-1), "rtr_%d_%d"%(x,0)), "port2", "800ps")
+                rtr.addLink(getLink("rtr_%d_%d"%(x,y_size-1), "rtr_%d_%d"%(x,0)), "port2", link_latency)
 
             # west links
             if x != 0:
-                rtr.addLink(getLink("rtr_%d_%d"%(x-1,y), "rtr_%d_%d"%(x,y)), "port3", "800ps")
+                rtr.addLink(getLink("rtr_%d_%d"%(x-1,y), "rtr_%d_%d"%(x,y)), "port3", link_latency)
             else: # x=0 case; already have a link from the "east" links
-                rtr.addLink(getLink("rtr_%d_%d"%(x_size-1,y), "rtr_%d_%d"%(0,y)), "port3", "800ps")
+                rtr.addLink(getLink("rtr_%d_%d"%(x_size-1,y), "rtr_%d_%d"%(0,y)), "port3", link_latency)
 
             # local ports
             for k in range(local_ports):
@@ -105,8 +112,8 @@ def createTorus(x_size, y_size, local_ports):
                 ep_iface.addParams(MordredNICParams)
 
                 # Add link
-                rtr.addLink(getLink("rtr_%d_%d"%(x, y), ep_name), lcl_portname, "800ps")
-                ep_iface.addLink(getLink("rtr_%d_%d"%(x, y), ep_name), "port", "800ps")
+                rtr.addLink(getLink("rtr_%d_%d"%(x, y), ep_name), lcl_portname, link_latency)
+                ep_iface.addLink(getLink("rtr_%d_%d"%(x, y), ep_name), "port", link_latency)
 
 # General params
 local_ports = 1 # == concentration

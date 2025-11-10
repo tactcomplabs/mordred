@@ -10,19 +10,20 @@ testname = "mesh_testnic"
 clk = UnitAlgebra("1GHz")
 clk_pd = clk.invert()
 link_latency = UnitAlgebra(0.8) * clk_pd
+flit_size = UnitAlgebra("16b")
 
 FixedRtrParams = {
     "verbose" : "0",
     "clock" : clk,
     "num_vcs" : "1",
-    "flit_size" : "32b",
-    "input_buf_size" : "32B", # 16 flits
-    "output_buf_size" : "32b" # 1 flit - there is an interplay with this and the flit size that causes a failure
+    "flit_size" : flit_size,
+    "input_buf_size" : UnitAlgebra(16)*flit_size,
+    "output_buf_size" : UnitAlgebra(1)*flit_size
 }
 
 FixedTestNicParams = {
     "num_messages" : 10,
-    "message_size" : "8B",
+    "message_size" : UnitAlgebra(4)*flit_size,
     "send_untimed_broadcast" : "false", # matches default
 }
 

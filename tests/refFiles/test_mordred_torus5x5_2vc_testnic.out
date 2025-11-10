@@ -1,28 +1,28 @@
-250:  0 Finished sending packets (total of 10)
-250:  1 Finished sending packets (total of 10)
-250:  2 Finished sending packets (total of 10)
-250:  3 Finished sending packets (total of 10)
-250:  4 Finished sending packets (total of 10)
-250:  5 Finished sending packets (total of 10)
-250:  6 Finished sending packets (total of 10)
-250:  7 Finished sending packets (total of 10)
-250:  8 Finished sending packets (total of 10)
-250:  9 Finished sending packets (total of 10)
-250:  10 Finished sending packets (total of 10)
-250:  11 Finished sending packets (total of 10)
-250:  12 Finished sending packets (total of 10)
-250:  13 Finished sending packets (total of 10)
-250:  14 Finished sending packets (total of 10)
-250:  15 Finished sending packets (total of 10)
-250:  16 Finished sending packets (total of 10)
-250:  17 Finished sending packets (total of 10)
-250:  18 Finished sending packets (total of 10)
-250:  19 Finished sending packets (total of 10)
-250:  20 Finished sending packets (total of 10)
-250:  21 Finished sending packets (total of 10)
-250:  22 Finished sending packets (total of 10)
-250:  23 Finished sending packets (total of 10)
-250:  24 Finished sending packets (total of 10)
+865:  4 Finished sending packets (total of 10)
+865:  9 Finished sending packets (total of 10)
+865:  14 Finished sending packets (total of 10)
+865:  19 Finished sending packets (total of 10)
+865:  24 Finished sending packets (total of 10)
+873:  3 Finished sending packets (total of 10)
+873:  8 Finished sending packets (total of 10)
+873:  13 Finished sending packets (total of 10)
+873:  18 Finished sending packets (total of 10)
+873:  23 Finished sending packets (total of 10)
+883:  1 Finished sending packets (total of 10)
+883:  6 Finished sending packets (total of 10)
+883:  11 Finished sending packets (total of 10)
+883:  16 Finished sending packets (total of 10)
+883:  21 Finished sending packets (total of 10)
+898:  0 Finished sending packets (total of 10)
+898:  5 Finished sending packets (total of 10)
+898:  10 Finished sending packets (total of 10)
+898:  15 Finished sending packets (total of 10)
+898:  20 Finished sending packets (total of 10)
+904:  2 Finished sending packets (total of 10)
+904:  7 Finished sending packets (total of 10)
+904:  12 Finished sending packets (total of 10)
+904:  17 Finished sending packets (total of 10)
+904:  22 Finished sending packets (total of 10)
 1863: NIC 3 received all packets (total of 250)!
 1863: NIC 8 received all packets (total of 250)!
 1863: NIC 13 received all packets (total of 250)!
@@ -48,29 +48,29 @@
 1871: NIC 12 received all packets (total of 250)!
 1871: NIC 17 received all packets (total of 250)!
 1871: NIC 22 received all packets (total of 250)!
-Nic 24 had 0 stalled cycles.
-Nic 23 had 0 stalled cycles.
-Nic 22 had 0 stalled cycles.
-Nic 21 had 0 stalled cycles.
-Nic 20 had 0 stalled cycles.
-Nic 19 had 0 stalled cycles.
-Nic 18 had 0 stalled cycles.
-Nic 17 had 0 stalled cycles.
-Nic 16 had 0 stalled cycles.
-Nic 15 had 0 stalled cycles.
-Nic 14 had 0 stalled cycles.
-Nic 13 had 0 stalled cycles.
-Nic 12 had 0 stalled cycles.
-Nic 11 had 0 stalled cycles.
-Nic 10 had 0 stalled cycles.
-Nic 9 had 0 stalled cycles.
-Nic 8 had 0 stalled cycles.
-Nic 7 had 0 stalled cycles.
-Nic 6 had 0 stalled cycles.
-Nic 5 had 0 stalled cycles.
-Nic 4 had 0 stalled cycles.
-Nic 3 had 0 stalled cycles.
-Nic 2 had 0 stalled cycles.
-Nic 1 had 0 stalled cycles.
-Nic 0 had 0 stalled cycles.
+Nic 24 had 615 stalled cycles.
+Nic 23 had 623 stalled cycles.
+Nic 22 had 654 stalled cycles.
+Nic 21 had 633 stalled cycles.
+Nic 20 had 648 stalled cycles.
+Nic 19 had 615 stalled cycles.
+Nic 18 had 623 stalled cycles.
+Nic 17 had 654 stalled cycles.
+Nic 16 had 633 stalled cycles.
+Nic 15 had 648 stalled cycles.
+Nic 14 had 615 stalled cycles.
+Nic 13 had 623 stalled cycles.
+Nic 12 had 654 stalled cycles.
+Nic 11 had 633 stalled cycles.
+Nic 10 had 648 stalled cycles.
+Nic 9 had 615 stalled cycles.
+Nic 8 had 623 stalled cycles.
+Nic 7 had 654 stalled cycles.
+Nic 6 had 633 stalled cycles.
+Nic 5 had 648 stalled cycles.
+Nic 4 had 615 stalled cycles.
+Nic 3 had 623 stalled cycles.
+Nic 2 had 654 stalled cycles.
+Nic 1 had 633 stalled cycles.
+Nic 0 had 648 stalled cycles.
 Simulation is complete, simulated time: 1.871 us
