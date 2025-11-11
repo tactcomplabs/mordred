@@ -181,7 +181,6 @@ void SimpleRTR::finish() {
       port->finish();
 }
 
-
 bool SimpleRTR::clockTick( Cycle_t cycle ) {
   // May want/need to look at how we want to time/order ticking the ports and running the crossbar/arbitration here
 

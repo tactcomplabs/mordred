@@ -1,6 +1,7 @@
 # Automatically generated SST Python input
 
 import sst
+from sst import UnitAlgebra
 from math import floor
 
 # Use to set the stats output filename
@@ -9,18 +10,24 @@ testname = "flatbutterfly_k2n4"
 ## TEST NOTE(S)
 ## - Additional combinations of k,n are included here for reference
 
+# Set up some parameters via UnitAlgebra
+clk = UnitAlgebra("1GHz")
+clk_pd = clk.invert()
+link_latency = UnitAlgebra(0.8) * clk_pd
+flit_size = UnitAlgebra("16b")
+
 FixedRtrParams = {
-    "verbose" : "0",
-    "clock" : "1GHz",
+    "verbose" : 0,
+    "clock" : clk,
     "num_vcs" : "1",
-    "flit_size" : "16b",
-    "input_buf_size" : "32B", # 16 flits
-    "output_buf_size" : "16b" # 1 flit
+    "flit_size" : flit_size,
+    "input_buf_size" : UnitAlgebra(16)*flit_size,
+    "output_buf_size" : UnitAlgebra(1)*flit_size
 }
 
 FixedTestNicParams = {
     "num_messages" : 10,
-    "message_size" : "8B",
+    "message_size" : UnitAlgebra(4)*flit_size,
     "send_untimed_broadcast" : "false", # matches default
 }
 
@@ -96,9 +103,9 @@ class FlattenedButterfly:
         link_name, new_link = self.getFlatFlyLink("rtr_%d"%(i), "rtr_%d"%(j))
         if new_link:
             rtr_pname = "port" + str(getNextTopoPort("rtr_%d"%i))
-            self.routers[i].addLink(link_name, rtr_pname, "800ps")
+            self.routers[i].addLink(link_name, rtr_pname, link_latency)
             rtr_pname = "port" + str(getNextTopoPort("rtr_%d"%j))
-            self.routers[j].addLink(link_name, rtr_pname, "800ps")
+            self.routers[j].addLink(link_name, rtr_pname, link_latency)
 
 
     def getFlatFlyLink(self, name1, name2):
@@ -131,8 +138,8 @@ class FlattenedButterfly:
                 link_name, new_link = self.createEpRtrLink(rtr_id, ep_id)
                 if not new_link:
                     print("WARN Failed to create ep link")
-                self.routers[i].addLink(link_name, portname, "800ps")
-                ep_iface.addLink(link_name, "port", "800ps")
+                self.routers[i].addLink(link_name, portname, link_latency)
+                ep_iface.addLink(link_name, "port", link_latency)
 
     def createEpRtrLink(self, rtr_id, ep_id):
         name = "link.%s_%s"%(rtr_id, ep_id)

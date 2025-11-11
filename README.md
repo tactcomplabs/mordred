@@ -14,13 +14,14 @@ Note to self: If there are no messages during a phase of init(), the init() proc
 
 The table below outlines the current initialization process. The (s) notes a send, (r) notes a receive.
 
-| Phase | MordredNIC                                                                  | RtrPortControl                                                                                                                                                                               |
-|-------|-----------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| 0     | (s) Report Endpoint                                                         | - (s) Report Router <br> - (s) Router ID <br> - (s) Port Number                                                                                                                              |
-| 1     | - (r) Router report <br> - (r) Router ID <br> - (r) Port Number             | (r) Connection type <br> - If Router <br>   - (r) Router ID <br>   - (r) Port Number <br> - Else (endpoint) <br> - (s) Num VNs <br> - (s) Num VCs <br> - (s) Flit Width <br> - (s) Bus Width |
-| 2 | - (r) Num VNs <br> - (r) Num VCs <br> - (r) Flit Width <br> - (r) Bus Width | If connection_type = Endpoint <br> - (s) Endpoint ID                                                                                                                                         |
-| 3 | (r) Endpoint ID <br> Send credits                                           | Send credits                                                                                                                                                                                 |
-| 4+ | Receive Credits; discard anything else                                      | Receive Credits; discard anything else                                                                                                                                                       |
+| Phase | MordredNIC                                        | RtrPortControl                                                                                                                                                          |
+|-------|---------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| 0     | (s) Report Endpoint                               | - (s) Report Router <br> - (s) Router ID <br> - (s) Port Number                                                                                                         |
+| 1     | - (r) Router report <br> - (r) Router ID <br> - (r) Port Number | (r) Connection type <br> - If Router <br>   - (r) Router ID <br>   - (r) Port Number <br> - Else (endpoint) <br> - (s) Num VNs <br> - (s) Num VCs <br> - (s) Flit Width |
+| 2     | - (r) Num VNs <br> - (r) Num VCs <br> - (r) Flit Width <br> | If connection_type = Endpoint <br> - (s) Endpoint ID                                                                                                                    |
+| 3     | (r) Endpoint ID                                   | IDLE (held for channel width setup if needed in the future)                                                                                                             |
+| 4     | Send credits                                      | Send credits                                                                                                                                                            |
+| 5+    | Receive Credits; enqueue anything else            | Receive Credits; enqueue anything else                                                                                                                                  |
 
 ## Random thoughts/questions/discussion
 - See comments towards top of MordredEvents.h for a description of the event types
@@ -35,12 +36,12 @@ In Merlin, the topology is what defines the number of VCs per VN - so this is a 
 Here, most data structures are multi-dimensional arrays contained within a port (or within a per-port object) where one dimension is the number of VNs and another dimension is the number of VCs.
 
 ## TODOs
-- The channelBusWidth is unused at present. Assuming 1 flit traverses the link at a time
+- Assuming 1 flit traverses the link at a time; see the channel_width branch for some initial support that modifies this (may be out of date)
 - Priority is completely unimplemented
 - Additional topologies and arbitration methods can be added
 - Router latency is fixed
 - No maximum packet length (number of flits) set; packet to flit translation is happening only in MordredNIC and there is a minimum of 2 flits per packet
-- Need to review timing of the router and its subcomponents
+- Continue to review timing of the router and its subcomponents
 
 ## Basic Software Architecture/Router Behavior
 The router owns a vector called perPortSharedObjs (one element per port) where each element is a RtrOwnedSharedObjs (in MordredEvents).
@@ -50,7 +51,7 @@ On a clock tick, the RtrPortControl will inspect the state of each VN, VC pair i
 the needVcAlloc for that VN, VC pair is marked.  The VC allocator can then identify and operate (however it would like) on any/all
 of the VN, VC pairs that need a VC allocation.  When the VC allocator has given an output VC for a given VN,VC pair, that entry in 
 needVcAlloc is cleared.  This allows for persistent requests across clock cycles.  Additionally, since the VC allocator will know
-all of the packets that are ready for an allocation, it can operate at whatever level it desires (across ports, vns, vcs, etc).
+all the packets that are ready for an allocation, it can operate at whatever level it desires (across ports, vns, vcs, etc).
 
 We do a similar thing for the flits that are in need of switch allocation.
 

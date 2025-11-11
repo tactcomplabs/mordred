@@ -24,6 +24,7 @@ MordredNIC::MordredNIC( ComponentId_t cid, Params& params, int vns = 1 ) :
 {
   const auto verbosity = params.find<uint32_t>("verbose", 5);
   output = new SST::Output("MordredNIC[" + getName() + ":@p:@t]: ", verbosity, 0, Output::STDOUT);
+  //output->setVerboseMask( DEBUG_INIT_PHASE );
 
   // Validate vns
   if ( vns != 1 ) {
@@ -73,9 +74,6 @@ void MordredNIC::init( uint32_t phase ) {
   Event *ev;
   MordredInitEvent* init_ev;
 
-  // Note: could rewrite this function to use sendUntimedData instead of just putting messages
-  // onto the link.
-
   switch ( phase ) {
   case 0:
     init_ev = new MordredInitEvent();
@@ -116,33 +114,12 @@ void MordredNIC::init( uint32_t phase ) {
     flitSize = init_ev->value;
     delete init_ev;
 
-    init_ev = getInitEvent( MordredInitEvent::Commands::BUS_WIDTH );
-    channelBusWidth = init_ev->value;
-    delete init_ev;
     //output->verbose( CALL_INFO, 5, 0, "Received init_phase=%" PRIu32 " packets with numVCs=%" PRIu32 ", flit_width=%" PRIu32 ", channel_bus_width=%" PRIu32 "\n",
     //  phase, numVcs, flitSize, channelBusWidth );
     //output->flush();
     resizeVectors();
 
     break;
-
-#if 0
-    // from Kingsley
-    init_ev = static_cast<MordredInitEvent*>(ev);
-    UnitAlgebra flit_size_ua = init_ev->ua_value;
-    flit_size = flit_size_ua.getRoundedValue();
-
-    UnitAlgebra link_clock = link_bw / flit_size_ua;
-
-    TimeConverter* tc = getTimeConverter(link_clock);
-    output->timing->setDefaultTimeBase(tc);
-
-    for ( int i = 0; i < req_vns; ++i ) {
-      outbuf_credits[i] = outbuf_size.getRoundedValue() / flit_size;
-      in_ret_credits[i] = inbuf_size.getRoundedValue() /flit_size;
-    }
-
-#endif
   }
 
   case 3: {
@@ -151,9 +128,14 @@ void MordredNIC::init( uint32_t phase ) {
     initialized = true;
     //output->verbose( CALL_INFO, 5, 0, "Received endpoint id = %" PRId64 "\n", netID );
     delete init_ev;
+  } break;
 
+  case 4: {
     // Send router credits equal to num_flits inBuf can hold
     auto credits = static_cast<int32_t>( inbufSize.getRoundedValue() / flitSize );
+    if ( credits == 0 )
+      output->fatal( CALL_INFO, -1, "Invalid configuration; flit_size=%" PRIu32 "b > input_buf_size=%" PRId64 "b (buf cannot hold a flit)\n",
+        flitSize, inbufSize.getRoundedValue() );
     for ( uint32_t i = 0; i < numVns; i++ ) {
       auto* credit_ev = new MordredCreditEvent( i, 0, credits );
       link->sendUntimedData( credit_ev );
@@ -182,12 +164,14 @@ void MordredNIC::init( uint32_t phase ) {
     }
     break;
   }
+  //output->verbose( CALL_INFO, 5, DEBUG_INIT_PHASE, " END init phase=%" PRIu32 "\n", phase );
+  //output->flush();
 }
 
 void MordredNIC::setup() {
 #if 0
   output->verbose(CALL_INFO, 5, 0, "MordredNIC SETUP nid=%" PRId64 ", rtrId=%" PRIu32 ", rtrPort=%" PRIu32 "\n", netID, rtrId, rtrPort);
-  output->verbose( CALL_INFO, 5, 0, "MordredNIC SETUP numVCs=%" PRIu32 ", flitWidth=%" PRIu32 ", channelBusWidth=%" PRIu32 "\n", numVcs, flitSize, channelBusWidth );
+  output->verbose( CALL_INFO, 5, 0, "MordredNIC SETUP numVCs=%" PRIu32 ", flitWidth=%" PRIu32 "\n", numVcs, flitSize );
   output->flush();
 #endif
 }
