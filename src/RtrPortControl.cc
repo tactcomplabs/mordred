@@ -32,7 +32,7 @@ RtrPortControl::RtrPortControl( ComponentId_t id, Params& params, TopologyAPI* t
   const auto verbosity = params.find<uint32_t>("verbose", 5);
   output = new Output("RtrPortControl[[" + std::to_string( rtrId ) + "." + std::to_string( portId ) + "]:@p:@t]: ",
     verbosity, 0, Output::STDOUT);
-  output->setVerboseMask( DEBUG_INIT_PHASE );
+  //output->setVerboseMask( DEBUG_INIT_PHASE );
 
   if ( rtrSharedObjs == nullptr )
     output->fatal(CALL_INFO_LONG, 1, "RtrPortControl: vn_objs must be specified\n");
@@ -272,7 +272,7 @@ void RtrPortControl::setup() {
 #if 0
   output->verbose(CALL_INFO, 5, 0, "RtrPortControl SETUP rtrId=%" PRIu32 ", rtrPort=%" PRIu32 ", connected Rtr ID=%" PRIu32 ", connected Port ID=%" PRIu32 "\n",
     rtrId, portId, connectedRtrId, connectedPortId);
-  output->verbose( CALL_INFO, 5, 0, "flitWidth=%" PRIu32 ", channelBusWidth=%" PRIu32 "\n", flitSize, channelWidth );
+  output->verbose( CALL_INFO, 5, 0, "flitWidth=%" PRIu32 "\n", flitSize );
   output->flush();
 #endif
 }

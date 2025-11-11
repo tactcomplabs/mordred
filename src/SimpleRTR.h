@@ -60,7 +60,6 @@ public:
     //{"num_vns", "Number of virtual networks", "1"},
     {"num_vcs",            "Number of virtual channels.", "1"},
     {"flit_size",          "Flit size specified in either b or B (can include SI prefix).", "32b"}, //passed down to RtrPortControlAPI instances
-    {"channel_width",      "Number of bits per channel/link (not UnitAlgebra); must be <= flit_size", "flit_size"}, //passed down to RtrPortControlAPI instances
     {"input_buf_size",     "Size of per-VC input buffers specified in b or B (can include SI prefix).", nullptr},
     {"output_buf_size",    "Size of per-VC output buffer specified in b or B (can include SI prefix).", nullptr},
     // {"link_bw",            "Bandwidth of the links specified in either b/s or B/s (can include SI prefix)."},
