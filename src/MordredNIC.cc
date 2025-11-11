@@ -74,9 +74,6 @@ void MordredNIC::init( uint32_t phase ) {
   Event *ev;
   MordredInitEvent* init_ev;
 
-  // Note: could rewrite this function to use sendUntimedData instead of just putting messages
-  // onto the link.
-
   switch ( phase ) {
   case 0:
     init_ev = new MordredInitEvent();
