@@ -38,7 +38,7 @@ public:
 
   // register the parameters
   SST_ELI_DOCUMENT_PARAMS(
-    { "verbose", "Sets the output verbsoity", "5" },
+    { "verbose", "Sets the output verbosity", "5" },
     { "xDim", "Number of points in the X dimension", "1"},
      {"yDim", "Number of points in the Y dimension", "1"}
   )
@@ -60,8 +60,11 @@ public:
 
   int32_t getEndpointId( uint32_t portnum ) override;
 
-  /// Get the output port for a flit
+  /// Get the output port for a packet
   uint32_t routePacket( uint32_t dest ) final;
+
+  /// Do routing for untimed packets; this has to handle broadcast messages
+  void routeUntimedBroadcastPacket( Event* ev, std::queue<Event>& output_events ) final;
 
   /// default constructor
   MeshTopology() : SST::Mordred::TopologyAPI() {}

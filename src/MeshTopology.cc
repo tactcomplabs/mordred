@@ -71,8 +71,9 @@ uint32_t MeshTopology::routePacket( uint32_t dest ) {
     uint32_t dest_x = dest_rtr_id % xDim;
     uint32_t dest_y = dest_rtr_id / xDim;
 
-    //output->verbose( CALL_INFO, 5, 0, "Routing: dest=%" PRIu32 ", dest_rtr_id=%" PRIu32 ", dest_x=%" PRIu32 ", dest_y=%" PRIu32 "\n",
-    //  dest, dest_rtr_id, dest_x, dest_y );
+    output->verbose( CALL_INFO, 5, 0, "Routing: dest=%" PRIu32 ", dest_rtr_id=%" PRIu32 ", dest_x=%" PRIu32 ", dest_y=%" PRIu32 "\n",
+      dest, dest_rtr_id, dest_x, dest_y );
+    output->flush();
 
     // Currently just going along x until we hit the proper y
     // then we'll route along the y.
@@ -92,4 +93,8 @@ uint32_t MeshTopology::routePacket( uint32_t dest ) {
     output->fatal( CALL_INFO, -1, "Error! Invalid destination for packet; numPorts=%" PRIu32 ", dest_port=%" PRIu32 "\n",
       numPorts, dest_port);
   return dest_port;
+}
+
+void MeshTopology::routeUntimedBroadcastPacket( Event* ev, std::queue<Event>& output_events ) {
+  output->fatal( CALL_INFO, -1, "Not yet implemented\n" );
 }

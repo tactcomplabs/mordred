@@ -13,7 +13,7 @@ link_latency = UnitAlgebra(0.8) * clk_pd
 flit_size = UnitAlgebra("16b")
 
 FixedRtrParams = {
-    "verbose" : "0",
+    "verbose" : "5",
     "clock" : clk,
     "num_vcs" : "1",
     "flit_size" : flit_size,
@@ -24,11 +24,12 @@ FixedRtrParams = {
 FixedTestNicParams = {
     "num_messages" : 10,
     "message_size" : UnitAlgebra(4)*flit_size,
-    "send_untimed_broadcast" : "false", # matches default
+    #"send_untimed_broadcast" : "false", # matches default
+    "send_untimed_broadcast" : "true",
 }
 
 MordredNICParams = {
-    "verbose" : "0",
+    "verbose" : "5",
     "input_buf_size" : "1kiB",
     "output_buf_size" : "1kiB",
 }
@@ -62,7 +63,7 @@ def createMesh(x_size, y_size, local_ports):
             rtr_id += 1
             rtr_topo = rtr.setSubComponent( "topology", "mordred.MeshTopology" )
             rtr_topo.addParams({
-                "verbose" : 0,
+                "verbose" : 5,
                 "xDim" : x_size,
                 "yDim" : y_size
             })
@@ -95,6 +96,7 @@ def createMesh(x_size, y_size, local_ports):
                 ep.addParams({
                     "id" : ep_num,
                     "num_peers" : num_eps,
+                    "send_untimed_broadcast" : "false"
                 })
                 # Add endpoint interface to the NoC
                 ep_iface = ep.setSubComponent("networkIF", "mordred.mordredNIC")
@@ -105,11 +107,11 @@ def createMesh(x_size, y_size, local_ports):
                 ep_iface.addLink(getLink("rtr_%d_%d"%(x, y), ep_name), "port", link_latency)
 
 # General params
-local_ports = 1 # == concentration
+local_ports = 2 # == concentration
 
 # Mesh Configuration options
-x_size = 3
-y_size = 3
+x_size = 1
+y_size = 1
 
 createMesh(x_size, y_size, local_ports)
 

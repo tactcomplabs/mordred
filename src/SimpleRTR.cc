@@ -127,9 +127,19 @@ void SimpleRTR::init( uint32_t phase ) {
     if( phase >= 4 ) {
       Event* ev = port->recvUntimedData();
       while ( ev != nullptr ) {
+        output.verbose( CALL_INFO, 5, 0, "Received untimed data packet\n");
+        output.flush();
+        std::queue<Event> out_events;
         auto init_ev   = static_cast<MordredInitEvent*>( ev );
-        auto dest_port = topology->routePacket( init_ev->req->dest );
-        portsVec.at( dest_port )->sendUntimedData( ev );
+        if ( init_ev->req->dest == Interfaces::SimpleNetwork::INIT_BROADCAST_ADDR ) {
+          topology->routeUntimedBroadcastPacket( ev, out_events );
+        } else {
+          auto dest_port = topology->routePacket( init_ev->req->dest );
+          output.verbose( CALL_INFO, 5, 0, "Determined route of untimed data packet; dest=%lld, dest_port=%u\n",
+            init_ev->req->dest, dest_port);
+          output.flush();
+          portsVec.at( dest_port )->sendUntimedData( ev );
+        }
         ev = port->recvUntimedData();
       }
     }

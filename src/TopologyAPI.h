@@ -13,6 +13,7 @@
 
 // Standard headers
 #include <cstdint>
+#include <queue>
 
 // Local SST header
 #include "sst_config.h"
@@ -41,8 +42,11 @@ public:
   /// Computed endpoint ID
   virtual int32_t getEndpointId( uint32_t portnum ) = 0;
 
-  /// Get the output port for a flit
+  /// Get the output port for a packet
   virtual uint32_t routePacket( uint32_t dest ) = 0;
+
+  /// Do routing for untimed broadcast packets
+  virtual void routeUntimedBroadcastPacket( Event* ev, std::queue<Event>& output_events );
 
 };  // class TopologyAPI
 

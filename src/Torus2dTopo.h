@@ -61,8 +61,11 @@ public:
 
   int32_t getEndpointId( uint32_t portnum ) override;
 
-  /// Get the output port for a flit
+  /// Get the output port for a packet
   uint32_t routePacket( uint32_t dest ) final;
+
+  /// Do routing for untimed packets; this has to handle broadcast messages
+  void routeUntimedBroadcastPacket( Event* ev, std::queue<Event>& output_events ) final;
 
   /// default constructor
   TorusTopo() : TopologyAPI() {}

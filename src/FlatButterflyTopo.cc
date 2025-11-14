@@ -148,6 +148,10 @@ uint32_t FlatButterflyTopo::routePacket( uint32_t dest ) {
   return dest_port;
 }
 
+void FlatButterflyTopo::routeUntimedBroadcastPacket( Event* ev, std::queue<Event>& output_events ) {
+  output->fatal( CALL_INFO, -1, "Not yet implemented\n" );
+}
+
 bool FlatButterflyTopo::isLocalAddr( std::vector<uint32_t>& dest_addr ) {
   for ( uint32_t i = n-1; i > 0; i-- ) {
     if ( dest_addr.at( i ) != myAddress.at( i ) )

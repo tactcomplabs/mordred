@@ -131,3 +131,7 @@ uint32_t TorusTopo::routePacket( uint32_t dest ) {
   //output->flush();
   return dest_port;
 }
+
+void TorusTopo::routeUntimedBroadcastPacket( Event* ev, std::queue<Event>& output_events ) {
+  output->fatal( CALL_INFO, -1, "Not yet implemented\n" );
+}
