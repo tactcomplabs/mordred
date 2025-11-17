@@ -46,7 +46,7 @@ public:
   virtual uint32_t routePacket( uint32_t dest ) = 0;
 
   /// Do routing for untimed broadcast packets
-  virtual void routeUntimedBroadcastPacket( Event* ev, std::queue<Event>& output_events );
+  virtual void routeUntimedBroadcastPacket( Event* ev, std::queue<Event>& output_events ) = 0;
 
 };  // class TopologyAPI
 

@@ -135,7 +135,7 @@ void SimpleRTR::init( uint32_t phase ) {
           topology->routeUntimedBroadcastPacket( ev, out_events );
         } else {
           auto dest_port = topology->routePacket( init_ev->req->dest );
-          output.verbose( CALL_INFO, 5, 0, "Determined route of untimed data packet; dest=%lld, dest_port=%u\n",
+          output.verbose( CALL_INFO, 5, 0, "Determined route of untimed data packet; dest=%" PRId64 ", dest_port=%u\n",
             init_ev->req->dest, dest_port);
           output.flush();
           portsVec.at( dest_port )->sendUntimedData( ev );
