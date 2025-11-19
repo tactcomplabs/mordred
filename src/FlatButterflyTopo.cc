@@ -148,6 +148,45 @@ uint32_t FlatButterflyTopo::routePacket( uint32_t dest ) {
   return dest_port;
 }
 
+void FlatButterflyTopo::routeUntimedBroadcastPacket(
+  uint32_t receive_port_id, MordredInitEvent* init_ev, std::vector<Event*>& output_events
+) {
+
+#if 0
+  /* This if-endif block works for k-ary, n-flys of n=2 (namely the 4-ary, 2-fly); fails for the k=2,n=4 test.
+   For the 2-ary, 4-fly (with 8 routers), rtr0 is only connected to routers 1,2,4
+   and getting to rtr 7 would take at least 2 hops.
+
+   Since Google's AI summary suggests that this topology isn't meant for broadcasts, so we're going to leave this
+   exercise for a later day.
+  */
+
+  // Send to all connected endpoints except sender
+  for ( uint32_t i = numRtrPorts; i < numPorts; ++i ) {
+    if (i == receive_port_id ) continue; // always false if from another router
+    output_events.at(i) = init_ev->clone();
+  }
+
+  // if from an endpoint, send to everyone except myself
+  if ( receive_port_id >= numRtrPorts ) {
+    for ( uint32_t i = 0; i < numRtrPorts; i++ ) {
+      output_events.at(i) = init_ev->clone();
+    }
+  }
+#endif
+  output->fatal( CALL_INFO, -1, "INIT_BROADCAST_ADDR destination for untimed messages is not supported for this topology\n" );
+
+#if 0 // Debugging code
+  if ( rtrId == 0 || rtrId == 2 ) {
+    for ( uint32_t i = 0; i < numPorts; i++ ) {
+      if ( output_events.at(i) != nullptr ) {
+        output->output( CALL_INFO, "Send broadcast on router port=%u\n", i );
+      }
+    }
+  }
+#endif
+}
+
 bool FlatButterflyTopo::isLocalAddr( std::vector<uint32_t>& dest_addr ) {
   for ( uint32_t i = n-1; i > 0; i-- ) {
     if ( dest_addr.at( i ) != myAddress.at( i ) )

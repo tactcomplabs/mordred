@@ -65,6 +65,9 @@ public:
   /// Get the output port for a flit -- dest should be the destination endpoint
   uint32_t routePacket( uint32_t dest ) final;
 
+  /// Do routing for untimed packets; this has to handle broadcast messages
+  void routeUntimedBroadcastPacket( uint32_t receive_port_id, MordredInitEvent* init_ev, std::vector<Event*>& output_events ) final;
+
   /// default constructor
   FlatButterflyTopo() : SST::Mordred::TopologyAPI() {}
 

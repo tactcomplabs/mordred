@@ -143,8 +143,6 @@ void RtrPortControl::allocateBuffers() {
 }
 
 void RtrPortControl::init( unsigned int phase ) {
-  // Similar to MordredNIC, could set this up to use sendUntimedData here instead of using the
-  // link directly
   switch( phase ) {
   case 0: {
     auto *init_ev = new MordredInitEvent();
@@ -185,7 +183,7 @@ void RtrPortControl::init( unsigned int phase ) {
 
       init_ev = getInitEvent( MordredInitEvent::PORT_NUM );
       connectedPortId = init_ev->value;
-      //output->verbose( CALL_INFO, 5, 0, "Received init packets from [Rtr.Port]=[%" PRIu32 ".%" PRIu32 "]\n", connectedRtrId, connectedPortId );
+      output->verbose( CALL_INFO, 5, DEBUG_INIT_PHASE, "Received init packets from [Rtr.Port]=[%" PRIu32 ".%" PRIu32 "]\n", connectedRtrId, connectedPortId );
       delete init_ev;
     } else if ( connectionType == ENDPOINT ) {
       init_ev = new MordredInitEvent();
@@ -203,7 +201,7 @@ void RtrPortControl::init( unsigned int phase ) {
       init_ev->value = flitSize;
       link->sendUntimedData( init_ev );
 
-      output->verbose( CALL_INFO, 5, DEBUG_INIT_PHASE, " Send flit and bus widths init_phase=%" PRIu32 "\n", phase );
+      output->verbose( CALL_INFO, 5, DEBUG_INIT_PHASE, " Send vns, vcs, flit_size init_phase=%" PRIu32 "\n", phase );
     }
     break;
   }
@@ -220,13 +218,13 @@ void RtrPortControl::init( unsigned int phase ) {
     output->verbose( CALL_INFO, 5, DEBUG_INIT_PHASE, " SEND IDs init phase=%" PRIu32 "\n", phase );
     break;
   }
-
+#if 0
   case 3: {
     // IDLE - this was moved to an IDLE state when starting to look at variable channel depths (which has been backburnered);
     // however, going to leave it like this to allow for flexibility in the future if we pursue it again
   } break;
-
-  case 4: {
+#endif
+  case 3: {
     // Send router credits
     auto total_credits    = static_cast<int32_t>( inBufSize / flitSize );
     // Need to do things a little differently here depending on if I'm going to an endpoint or
@@ -248,7 +246,7 @@ void RtrPortControl::init( unsigned int phase ) {
       if( base_ev->getType() == baseMordredEvent::CREDIT ) {
         auto credit_ev = static_cast<MordredCreditEvent*>( ev );
         outStateVec.at( credit_ev->vn ).at ( credit_ev->vc ).destCredits += credit_ev->credits;
-        //output->verbose( CALL_INFO, 5, 0, "Received initCredit event vc=%d, credits=%d; cur_credits=%d\n", credit_ev->vc, credit_ev->credits, outStateVec.at( credit_ev->vn ).at ( credit_ev->vc ).destCredits );
+        output->verbose( CALL_INFO, 5, DEBUG_INIT_PHASE, "Received initCredit event vc=%d, credits=%d; cur_credits=%d\n", credit_ev->vc, credit_ev->credits, outStateVec.at( credit_ev->vn ).at ( credit_ev->vc ).destCredits );
         delete ev;
       } else if ( base_ev->getType() == baseMordredEvent::PACKET ) {
         initEvents.push( ev );
@@ -264,8 +262,8 @@ void RtrPortControl::init( unsigned int phase ) {
     }
   }  // end default
   }
-  //output->verbose( CALL_INFO, 5, DEBUG_INIT_PHASE, " END init phase=%" PRIu32 "\n", phase );
-  //output->flush();
+  output->verbose( CALL_INFO, 5, DEBUG_INIT_PHASE, " END init phase=%" PRIu32 "\n", phase );
+  output->flush();
 }
 
 void RtrPortControl::setup() {
@@ -299,7 +297,6 @@ void RtrPortControl::complete( unsigned int phase ) {
     }
   }
 }
-
 
 void RtrPortControl::sendUntimedData( Event* ev ) {
   link->sendUntimedData( ev );
@@ -416,9 +413,11 @@ void RtrPortControl::inHandler( SST::Event* ev ) {
       output->fatal( CALL_INFO, -1, "Invalid flit \n" );
     validateVnVc( flit->vn, flit->cur_vc );
 
-    //output->verbose( CALL_INFO, 5, 0, "Recv flit %s, src=%" PRIu64 ", dst=%" PRIu64 ", vn=%" PRIu32 ", vc=%" PRIu32 ", type=%u\n",
-    //  flit->pktIdStr().c_str(), flit->req->src, flit->req->dest, flit->vn, flit->cur_vc, (uint32_t)flit->ftype );
-    //output->flush();
+#if 0
+    output->verbose( CALL_INFO, 5, 0, "Recv flit %s, src=%" PRIu64 ", dst=%" PRIu64 ", vn=%" PRIu32 ", vc=%" PRIu32 ", type=%u\n",
+      flit->pktIdStr().c_str(), flit->req->src, flit->req->dest, flit->vn, flit->cur_vc, (uint32_t)flit->ftype );
+    output->flush();
+#endif
 
     inStateVec.at( flit->vn ).at( flit->cur_vc ).inBuf.push( flit );
     if ( flit->ftype == MordredFlit::TAIL )

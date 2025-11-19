@@ -61,8 +61,11 @@ public:
 
   int32_t getEndpointId( uint32_t portnum ) override;
 
-  /// Get the output port for a flit
+  /// Get the output port for a packet
   uint32_t routePacket( uint32_t dest ) final;
+
+  /// Do routing for untimed packets; this has to handle broadcast messages
+  void routeUntimedBroadcastPacket( uint32_t receive_port_id, MordredInitEvent* init_ev, std::vector<Event*>& output_events ) final;
 
   /// default constructor
   TorusTopo() : TopologyAPI() {}
@@ -93,6 +96,7 @@ private:
   uint32_t numLocalPorts;
 
   // Torus parameters
+  static constexpr uint32_t TORUSNET_PORTS_PER_ROUTER = 4;
   uint32_t xId{UINT32_MAX};
   uint32_t yId{UINT32_MAX};
   uint32_t xDim{UINT32_MAX};
@@ -105,6 +109,8 @@ private:
   enum PortDirE : uint32_t {NORTH = 0, EAST = 1, SOUTH = 2, WEST = 3};
 
   std::vector<uint32_t>* perPortConnectedRtr; // Unused for this topology, but printed in setup.
+
+  void sendBroadcast( uint32_t dir, MordredInitEvent* init_ev, std::vector<Event*>& output_events );
 
 };
 

@@ -73,6 +73,7 @@ uint32_t MeshTopology::routePacket( uint32_t dest ) {
 
     //output->verbose( CALL_INFO, 5, 0, "Routing: dest=%" PRIu32 ", dest_rtr_id=%" PRIu32 ", dest_x=%" PRIu32 ", dest_y=%" PRIu32 "\n",
     //  dest, dest_rtr_id, dest_x, dest_y );
+    //output->flush();
 
     // Currently just going along x until we hit the proper y
     // then we'll route along the y.
@@ -87,9 +88,54 @@ uint32_t MeshTopology::routePacket( uint32_t dest ) {
   }
 
   uint32_t dest_port = dest - endptZeroId; // this should be the number of the local port
-  dest_port += 4; // add 4 to account for router ports
+  dest_port += MESHNET_PORTS_PER_ROUTER; // add to account for router ports
   if ( dest_port >= numPorts )
     output->fatal( CALL_INFO, -1, "Error! Invalid destination for packet; numPorts=%" PRIu32 ", dest_port=%" PRIu32 "\n",
       numPorts, dest_port);
   return dest_port;
+}
+
+void MeshTopology::routeUntimedBroadcastPacket( uint32_t receive_port_id, MordredInitEvent* init_ev, std::vector<Event*>& output_events ) {
+  // Send to all connected endpoints except sender
+  for ( uint32_t i = MESHNET_PORTS_PER_ROUTER; i < numPorts; ++i ) {
+    if (i == receive_port_id ) continue; // always false if from another router
+    output_events.at(i) = init_ev->clone();
+  }
+
+  // Broadcast received from an endpoint
+  if ( receive_port_id >= MESHNET_PORTS_PER_ROUTER ) {
+    // Send to all other routers
+    for ( uint32_t i = 0; i < MESHNET_PORTS_PER_ROUTER; ++i ) {
+      if ( perPortConnectedRtr->at(i) != UINT32_MAX ) {
+        output_events.at(i) = init_ev->clone();
+      }
+    }
+    return;
+  }
+
+  // Received from another router
+  switch( receive_port_id ) {
+  case NORTH:  // continue sending south
+    if( perPortConnectedRtr->at( SOUTH ) != UINT32_MAX ) {
+      output_events.at( SOUTH ) = init_ev->clone();
+    }
+    break;
+  case SOUTH:  // continue sending north
+    if( perPortConnectedRtr->at( NORTH ) != UINT32_MAX ) {
+      output_events.at( NORTH ) = init_ev->clone();
+    }
+    break;
+  case WEST: [[fallthrough]];
+  case EAST:
+    // Send N, S, and same direction
+    for ( uint32_t i = 0; i < MESHNET_PORTS_PER_ROUTER; ++i ) {
+      // Skip unconnected or sending ports
+      if ( (perPortConnectedRtr->at(i) == UINT32_MAX ) || ( i == receive_port_id ) )
+        continue;
+      output_events.at(i) = init_ev->clone();
+    }
+  break;
+  default:
+    output->fatal( CALL_INFO, -1, "Unexpected receive_port_id=%" PRIu32 "\n", receive_port_id );
+  }
 }

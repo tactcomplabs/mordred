@@ -24,7 +24,8 @@ FixedRtrParams = {
 FixedTestNicParams = {
     "num_messages" : 10,
     "message_size" : UnitAlgebra(4)*flit_size,
-    "send_untimed_broadcast" : "false", # matches default
+    #"send_untimed_broadcast" : "false", # matches default
+    "send_untimed_broadcast" : "true",
 }
 
 MordredNICParams = {
@@ -105,7 +106,7 @@ def createMesh(x_size, y_size, local_ports):
                 ep_iface.addLink(getLink("rtr_%d_%d"%(x, y), ep_name), "port", link_latency)
 
 # General params
-local_ports = 1 # == concentration
+local_ports = 3 # == concentration
 
 # Mesh Configuration options
 x_size = 3

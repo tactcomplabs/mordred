@@ -73,10 +73,10 @@ void TorusTopo::setup() {
 }
 
 int32_t TorusTopo::getEndpointId( uint32_t portnum ) {
-  if ( portnum < 4 )
+  if ( portnum < TORUSNET_PORTS_PER_ROUTER )
     return -1;
   uint32_t base_id = rtrId * numLocalPorts;
-  uint32_t local_id = portnum-4;
+  uint32_t local_id = portnum - TORUSNET_PORTS_PER_ROUTER;
   return static_cast<int32_t>( base_id + local_id );
 }
 
@@ -123,11 +123,65 @@ uint32_t TorusTopo::routePacket( uint32_t dest ) {
 
   // Local packet, just find the dest port
   uint32_t dest_port = dest - endptZeroId; // this should be the number of the local port
-  dest_port += 4; // add 4 to account for router ports
+  dest_port += TORUSNET_PORTS_PER_ROUTER; // add to account for router ports
   if ( dest_port >= numPorts )
     output->fatal( CALL_INFO, -1, "Error! Invalid destination for packet; numPorts=%" PRIu32 ", dest_port=%" PRIu32 "\n",
       numPorts, dest_port);
   //output->verbose( CALL_INFO, 5, 0, "Local packet; dest_port=%" PRIu32 "\n", dest_port);
   //output->flush();
   return dest_port;
+}
+
+void TorusTopo::routeUntimedBroadcastPacket( uint32_t receive_port_id, MordredInitEvent* init_ev, std::vector<Event*>& output_events ) {
+  // Send to all connected endpoints except sender
+  for ( uint32_t i = TORUSNET_PORTS_PER_ROUTER; i < numPorts; ++i ) {
+    if (i == receive_port_id ) continue; // always false if from another router
+    output_events.at(i) = init_ev->clone();
+  }
+
+  // Broadcast received from an endpoint
+  if ( receive_port_id >= TORUSNET_PORTS_PER_ROUTER ) {
+    for ( uint32_t i = 0; i < TORUSNET_PORTS_PER_ROUTER; ++i ) {
+      sendBroadcast( i, init_ev, output_events );
+    }
+    return;
+  }
+
+  // Received from another router
+  if ( receive_port_id == NORTH ) {
+    sendBroadcast( SOUTH, init_ev, output_events );
+  } else if ( receive_port_id == SOUTH ) {
+    sendBroadcast( NORTH, init_ev, output_events );
+  } else {
+    if ( receive_port_id == WEST ) {
+      sendBroadcast( EAST, init_ev, output_events );
+    } else if ( receive_port_id == EAST ) {
+      sendBroadcast( WEST, init_ev, output_events );
+    }
+    sendBroadcast( NORTH, init_ev, output_events );
+    sendBroadcast( SOUTH, init_ev, output_events );
+  }
+}
+
+void TorusTopo::sendBroadcast( uint32_t dir, MordredInitEvent* init_ev, std::vector<Event*>& output_events ) {
+  switch( dir ) {
+  case NORTH:
+    if( yId != ( yDim - 1 ) )
+      output_events.at( NORTH ) = init_ev->clone();
+    break;
+  case SOUTH:
+    if( yId != 0 )
+      output_events.at( SOUTH ) = init_ev->clone();
+    break;
+  case EAST:
+    if ( xId != ( xDim - 1 ) )
+      output_events.at( EAST ) = init_ev->clone();
+    break;
+  case WEST:
+    if ( xId != 0 )
+      output_events.at( WEST ) = init_ev->clone();
+    break;
+  default:
+    output->fatal( CALL_INFO, -1, "Unexpected direction=%" PRIu32 "\n", dir );
+  }
 }

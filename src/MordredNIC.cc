@@ -74,6 +74,9 @@ void MordredNIC::init( uint32_t phase ) {
   Event *ev;
   MordredInitEvent* init_ev;
 
+  output->verbose( CALL_INFO, 5, DEBUG_INIT_PHASE, " START init phase=%" PRIu32 "\n", phase );
+  output->flush();
+
   switch ( phase ) {
   case 0:
     init_ev = new MordredInitEvent();
@@ -96,8 +99,8 @@ void MordredNIC::init( uint32_t phase ) {
     init_ev = getInitEvent( MordredInitEvent::Commands::PORT_NUM );
     rtrPort = init_ev->value;
     delete init_ev;
-    //output->verbose( CALL_INFO, 5, 0, "Received init phase=%" PRIu32 " packets from [Rtr.Port]=[%" PRIu32 ".%" PRIu32 "]\n",
-    //  phase, rtrId, rtrPort );
+    output->verbose( CALL_INFO, 5, DEBUG_INIT_PHASE, "Received init phase=%" PRIu32 " packets from [Rtr.Port]=[%" PRIu32 ".%" PRIu32 "]\n",
+      phase, rtrId, rtrPort );
     break;
 
   case 2: {
@@ -114,9 +117,8 @@ void MordredNIC::init( uint32_t phase ) {
     flitSize = init_ev->value;
     delete init_ev;
 
-    //output->verbose( CALL_INFO, 5, 0, "Received init_phase=%" PRIu32 " packets with numVCs=%" PRIu32 ", flit_width=%" PRIu32 ", channel_bus_width=%" PRIu32 "\n",
-    //  phase, numVcs, flitSize, channelBusWidth );
-    //output->flush();
+    output->verbose( CALL_INFO, 5, DEBUG_INIT_PHASE, "Received init_phase=%" PRIu32 " packets with numVCs=%" PRIu32 ", flit_width=%" PRIu32 "\n",
+      phase, numVcs, flitSize );
     resizeVectors();
 
     break;
@@ -126,11 +128,9 @@ void MordredNIC::init( uint32_t phase ) {
     init_ev = getInitEvent( MordredInitEvent::Commands::ENDPOINT_ID );
     netID = init_ev->value;
     initialized = true;
-    //output->verbose( CALL_INFO, 5, 0, "Received endpoint id = %" PRId64 "\n", netID );
+    output->verbose( CALL_INFO, 5, DEBUG_INIT_PHASE, "Received endpoint id = %" PRId64 "\n", netID );
     delete init_ev;
-  } break;
 
-  case 4: {
     // Send router credits equal to num_flits inBuf can hold
     auto credits = static_cast<int32_t>( inbufSize.getRoundedValue() / flitSize );
     if ( credits == 0 )
@@ -150,8 +150,8 @@ void MordredNIC::init( uint32_t phase ) {
       if( base_ev->getType() == baseMordredEvent::CREDIT ) {
         auto credit_ev = static_cast<MordredCreditEvent*>( ev );
         rtrCredits.at( credit_ev->vn ) += credit_ev->credits;
-        //output->verbose( CALL_INFO, 5, 0, "Received credit event vn=%" PRIu32 ", credits=%" PRId32 "; cur_credits=%" PRId32 "\n",
-        //  credit_ev->vn, credit_ev->credits, rtrCredits.at( credit_ev->vn ) );
+        output->verbose( CALL_INFO, 5, 0, "Received credit event vn=%" PRIu32 ", credits=%" PRId32 "; cur_credits=%" PRId32 "\n",
+          credit_ev->vn, credit_ev->credits, rtrCredits.at( credit_ev->vn ) );
         delete ev;
       } else if ( base_ev->getType() == baseMordredEvent::PACKET ) {
         //output->verbose( CALL_INFO, 5, 0, "Received untimed packet\n" );
@@ -164,8 +164,8 @@ void MordredNIC::init( uint32_t phase ) {
     }
     break;
   }
-  //output->verbose( CALL_INFO, 5, DEBUG_INIT_PHASE, " END init phase=%" PRIu32 "\n", phase );
-  //output->flush();
+  output->verbose( CALL_INFO, 5, DEBUG_INIT_PHASE, " END init phase=%" PRIu32 "\n", phase );
+  output->flush();
 }
 
 void MordredNIC::setup() {
