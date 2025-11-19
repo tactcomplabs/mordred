@@ -24,7 +24,7 @@ MordredNIC::MordredNIC( ComponentId_t cid, Params& params, int vns = 1 ) :
 {
   const auto verbosity = params.find<uint32_t>("verbose", 5);
   output = new SST::Output("MordredNIC[" + getName() + ":@p:@t]: ", verbosity, 0, Output::STDOUT);
-  output->setVerboseMask( DEBUG_INIT_PHASE );
+  //output->setVerboseMask( DEBUG_INIT_PHASE );
 
   // Validate vns
   if ( vns != 1 ) {
