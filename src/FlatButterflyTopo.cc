@@ -49,9 +49,9 @@ FlatButterflyTopo::FlatButterflyTopo( ComponentId_t id, Params& params,
 
   output->verbose( CALL_INFO, 1, 0, "FlatButterflyTopo constructed; rtr_id=%" PRIu32 ", base_endpt=%" PRIu32 ", num_ports=%" PRIu32 ", local_ports=%" PRIu32 "\n",
     rtrId, base_endpt, numPorts, numLocalPorts);
-#if 1
+#if 0
   for ( uint32_t i = 0; i < n; i++ ) {
-    output->verbose( CALL_INFO, 2, 0, "myAddress[%" PRIu32 "] = %" PRIu32 "\n", i, myAddress.at( i ) );
+    output->verbose( CALL_INFO, 5, 0, "myAddress[%" PRIu32 "] = %" PRIu32 "\n", i, myAddress.at( i ) );
   }
 #endif
 }
@@ -153,12 +153,14 @@ void FlatButterflyTopo::routeUntimedBroadcastPacket(
 ) {
 
 #if 0
-  // This if-endif block works for k-ary, n-flys of n=2. fails for n=4 test
-  // for something like 2-ary, 4-fly, rtr0 is only connected to routers 1,2,4
-  // (there are 8 routers) and getting to rtr 7 would take at least 2 hops
+  /* This if-endif block works for k-ary, n-flys of n=2 (namely the 4-ary, 2-fly); fails for the k=2,n=4 test.
+   For the 2-ary, 4-fly (with 8 routers), rtr0 is only connected to routers 1,2,4
+   and getting to rtr 7 would take at least 2 hops.
 
-  // Per the google's AI, this really isn't a topology meant for broadcasts, so for now,
-  // I'm going to skip figuring out a general approach for doing it
+   Since Google's AI summary suggests that this topology isn't meant for broadcasts, so we're going to leave this
+   exercise for a later day.
+  */
+
   // Send to all connected endpoints except sender
   for ( uint32_t i = numRtrPorts; i < numPorts; ++i ) {
     if (i == receive_port_id ) continue; // always false if from another router
@@ -172,7 +174,7 @@ void FlatButterflyTopo::routeUntimedBroadcastPacket(
     }
   }
 #endif
-  output->fatal( CALL_INFO, -1, "INIT_BROADCAST_ADDR destination for untimed messages not supported for this topology\n" );
+  output->fatal( CALL_INFO, -1, "INIT_BROADCAST_ADDR destination for untimed messages is not supported for this topology\n" );
 
 #if 0 // Debugging code
   if ( rtrId == 0 || rtrId == 2 ) {

@@ -246,7 +246,7 @@ void RtrPortControl::init( unsigned int phase ) {
       if( base_ev->getType() == baseMordredEvent::CREDIT ) {
         auto credit_ev = static_cast<MordredCreditEvent*>( ev );
         outStateVec.at( credit_ev->vn ).at ( credit_ev->vc ).destCredits += credit_ev->credits;
-        output->verbose( CALL_INFO, 5, 0, "Received initCredit event vc=%d, credits=%d; cur_credits=%d\n", credit_ev->vc, credit_ev->credits, outStateVec.at( credit_ev->vn ).at ( credit_ev->vc ).destCredits );
+        output->verbose( CALL_INFO, 5, DEBUG_INIT_PHASE, "Received initCredit event vc=%d, credits=%d; cur_credits=%d\n", credit_ev->vc, credit_ev->credits, outStateVec.at( credit_ev->vn ).at ( credit_ev->vc ).destCredits );
         delete ev;
       } else if ( base_ev->getType() == baseMordredEvent::PACKET ) {
         initEvents.push( ev );
@@ -267,7 +267,7 @@ void RtrPortControl::init( unsigned int phase ) {
 }
 
 void RtrPortControl::setup() {
-#if 1
+#if 0
   output->verbose(CALL_INFO, 5, 0, "RtrPortControl SETUP rtrId=%" PRIu32 ", rtrPort=%" PRIu32 ", connected Rtr ID=%" PRIu32 ", connected Port ID=%" PRIu32 "\n",
     rtrId, portId, connectedRtrId, connectedPortId);
   output->verbose( CALL_INFO, 5, 0, "flitWidth=%" PRIu32 "\n", flitSize );
@@ -413,9 +413,11 @@ void RtrPortControl::inHandler( SST::Event* ev ) {
       output->fatal( CALL_INFO, -1, "Invalid flit \n" );
     validateVnVc( flit->vn, flit->cur_vc );
 
+#if 0
     output->verbose( CALL_INFO, 5, 0, "Recv flit %s, src=%" PRIu64 ", dst=%" PRIu64 ", vn=%" PRIu32 ", vc=%" PRIu32 ", type=%u\n",
       flit->pktIdStr().c_str(), flit->req->src, flit->req->dest, flit->vn, flit->cur_vc, (uint32_t)flit->ftype );
     output->flush();
+#endif
 
     inStateVec.at( flit->vn ).at( flit->cur_vc ).inBuf.push( flit );
     if ( flit->ftype == MordredFlit::TAIL )

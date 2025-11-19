@@ -130,9 +130,7 @@ void MordredNIC::init( uint32_t phase ) {
     initialized = true;
     output->verbose( CALL_INFO, 5, DEBUG_INIT_PHASE, "Received endpoint id = %" PRId64 "\n", netID );
     delete init_ev;
-//  } break;
 
-//  case 4: {
     // Send router credits equal to num_flits inBuf can hold
     auto credits = static_cast<int32_t>( inbufSize.getRoundedValue() / flitSize );
     if ( credits == 0 )
@@ -171,7 +169,7 @@ void MordredNIC::init( uint32_t phase ) {
 }
 
 void MordredNIC::setup() {
-#if 1
+#if 0
   output->verbose(CALL_INFO, 5, 0, "MordredNIC SETUP nid=%" PRId64 ", rtrId=%" PRIu32 ", rtrPort=%" PRIu32 "\n", netID, rtrId, rtrPort);
   output->verbose( CALL_INFO, 5, 0, "MordredNIC SETUP numVCs=%" PRIu32 ", flitWidth=%" PRIu32 "\n", numVcs, flitSize );
   output->flush();
@@ -216,9 +214,9 @@ void MordredNIC::finish() {
 
 void MordredNIC::sendUntimedData( Request* req ) {
   auto ev = new MordredInitEvent(req);
-  output->verbose( CALL_INFO, 5, 0, "MordredNIC sendUntimedData; src=%" PRIu64 ", dest=%" PRIu64 "\n",
-    req->src, req->dest);
-  output->flush();
+  //output->verbose( CALL_INFO, 5, 0, "MordredNIC sendUntimedData; src=%" PRIu64 ", dest=%" PRIu64 "\n",
+  //  req->src, req->dest);
+  //output->flush();
   link->sendUntimedData( ev );
 }
 
