@@ -298,7 +298,6 @@ void RtrPortControl::complete( unsigned int phase ) {
   }
 }
 
-
 void RtrPortControl::sendUntimedData( Event* ev ) {
   link->sendUntimedData( ev );
   //output->verbose( CALL_INFO, 5, 0, "Sent untimed data\n");
@@ -414,9 +413,9 @@ void RtrPortControl::inHandler( SST::Event* ev ) {
       output->fatal( CALL_INFO, -1, "Invalid flit \n" );
     validateVnVc( flit->vn, flit->cur_vc );
 
-    //output->verbose( CALL_INFO, 5, 0, "Recv flit %s, src=%" PRIu64 ", dst=%" PRIu64 ", vn=%" PRIu32 ", vc=%" PRIu32 ", type=%u\n",
-    //  flit->pktIdStr().c_str(), flit->req->src, flit->req->dest, flit->vn, flit->cur_vc, (uint32_t)flit->ftype );
-    //output->flush();
+    output->verbose( CALL_INFO, 5, 0, "Recv flit %s, src=%" PRIu64 ", dst=%" PRIu64 ", vn=%" PRIu32 ", vc=%" PRIu32 ", type=%u\n",
+      flit->pktIdStr().c_str(), flit->req->src, flit->req->dest, flit->vn, flit->cur_vc, (uint32_t)flit->ftype );
+    output->flush();
 
     inStateVec.at( flit->vn ).at( flit->cur_vc ).inBuf.push( flit );
     if ( flit->ftype == MordredFlit::TAIL )

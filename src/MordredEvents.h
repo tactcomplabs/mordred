@@ -110,6 +110,14 @@ public:
   value(0),
   req(r) {}
 
+  MordredInitEvent* clone( void ) override {
+    MordredInitEvent* ret = new MordredInitEvent(*this);
+    if ( this->req != nullptr ) {
+      ret->req = this->req->clone();
+    }
+    return ret;
+  }
+
   void serialize_order(Core::Serialization::serializer& ser) override {
     Event::serialize_order(ser);
     ser & command;

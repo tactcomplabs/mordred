@@ -34,7 +34,10 @@ SimpleRTR::SimpleRTR( ComponentId_t cid, Params& params ) : Component( cid ) {
   timeConverter = registerClock( clockFreq, new Clock::Handler2<SimpleRTR, &SimpleRTR::clockTick>(this) );
 
   numPorts = params.find<uint32_t>("num_ports", 3);
-  numLocalPorts = params.find<uint32_t>( "num_local_ports", 1 );
+  numLocalPorts = params.find<uint32_t>( "num_local_ports", UINT32_MAX );
+  if ( numLocalPorts == UINT32_MAX ) {
+    output.fatal( CALL_INFO, -1, "SimpleRTR requires num_local_ports to be specified\n" );
+  }
   numVns = params.find<uint32_t>( "num_vns", 1 ); // commented out as an ELI param for now
   numVcs = params.find<uint32_t>( "num_vcs", 1 );
 
@@ -129,10 +132,14 @@ void SimpleRTR::init( uint32_t phase ) {
       while ( ev != nullptr ) {
         output.verbose( CALL_INFO, 5, 0, "Received untimed data packet\n");
         output.flush();
-        std::queue<Event> out_events;
         auto init_ev   = static_cast<MordredInitEvent*>( ev );
         if ( init_ev->req->dest == Interfaces::SimpleNetwork::INIT_BROADCAST_ADDR ) {
-          topology->routeUntimedBroadcastPacket( ev, out_events );
+          std::vector<Event*> out_events(numPorts, nullptr);
+          topology->routeUntimedBroadcastPacket( port->getPortId(), init_ev, out_events );
+          for ( uint32_t i = 0; i < numPorts; i++ ) {
+            if ( out_events.at(i) != nullptr )
+              portsVec.at(i)->sendUntimedData( out_events.at(i) );
+          }
         } else {
           auto dest_port = topology->routePacket( init_ev->req->dest );
           output.verbose( CALL_INFO, 5, 0, "Determined route of untimed data packet; dest=%" PRId64 ", dest_port=%u\n",
@@ -174,8 +181,17 @@ void SimpleRTR::complete( uint32_t phase ) {
       Event* ev = port->recvUntimedData();
       if ( ev == nullptr ) break; // jump out of while loop
       auto init_ev   = static_cast<MordredInitEvent*>( ev );
-      auto dest_port = topology->routePacket( init_ev->req->dest );
-      portsVec.at( dest_port )->sendUntimedData( ev );
+      if ( init_ev->req->dest == Interfaces::SimpleNetwork::INIT_BROADCAST_ADDR ) {
+        std::vector<Event*> out_events(numPorts, nullptr);
+        topology->routeUntimedBroadcastPacket( port->getPortId(), init_ev, out_events );
+        for ( uint32_t i = 0; i < numPorts; i++ ) {
+          if ( out_events.at(i) != nullptr )
+            portsVec.at(i)->sendUntimedData( out_events.at(i) );
+        }
+      } else {
+        auto dest_port = topology->routePacket( init_ev->req->dest );
+        portsVec.at( dest_port )->sendUntimedData( ev );
+      }
     }
   }
 }

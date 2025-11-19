@@ -13,7 +13,7 @@
 
 // Standard headers
 #include <cstdint>
-#include <queue>
+#include <vector>
 
 // Local SST header
 #include "sst_config.h"
@@ -25,6 +25,8 @@
  */
 
 namespace SST::Mordred {
+
+class MordredInitEvent;
 
 class TopologyAPI : public SubComponent {
 public:
@@ -46,7 +48,7 @@ public:
   virtual uint32_t routePacket( uint32_t dest ) = 0;
 
   /// Do routing for untimed broadcast packets
-  virtual void routeUntimedBroadcastPacket( Event* ev, std::queue<Event>& output_events ) = 0;
+  virtual void routeUntimedBroadcastPacket( uint32_t receive_port_id, MordredInitEvent* ev, std::vector<Event*>& output_events ) = 0;
 
 };  // class TopologyAPI
 
