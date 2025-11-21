@@ -16,13 +16,14 @@ FixedRtrParams = {
     "verbose" : "0",
     "clock" : clk,
     "num_vcs" : "1",
+    "num_vns" : "1",
     "flit_size" : flit_size,
     "input_buf_size" : UnitAlgebra(16)*flit_size,
     "output_buf_size" : UnitAlgebra(1)*flit_size
 }
 
 FixedTestNicParams = {
-    "num_messages" : 10,
+    "num_messages" : 2,
     "message_size" : UnitAlgebra(4)*flit_size,
     #"send_untimed_broadcast" : "false", # matches default
     "send_untimed_broadcast" : "true",
@@ -106,11 +107,11 @@ def createMesh(x_size, y_size, local_ports):
                 ep_iface.addLink(getLink("rtr_%d_%d"%(x, y), ep_name), "port", link_latency)
 
 # General params
-local_ports = 3 # == concentration
+local_ports = 1 # == concentration
 
 # Mesh Configuration options
-x_size = 3
-y_size = 3
+x_size = 2
+y_size = 2
 
 createMesh(x_size, y_size, local_ports)
 

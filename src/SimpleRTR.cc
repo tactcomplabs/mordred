@@ -38,7 +38,7 @@ SimpleRTR::SimpleRTR( ComponentId_t cid, Params& params ) : Component( cid ) {
   if ( numLocalPorts == UINT32_MAX ) {
     output.fatal( CALL_INFO, -1, "SimpleRTR requires num_local_ports to be specified\n" );
   }
-  numVns = params.find<uint32_t>( "num_vns", 1 ); // commented out as an ELI param for now
+  numVns = params.find<uint32_t>( "num_vns", 1 );
   numVcs = params.find<uint32_t>( "num_vcs", 1 );
 
   // Leaving here as a sanity check - assumes more than one router in the system

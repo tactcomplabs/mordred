@@ -67,6 +67,11 @@ public:
     {"average_packet_size", "Average packet size in number of flits", "unitless", 3}
     )
 
+  /* For the constructor, int vns is an argument expected by SimpleNetwork interfaces;
+   * we don't use said argument and the number of VNs is sent to us by the routers
+   * during initialization.
+   */
+
   MordredNIC( ComponentId_t cid, Params& params, int vns );
   ~MordredNIC() override { /* empty destructor */ }
 
@@ -202,7 +207,7 @@ private:
   uint32_t    rtrId{UINT32_MAX};
   uint32_t    rtrPort{UINT32_MAX};
   bool        initialized{false};
-  uint32_t    numVns{UINT32_MAX};
+  uint32_t    numVns{0};
   uint32_t    numVcs{UINT32_MAX}; // Tracked, but unused
   uint32_t    flitSize{};
   uint64_t    packetId{};

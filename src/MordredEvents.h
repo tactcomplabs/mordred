@@ -143,9 +143,9 @@ public:
   enum FlitTypeE { HEAD, BODY, TAIL, EMPTY, NUM_TYPES };
 
   MordredFlit() : baseMordredEvent( FLIT ){ /* empty */ }
-  MordredFlit( Interfaces::SimpleNetwork::Request *req_ ) : baseMordredEvent( FLIT ), req( req_ ) { /* empty */ }
+  MordredFlit( Interfaces::SimpleNetwork::Request *req_ ) : baseMordredEvent( FLIT ), req( req_ ), vn( (uint32_t)req_->vn ) { /* empty */ }
   MordredFlit( Interfaces::SimpleNetwork::Request *req_, FlitTypeE ftype_, uint64_t pkt_id, uint32_t flit_id_ ) :
-    baseMordredEvent( FLIT ), ftype( ftype_ ), req( req_ ), packet_id( pkt_id ), flit_id( flit_id_ ) { /* empty */ }
+    baseMordredEvent( FLIT ), ftype( ftype_ ), req( req_ ), vn( (uint32_t)req_->vn ), packet_id( pkt_id ), flit_id( flit_id_ ) { /* empty */ }
 
   Interfaces::SimpleNetwork::Request *getRequest() { return req; }
 
