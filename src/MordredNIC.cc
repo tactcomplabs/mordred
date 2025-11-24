@@ -238,6 +238,12 @@ bool MordredNIC::send( Request* req, int32_t vn ) {
   if ( numVns <= u_vn )
     output->fatal( CALL_INFO, -1, "Requested vn=%" PRId32 "is invalid\n", vn );
 
+#if 0 // hackery for testing multiple VNs
+  RNG::MersenneRNG rng;
+  u_vn = rng.generateNextUInt32() % numVns;
+  req->vn = (int)u_vn;
+#endif
+
   auto num_flits = calcNumFlits( req->size_in_bits );
   if ( outbufCredits.at(u_vn) < num_flits ) {
     // The comparison here needs to stay in sync with the comparison done in spaceToSend()
@@ -432,6 +438,7 @@ void MordredNIC::handleIncomingPacket( SST::Event* ev ) {
       if ( flit->vn >= numVns )
         output->fatal( CALL_INFO, -1, "Unsupported vn=%u\n", flit->vn );
       inBuf.at(flit->vn).push( req );
+      //inBuf.at(0).push( req ); // hackery for testing multiple VNs
       // Compute elapsed latency of the packet
       // TODO: Do this with the actual clock rate, etc...seems like some things may change in sst 16, so I'm not in a rush
       // to deal with it today
