@@ -3,37 +3,17 @@
 import sst
 from sst import UnitAlgebra
 
+from sim_params import *
+
 # Use to set the stats output filename
 testname = "mesh_testnic"
 
-# Set up some parameters via UnitAlgebra
-clk = UnitAlgebra("1GHz")
-clk_pd = clk.invert()
-link_latency = UnitAlgebra(0.8) * clk_pd
-flit_size = UnitAlgebra("16b")
+# Endpoint selection
+Endpoint = "TestNIC"
+#Endpoint = "OfferedLoad"
+#Endpoint = "TrafficGen"
 
-FixedRtrParams = {
-    "verbose" : "0",
-    "clock" : clk,
-    "num_vcs" : "1",
-    "flit_size" : flit_size,
-    "input_buf_size" : UnitAlgebra(16)*flit_size,
-    "output_buf_size" : UnitAlgebra(1)*flit_size
-}
-
-FixedTestNicParams = {
-    "num_messages" : 10,
-    "message_size" : UnitAlgebra(4)*flit_size,
-    #"send_untimed_broadcast" : "false", # matches default
-    "send_untimed_broadcast" : "true",
-}
-
-MordredNICParams = {
-    "verbose" : "0",
-    "input_buf_size" : "1kiB",
-    "output_buf_size" : "1kiB",
-}
-
+# Function for creating/managing links
 links = dict()
 def getLink(name1, name2):
     name = "link.%s_%s"%(name1, name2)
@@ -91,12 +71,23 @@ def createMesh(x_size, y_size, local_ports):
                 ep_num = (x*y_size*local_ports) + (y*local_ports) + k
                 num_eps = x_size * y_size * local_ports
                 #print("%s Created endpoint %d with num_eps %d"%(ep_name, ep_num, num_eps))
-                ep = sst.Component(ep_name, "merlin.test_nic")
-                ep.addParams(FixedTestNicParams)
+                ep = sst.Component(ep_name, EndpointTypes[Endpoint])
                 ep.addParams({
                     "id" : ep_num,
                     "num_peers" : num_eps,
                 })
+                if Endpoint == "TestNIC" :
+                    ep.addParams(FixedTestNicParams)
+                elif Endpoint == "OfferedLoad" :
+                    ep.addParams(OfferedLoadParams)
+                elif Endpoint == "TrafficGen" :
+                    ep.addParams(TrafficGenParams)
+                    ep.addParams(TrafficGenMessagingParams)
+                    ep.addParam("PacketDest.RangeMax", num_eps)
+                else :
+                    print("Invalid endpoint type")
+                    exit(1)
+
                 # Add endpoint interface to the NoC
                 ep_iface = ep.setSubComponent("networkIF", "mordred.mordredNIC")
                 ep_iface.addParams(MordredNICParams)
@@ -106,7 +97,7 @@ def createMesh(x_size, y_size, local_ports):
                 ep_iface.addLink(getLink("rtr_%d_%d"%(x, y), ep_name), "port", link_latency)
 
 # General params
-local_ports = 3 # == concentration
+local_ports = 1 # == concentration
 
 # Mesh Configuration options
 x_size = 3

@@ -38,8 +38,6 @@ RtrPortControl::RtrPortControl( ComponentId_t id, Params& params, TopologyAPI* t
     output->fatal(CALL_INFO_LONG, 1, "RtrPortControl: vn_objs must be specified\n");
 
   numVns = rtrSharedObjs->needVcAlloc.size();
-  if ( numVns != 1 )
-    output->fatal(CALL_INFO_LONG, 1, "RtrPortControl: num_vns must be 1\n");
   numVcs = rtrSharedObjs->needVcAlloc.at(0).size();
 
   auto flit_size_ua = params.find<UnitAlgebra>( "flit_size", "32b" );

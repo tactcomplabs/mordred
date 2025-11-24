@@ -57,7 +57,7 @@ public:
     {"clock", "Clock frequency of the router", "1GHz"},
     {"num_ports", "Number of ports on the router", "3"},
     {"num_local_ports", "Number of local ports", nullptr},
-    //{"num_vns", "Number of virtual networks", "1"},
+    {"num_vns", "Number of virtual networks", "1"},
     {"num_vcs",            "Number of virtual channels.", "1"},
     {"flit_size",          "Flit size specified in either b or B (can include SI prefix).", "32b"}, //passed down to RtrPortControlAPI instances
     {"input_buf_size",     "Size of per-VC input buffers specified in b or B (can include SI prefix).", nullptr},
