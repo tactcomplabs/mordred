@@ -382,7 +382,7 @@ bool MordredNIC::clockTick( Cycle_t cycle ) {
 }
 
 void MordredNIC::resizeVectors() {
-  if ( ( numVns == 0 ) || ( numVns == UINT32_MAX ) ) {
+  if ( numVns == 0 ) {
     output->flush();
     output->fatal( CALL_INFO, -1, "MordredNIC resizing vectors failure\n" );
   }
@@ -448,8 +448,6 @@ void MordredNIC::handleIncomingPacket( SST::Event* ev ) {
       // Time in ns == clock ticks with 1 GHz clock.
       //output->verbose( CALL_INFO, 7, 0, "Finished receiving %s; total latency=%" PRIu64 "; NoC latency=%" PRIu64 "= %f ns\n",
       //  flit->pktIdStr().c_str(), total_latency, noc_latency, noc_latency_ns );
-      //output->output( CALL_INFO, "Received Tail Flit: Packet %s\n", flit->pktIdStr().c_str() );
-      //output->flush();
       totalNocLatency += (uint64_t)noc_latency_ns;
       totalPackets++;
       totalNumFlits += (flit->flit_id+1);
