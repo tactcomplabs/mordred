@@ -169,6 +169,7 @@ void RtrPortControl::init( unsigned int phase ) {
       connectionType = ROUTER;
     } else if ( init_ev->command == MordredInitEvent::REPORT_ENDPOINT ) {
       connectionType = ENDPOINT;
+      connectedRtrId = UINT32_MAX - 1;
     } else {
       output->fatal( CALL_INFO, -1, "Received packet with unexpected command=%d \n", (int)connectionType );
     }
