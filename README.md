@@ -2,8 +2,6 @@
 
 SST NoC Component
 
-See the mordred.info.txt file at the top level to see the current components and subcomponents.
-
 ### Notes on the initialization process
 
 Currently, the initialization procedure does not send any information "globally" to all routers/endpoints; the
@@ -61,3 +59,9 @@ on a per clock tick basis (this should be tested).
 ## Note on merlin_test_nic
 This was copied over from merlin and incorporated here so debugging statements and such could be added.  This should not
 be needed in the long term.
+
+## Compatibility/Assumptions/Etc
+Endpoints are expected to be connected to the local ports of the router; do not connect endpoints to the normal "routing" ports (for example, if doing a mesh, endpoints should be connected to port 4 or higher).
+
+The mordredNIC subcomponent has been tested as the subcomponent(s) in both memHierarchy.MemNIC and memHierarchy.MemNICFour and found to operate correctly.  An example of the former is repotest/sst_ipdps2025tutorial_demo7.py and for the latter in repotest/memH/testKingsley_Mordred.py - this test was originally in sst-elements/memHierarchy/)
+
