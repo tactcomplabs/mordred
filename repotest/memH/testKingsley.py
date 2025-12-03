@@ -42,7 +42,7 @@ data_network_params = {
 debugAll = 0
 debugL1 = max(debugAll, 0)
 debugL2 = max(debugAll, 0)
-debugDDRDC = max(debugAll, 0)
+debugDDRDC = max(debugAll, 9)
 debugMemCtrl = max(debugAll, 0)
 debugNIC = max(debugAll, 0)
 debugLev = 10
@@ -220,6 +220,7 @@ class DDRBuilder:
             "interleave_step" : str(4 * 64) + "B",
             "interleave_size" : "64B",
         })
+        print(" - Addr start= " + str(64 * self.next_ddr_id) + " Addr end=" + str(self.mem_capacity - (64 * self.next_ddr_id)))
         self.next_ddr_id = self.next_ddr_id + 1
         return (memreq, "rtr_port", mesh_link_latency), (memack, "rtr_port", mesh_link_latency), (memfwd, "rtr_port", mesh_link_latency), (memdata, "rtr_port", mesh_link_latency)
 
@@ -248,6 +249,7 @@ class DDRDCBuilder:
 
         if not quiet:
             print("\tCreating ddr dc with start: " + str(myStart) + " end: " + str(myEnd))
+            print("\tddr_dc_id=" + str(self.next_ddr_dc_id))
 
         dc = sst.Component("ddr_dc_" + str(self.next_ddr_dc_id), "memHierarchy.DirectoryController")
         dc.addParams(ddr_dc_params)
@@ -450,6 +452,7 @@ def setNodeDist(nodeId, rtrreq, rtrack, rtrfwd, rtrdata):
         elif nodeId == 7:
             port = "south"
 
+        print("MemBuilder nodeId=%d, port=%s"%(nodeId,port))
         rtrreqport = sst.Link("krtr_req_" + port + "_" +str(nodeId))
         rtrreqport.connect( (rtrreq, port, mesh_link_latency), req )
         rtrackport = sst.Link("krtr_ack_" + port + "_" + str(nodeId))
@@ -472,6 +475,7 @@ def setNodeDist(nodeId, rtrreq, rtrack, rtrfwd, rtrdata):
 
     # Place DC at every tile except 0
     if nodeId != 0:
+        print("BUILD DCs for nodeID=%d"%(nodeId))
         req, ack, fwd, data = DCBuilder.build(nodeId)
         reqport1 = sst.Link("krtr_req_port1_" + str(nodeId))
         reqport1.connect( (rtrreq, "local1", mesh_link_latency), req )
@@ -490,6 +494,7 @@ kRtrData=[]
 for x in range (0, mesh_stops_x):
     for y in range (0, mesh_stops_y):
         nodeNum = len(kRtrReq)
+        print("Build mesh for (x,y)=(%d,%d); nodeNum=%d"%(x,y,nodeNum))
         kRtrReq.append(sst.Component("krtr_req_" + str(nodeNum), "kingsley.noc_mesh"))
         kRtrReq[-1].addParams(ctrl_network_params)
         kRtrAck.append(sst.Component("krtr_ack_" + str(nodeNum), "kingsley.noc_mesh"))
@@ -507,9 +512,10 @@ for x in range (0, mesh_stops_x):
 i = 0
 for y in range(0, mesh_stops_y):
     for x in range (0, mesh_stops_x):
-
+        print("Connect mesh for i=%d; x,y=%d,%d"%(i, x, y))
         # North-south connections
         if y != (mesh_stops_y -1):
+            print("NS Connect i=%d, i+mesh_x=%d"%(i, i+mesh_stops_x))
             kRtrReqNS = sst.Link("krtr_req_ns_" + str(i))
             kRtrReqNS.connect( (kRtrReq[i], "south", mesh_link_latency), (kRtrReq[i + mesh_stops_x], "north", mesh_link_latency) )
             kRtrAckNS = sst.Link("krtr_ack_ns_" + str(i))
@@ -520,6 +526,7 @@ for y in range(0, mesh_stops_y):
             kRtrDataNS.connect( (kRtrData[i], "south", mesh_link_latency), (kRtrData[i + mesh_stops_x], "north", mesh_link_latency) )
 
         if x != (mesh_stops_x - 1):
+            print("EW Connect i=%d, i+1=%d"%(i, i+1))
             kRtrReqEW = sst.Link("krtr_req_ew_" + str(i))
             kRtrReqEW.connect( (kRtrReq[i], "east", mesh_link_latency), (kRtrReq[i+1], "west", mesh_link_latency) )
             kRtrAckEW = sst.Link("krtr_ack_ew_" + str(i))

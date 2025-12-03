@@ -229,6 +229,7 @@ class DDRBuilder:
             "interleave_step" : str(4 * 64) + "B",
             "interleave_size" : "64B",
         })
+        print(" - Addr start= " + str(64 * self.next_ddr_id) + " Addr end=" + str(self.mem_capacity - (64 * self.next_ddr_id)))
         self.next_ddr_id = self.next_ddr_id + 1
         #return (memreq, "rtr_port", mesh_link_latency), (memack, "rtr_port", mesh_link_latency), (memfwd, "rtr_port", mesh_link_latency), (memdata, "rtr_port", mesh_link_latency)
         return (memreq, "port", mesh_link_latency), (memack, "port", mesh_link_latency), (memfwd, "port", mesh_link_latency), (memdata, "port", mesh_link_latency)
@@ -257,6 +258,7 @@ class DDRDCBuilder:
 
         if not quiet:
             print("\tCreating ddr dc with start: " + str(myStart) + " end: " + str(myEnd))
+            print("\tddr_dc_id=" + str(self.next_ddr_dc_id))
 
         dc = sst.Component("ddr_dc_" + str(self.next_ddr_dc_id), "memHierarchy.DirectoryController")
         dc.addParams(ddr_dc_params)
@@ -459,6 +461,7 @@ class TileBuilder:
         #return (l2req, "rtr_port", mesh_link_latency), (l2ack, "rtr_port", mesh_link_latency), (l2fwd, "rtr_port", mesh_link_latency), (l2data, "rtr_port", mesh_link_latency)
         return (l2req, "port", mesh_link_latency), (l2ack, "port", mesh_link_latency), (l2fwd, "port", mesh_link_latency), (l2data, "port", mesh_link_latency)
 
+# This is just a naming
 tileBuilder = TileBuilder()
 memBuilder  = DDRBuilder(memCapacity * 1024 * 1024 * 1024)
 DCBuilder = DDRDCBuilder(memCapacity * 1024 * 1024 * 1024)
@@ -467,17 +470,31 @@ def setNodeDist(nodeId, rtrreq, rtrack, rtrfwd, rtrdata):
     port = nodeId % 2   # Even port = tile, odd = DC
     actNode = nodeId // 2
 
+    # Mordred expects endpoints to always be connected to local ports;
+    # so we've added a third local port and tied the DDRs into it
+    # Kingsley is ok with endpoints being connected to the mesh ports
+    # of the routers
     if nodeId == 1 or nodeId == 3 or nodeId == 5 or nodeId == 7:
         req, ack, fwd, data = memBuilder.build(nodeId)
-        if nodeId == 1:
-            port = "port2"
-        elif nodeId == 3:
-            port = "port3"
-        elif nodeId == 5:
-            port = "port1"
-        elif nodeId == 7:
-            port = "port0"
+        # if nodeId == 1:
+        #     port = "port2"
+        # elif nodeId == 3:
+        #     port = "port3"
+        # elif nodeId == 5:
+        #     port = "port1"
+        # elif nodeId == 7:
+        #     port = "port0"
 
+        port = "port6"
+        print("MemBuilder nodeId=%d, port=%s"%(nodeId,port))
+        # rtrreqport = sst.Link("krtr_req_" + port + "_" +str(nodeId))
+        # rtrreqport.connect( (rtrreq, port, mesh_link_latency), req )
+        # rtrackport = sst.Link("krtr_ack_" + port + "_" + str(nodeId))
+        # rtrackport.connect( (rtrack, port, mesh_link_latency), ack )
+        # rtrfwdport = sst.Link("krtr_fwd_" + port + "_" + str(nodeId))
+        # rtrfwdport.connect( (rtrfwd, port, mesh_link_latency), fwd )
+        # rtrdataport = sst.Link("kRtr_data_" + port + "_" + str(nodeId))
+        # rtrdataport.connect( (rtrdata, port, mesh_link_latency), data )
         rtrreqport = sst.Link("krtr_req_" + port + "_" +str(nodeId))
         rtrreqport.connect( (rtrreq, port, mesh_link_latency), req )
         rtrackport = sst.Link("krtr_ack_" + port + "_" + str(nodeId))
@@ -488,6 +505,7 @@ def setNodeDist(nodeId, rtrreq, rtrack, rtrfwd, rtrdata):
         rtrdataport.connect( (rtrdata, port, mesh_link_latency), data )
 
     # Place tiles on all routers
+    print("BUILD Tiles for nodeID=%d"%(nodeId))
     tilereq, tileack, tilefwd, tiledata = tileBuilder.build(nodeId)
     reqport0 = sst.Link("krtr_req_port4_" + str(nodeId))
     reqport0.connect( (rtrreq, "port4", mesh_link_latency), tilereq )
@@ -500,6 +518,7 @@ def setNodeDist(nodeId, rtrreq, rtrack, rtrfwd, rtrdata):
 
     # Place DC at every tile except 0
     if nodeId != 0:
+        print("BUILD DCs for nodeID=%d"%(nodeId))
         req, ack, fwd, data = DCBuilder.build(nodeId)
         reqport1 = sst.Link("krtr_req_port5_" + str(nodeId))
         reqport1.connect( (rtrreq, "port5", mesh_link_latency), req )
@@ -517,8 +536,8 @@ topo_params = {
     "yDim" : mesh_stops_y
 }
 rtr_params = {
-    "num_ports" : "6",
-    "num_local_ports" : "2"
+    "num_ports" : "7",
+    "num_local_ports" : "3"
 }
 
 kRtrReq=[]
@@ -533,6 +552,7 @@ for y in range (0, mesh_stops_y):
         #nodeNum = len(kRtrReq)
         nodeNum = rtr_id
         #rtr_id = nodeNum
+        print("Build mesh for (x,y)=(%d,%d); nodeNum=%d"%(x,y,nodeNum))
         #print("Create router at x,y=(%d,%d), rtrId=%d, nodeNum=%d"%(x,y,rtr_id,nodeNum))
         # kRtrReq.append(sst.Component("krtr_req_" + str(nodeNum), "kingsley.noc_mesh"))
         # kRtrReq[-1].addParams(ctrl_network_params)
@@ -579,10 +599,10 @@ for y in range (0, mesh_stops_y):
 i = 0
 for y in range(0, mesh_stops_y):
     for x in range (0, mesh_stops_x):
-
+        print("Connect mesh for i=%d; x,y=%d,%d"%(i, x, y))
         # North-south connections
         if y != (mesh_stops_y -1):
-            # print("NS Connect i=%d, i+mesh_x=%d"%(i, i+mesh_stops_x))
+            print("NS Connect i=%d, i+mesh_x=%d"%(i, i+mesh_stops_x))
             kRtrReqNS = sst.Link("krtr_req_ns_" + str(i))
             kRtrReqNS.connect( (kRtrReq[i], "port0", mesh_link_latency), (kRtrReq[i + mesh_stops_x], "port2", mesh_link_latency) )
             kRtrAckNS = sst.Link("krtr_ack_ns_" + str(i))
@@ -593,7 +613,7 @@ for y in range(0, mesh_stops_y):
             kRtrDataNS.connect( (kRtrData[i], "port0", mesh_link_latency), (kRtrData[i + mesh_stops_x], "port2", mesh_link_latency) )
 
         if x != (mesh_stops_x - 1):
-            # print("EW Connect i=%d, i+1=%d"%(i, i+1))
+            print("EW Connect i=%d, i+1=%d"%(i, i+1))
             kRtrReqEW = sst.Link("krtr_req_ew_" + str(i))
             kRtrReqEW.connect( (kRtrReq[i], "port1", mesh_link_latency), (kRtrReq[i+1], "port3", mesh_link_latency) )
             kRtrAckEW = sst.Link("krtr_ack_ew_" + str(i))
