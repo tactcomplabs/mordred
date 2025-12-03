@@ -136,6 +136,7 @@ void TorusTopo::routeUntimedBroadcastPacket( uint32_t receive_port_id, MordredIn
   // Send to all connected endpoints except sender
   for ( uint32_t i = TORUSNET_PORTS_PER_ROUTER; i < numPorts; ++i ) {
     if (i == receive_port_id ) continue; // always false if from another router
+    if ( perPortConnectedRtr->at( i ) == UINT32_MAX ) continue; // active endpts are set to UINT32_MAX - 1
     output_events.at(i) = init_ev->clone();
   }
 

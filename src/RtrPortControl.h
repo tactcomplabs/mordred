@@ -270,7 +270,7 @@ private:
   PortConnectionE connectionType{UNKNOWN};
   uint32_t rtrId;
   uint32_t portId;
-  uint32_t connectedRtrId{UINT32_MAX};
+  uint32_t connectedRtrId{UINT32_MAX}; // UINT32_MAX - 1 denotes an active endpoint
   uint32_t connectedPortId{UINT32_MAX};
   uint32_t numVns{UINT32_MAX}; // from size of vn_objs
   uint32_t numVcs{UINT32_MAX}; // from size of vector in vn_objs
