@@ -95,7 +95,8 @@ def buildCPU(num, network):
     highlink.connect( (iface, "lowlink", "500ps"), (l1, "highlink", "500ps"))
 
     rtrLink = sst.Link("L1_net_%d"%num)
-    rtrLink.connect( (l1_lowlink, "port", "500ps"), (network.rtr, "port%d"%netPort, "500ps") )
+    #rtrLink.connect( (l1_lowlink, "port", "500ps"), (network.rtr, "port%d"%netPort, "500ps") )
+    rtrLink.connect( (mordred_l1nic, "port", "500ps"), (network.rtr, "port%d"%netPort, "500ps") )
 
 def buildMem(num, network):
     netPort = network.getNextPort()
@@ -146,11 +147,12 @@ def bridge(net0, net1):
         "debug_level" : debug_level,
         "network_bw" : netBW,
     })
-    net_if_0 = bridge.setSubComponent("networkIF0", "mordred.mordredNIC")
+    net_if_0 = bridge.setSubComponent("networkIF", "mordred.mordredNIC", 0)
     net_if_0.addParams(MordredNICParams)
+    net_if_0.addParam("port_name", "network0")    
     link = sst.Link("B0_%s"%name)
-    link.connect( (bridge, "network0", "500ps"), (net0.rtr, "port%d"%net0port, "500ps") )
-    #link.connect( (net_if_0, "port", "500ps"), (net0.rtr, "port%d"%net0port, "500ps") )
+    #link.connect( (bridge, "network0", "500ps"), (net0.rtr, "port%d"%net0port, "500ps") )
+    link.connect( (net_if_0, "port", "500ps"), (net0.rtr, "port%d"%net0port, "500ps") )
     link = sst.Link("B1_%s"%name)
     link.connect( (bridge, "network1", "500ps"), (net1.rtr, "port%d"%net1port, "500ps") )
 

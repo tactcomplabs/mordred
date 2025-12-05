@@ -24,7 +24,7 @@ MordredNIC::MordredNIC( ComponentId_t cid, Params& params, int vns = 1 ) :
 {
   const auto verbosity = params.find<uint32_t>("verbose", 5);
   output = new SST::Output("MordredNIC[" + getName() + ":@p:@t]: ", verbosity, 0, Output::STDOUT);
-  //output->setVerboseMask( DEBUG_INIT_PHASE );
+  output->setVerboseMask( DEBUG_INIT_PHASE );
 
   // Set up buffers (partially borrowed from Kingsley)
   inbufSize = params.find<UnitAlgebra>("input_buf_size", "1kiB");
@@ -45,12 +45,18 @@ MordredNIC::MordredNIC( ComponentId_t cid, Params& params, int vns = 1 ) :
 
   // Configure the links
   // For now give it a fake timebase.  Will give it the real timebase during init
-  std::string port_name("port");
+  //std::string port_name("port");
+  std::string port_name = params.find<std::string>("port_name", "port");
+  output->output(CALL_INFO, "port_name=%s\n", port_name.c_str());
+
   //if ( isAnonymous())
   //  port_name = params.find<std::string>("port_name");
   link = configureLink(port_name, std::string("1GHz"),
       new Event::Handler<MordredNIC>(this,&MordredNIC::handleIncomingPacket));
 
+  if (!link)
+    output->fatal(CALL_INFO, -1, "Failed to initialize link\n");
+  
   // Configure clock handler
   std::string clock_freq("1GHz");
   registerClock( clock_freq, new Clock::Handler2<MordredNIC, &MordredNIC::clockTick>(this) );

@@ -53,7 +53,8 @@ public:
     { "verbose",         "Sets the output verbosity", "5" },
     //{"link_bw",       "Bandwidth of the links specified in either b/s or B/s (can include SI prefix)."},
     { "input_buf_size",  "Size of input buffers specified in b or B (can include SI prefix).", "1kiB"},
-    { "output_buf_size", "Size of output buffers specified in b or B (can include SI prefix).", "1kiB"}
+    { "output_buf_size", "Size of output buffers specified in b or B (can include SI prefix).", "1kiB"},
+    { "port_name", "Use only if necessary", "port"}
     )
 
   // TODO: Add packet types as needed
