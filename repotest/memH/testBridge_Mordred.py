@@ -7,7 +7,7 @@ num_mem = 2
 mem_size = 0x40000
 niter = 1000
 netBW = "80GiB/s"
-debug = 0
+debug = 1
 debug_level = 0
 
 
@@ -133,10 +133,7 @@ def buildMem(num, network):
     dcLink = sst.Link("DCNet%d"%num)
     dcLink.connect( (dc_highlink, "port", "500ps"), (network.rtr, "port%d"%netPort, "500ps") )
 
-
-
-
-def bridge(net0, net1):
+def mordred_bridge(net0, net1):
     net0port = net0.getNextPort()
     net1port = net1.getNextPort()
     name = "%s_%s"%(net0.name, net1.name)
@@ -149,10 +146,25 @@ def bridge(net0, net1):
     })
     net_if_0 = bridge.setSubComponent("networkIF", "mordred.mordredNIC", 0)
     net_if_0.addParams(MordredNICParams)
-    net_if_0.addParam("port_name", "network0")    
     link = sst.Link("B0_%s"%name)
     #link.connect( (bridge, "network0", "500ps"), (net0.rtr, "port%d"%net0port, "500ps") )
     link.connect( (net_if_0, "port", "500ps"), (net0.rtr, "port%d"%net0port, "500ps") )
+    link = sst.Link("B1_%s"%name)
+    link.connect( (bridge, "network1", "500ps"), (net1.rtr, "port%d"%net1port, "500ps") )
+
+def bridge(net0, net1):
+    net0port = net0.getNextPort()
+    net1port = net1.getNextPort()
+    name = "%s_%s"%(net0.name, net1.name)
+    bridge = sst.Component("Bridge.%s"%name, "merlin.Bridge")
+    bridge.addParams({
+        "translator": "memHierarchy.MemNetBridge",
+        "debug": debug,
+        "debug_level" : debug_level,
+        "network_bw" : netBW,
+    })
+    link = sst.Link("B0_%s"%name)
+    link.connect( (bridge, "network0", "500ps"), (net0.rtr, "port%d"%net0port, "500ps") )
     link = sst.Link("B1_%s"%name)
     link.connect( (bridge, "network1", "500ps"), (net1.rtr, "port%d"%net1port, "500ps") )
 
@@ -168,9 +180,9 @@ for mem in range(num_mem):
 
 net2 = Network("Middle_Net")
 
-bridge(net0, net2)
-bridge(net1, net2)
 
+bridge(net1, net2)
+mordred_bridge(net0, net2)
 
 sst.setStatisticLoadLevel(16)
 sst.enableAllStatisticsForAllComponents({"type": "sst.AccumulatorStatistic"})

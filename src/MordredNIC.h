@@ -51,10 +51,9 @@ public:
 
   SST_ELI_DOCUMENT_PARAMS(
     { "verbose",         "Sets the output verbosity", "5" },
-    //{"link_bw",       "Bandwidth of the links specified in either b/s or B/s (can include SI prefix)."},
+    { "clock",            "Clock frequency of this interface", "1GHz"},
     { "input_buf_size",  "Size of input buffers specified in b or B (can include SI prefix).", "1kiB"},
     { "output_buf_size", "Size of output buffers specified in b or B (can include SI prefix).", "1kiB"},
-    { "port_name", "Use only if necessary", "port"}
     )
 
   // TODO: Add packet types as needed
@@ -136,7 +135,6 @@ public:
     * @param functor Functor to call when request is received
   */
   void setNotifyOnReceive( SimpleNetwork::HandlerBase* functor ) override {
-    //output->verbose(CALL_INFO, 5, 0, "MordredNIC Set recv-notify functor\n");
     receiveFunctor = functor;
   }
 
@@ -148,7 +146,6 @@ public:
     * @param functor Functor to call when request is sent
   */
   void setNotifyOnSend( SimpleNetwork::HandlerBase* functor ) override {
-    //output->verbose(CALL_INFO, 5, 0, "MordredNIC Set send-notify functor\n");
     sendFunctor = functor;
   }
 
@@ -214,7 +211,7 @@ private:
   uint64_t    packetId{};
   uint64_t    headInjectCycle{UINT64_MAX};
 
-  UnitAlgebra bw; // Need? It's currently unused.
+  UnitAlgebra bw;
 
   HandlerBase* sendFunctor{nullptr};
   HandlerBase* receiveFunctor{nullptr};

@@ -19,12 +19,11 @@ using namespace SST::Mordred;
 
 MordredNIC::MordredNIC( ComponentId_t cid, Params& params, int vns = 1 ) :
    SimpleNetwork(cid),
-   netID(-1),
-   bw("1GB/s")
+   netID(-1)
 {
   const auto verbosity = params.find<uint32_t>("verbose", 5);
   output = new SST::Output("MordredNIC[" + getName() + ":@p:@t]: ", verbosity, 0, Output::STDOUT);
-  output->setVerboseMask( DEBUG_INIT_PHASE );
+  //output->setVerboseMask( DEBUG_INIT_PHASE );
 
   // Set up buffers (partially borrowed from Kingsley)
   inbufSize = params.find<UnitAlgebra>("input_buf_size", "1kiB");
@@ -43,23 +42,20 @@ MordredNIC::MordredNIC( ComponentId_t cid, Params& params, int vns = 1 ) :
   if ( outbufSize.hasUnits("B") )
     outbufSize *= UnitAlgebra("8b/B");
 
-  // Configure the links
-  // For now give it a fake timebase.  Will give it the real timebase during init
-  //std::string port_name("port");
-  std::string port_name = params.find<std::string>("port_name", "port");
-  output->output(CALL_INFO, "port_name=%s\n", port_name.c_str());
-
-  //if ( isAnonymous())
-  //  port_name = params.find<std::string>("port_name");
-  link = configureLink(port_name, std::string("1GHz"),
-      new Event::Handler<MordredNIC>(this,&MordredNIC::handleIncomingPacket));
-
+  // Configure the link
+  std::string port_name("port");
+  link = configureLink(port_name, new Event::Handler<MordredNIC>(this,&MordredNIC::handleIncomingPacket));
   if (!link)
     output->fatal(CALL_INFO, -1, "Failed to initialize link\n");
   
   // Configure clock handler
-  std::string clock_freq("1GHz");
+  auto clock_freq = params.find<std::string>("clock", "1GHz");
   registerClock( clock_freq, new Clock::Handler2<MordredNIC, &MordredNIC::clockTick>(this) );
+
+  // Compute initial bandwidth
+  UnitAlgebra ua_cf(clock_freq);
+  UnitAlgebra bps("1b");
+  bw = ua_cf * bps;
 
   // Register stats
   statPacketsRecv = registerStatistic<uint64_t>( "packets_recv" );
@@ -113,7 +109,9 @@ void MordredNIC::init( uint32_t phase ) {
     delete init_ev;
 
     init_ev = getInitEvent( MordredInitEvent::Commands::FLIT_WIDTH );
-    flitSize = init_ev->value;
+    flitSize = init_ev->value; // expected to be in bits
+    // Update bandwidth
+    bw *= UnitAlgebra(std::to_string( flitSize ));
     delete init_ev;
 
     output->verbose( CALL_INFO, 5, DEBUG_INIT_PHASE, "Received init_phase=%" PRIu32 " packets with numVNs=%" PRIu32 ", with numVCs=%" PRIu32 ", flit_width=%" PRIu32 "\n",

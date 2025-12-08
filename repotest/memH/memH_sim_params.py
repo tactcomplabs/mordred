@@ -57,7 +57,7 @@ FixedTestNicParams = {
 }
 
 MordredNICParams = {
-    "verbose" : "5",
+    "verbose" : "0",
     "input_buf_size" : "1kiB",
     "output_buf_size" : "1kiB",
 }

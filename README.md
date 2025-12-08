@@ -65,3 +65,4 @@ Endpoints are expected to be connected to the local ports of the router; do not 
 
 The mordredNIC subcomponent has been tested as the subcomponent(s) in both memHierarchy.MemNIC and memHierarchy.MemNICFour and found to operate correctly.  An example of the former is repotest/sst_ipdps2025tutorial_demo7.py and for the latter in repotest/memH/testKingsley_Mordred.py - this test was originally in sst-elements/memHierarchy/)
 
+The mordredNIC subcomponent has also been tested as a subcomponent "networkIF" in the merlin.Bridge component; see repotest/memH/testBridge_Mordred.py - original copied from sst-elements/memHierarchy/testBridge.py which is alongside testBridge_Mordred.py)
