@@ -19,6 +19,16 @@ ctrl_flit_size = UnitAlgebra("8B")
 num_vns = "1"
 noc_link_bw = clk * data_flit_size
 
+BridgeRtrParams = {
+    "verbose" : "5",
+    "clock" : UnitAlgebra("1000MHz"),
+    "num_vcs" : "1",
+    "num_vns" : 1,
+    "flit_size" : "80B",
+    "input_buf_size" : UnitAlgebra(8)*UnitAlgebra("80B"),
+    "output_buf_size" : UnitAlgebra(1)*UnitAlgebra("80B")
+}
+
 DataRtrParams = {
     "verbose" : "0",
     "clock" : clk,

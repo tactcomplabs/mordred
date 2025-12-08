@@ -92,8 +92,6 @@ RtrPortControl::RtrPortControl( ComponentId_t id, Params& params, TopologyAPI* t
   link = configureLink( pname, new Event::Handler2<RtrPortControl, &RtrPortControl::inHandler>( this ) );
   if (!link)
     output->fatal( CALL_INFO, -1, "Error in %s: unable to configure link %s\n", getName().c_str(), pname.c_str() );
-  else
-    output->verbose( CALL_INFO, 9, 0, "Configured link %s\n", pname.c_str() );
 
   allocateBuffers();
 
