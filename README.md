@@ -1,25 +1,11 @@
-# mordred
+# mordred - SST NoC Library
 
-SST NoC Component
+## Compatibility/Assumptions/Etc
+Endpoints are expected to be connected to the local ports of the router; do not connect endpoints to the normal "routing" ports (for example, if doing a mesh, endpoints should be connected to port 4 or higher).
 
-### Notes on the initialization process
+The mordredNIC subcomponent has been tested as the subcomponent(s) in both memHierarchy.MemNIC and memHierarchy.MemNICFour and found to operate correctly.  An example of the former is repotest/sst_ipdps2025tutorial_demo7.py and for the latter in repotest/memH/testKingsley_Mordred.py - this test was originally in sst-elements/memHierarchy/)
 
-Currently, the initialization procedure does not send any information "globally" to all routers/endpoints; the
-initialization is strictly done between the endpoint NIC (MordredNIC) and the port control of the router (RtrPortControl
-is the only one implemented).
-
-Note to self: If there are no messages during a phase of init(), the init() process ends.
-
-The table below outlines the current initialization process. The (s) notes a send, (r) notes a receive.
-
-| Phase | MordredNIC                                        | RtrPortControl                                                                                                                                                          |
-|-------|---------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| 0     | (s) Report Endpoint                               | - (s) Report Router <br> - (s) Router ID <br> - (s) Port Number                                                                                                         |
-| 1     | - (r) Router report <br> - (r) Router ID <br> - (r) Port Number | (r) Connection type <br> - If Router <br>   - (r) Router ID <br>   - (r) Port Number <br> - Else (endpoint) <br> - (s) Num VNs <br> - (s) Num VCs <br> - (s) Flit Width |
-| 2     | - (r) Num VNs <br> - (r) Num VCs <br> - (r) Flit Width <br> | If connection_type = Endpoint <br> - (s) Endpoint ID                                                                                                                    |
-| 3     | (r) Endpoint ID                                   | IDLE (held for channel width setup if needed in the future)                                                                                                             |
-| 4     | Send credits                                      | Send credits                                                                                                                                                            |
-| 5+    | Receive Credits; enqueue anything else            | Receive Credits; enqueue anything else                                                                                                                                  |
+The mordredNIC subcomponent has also been tested as a subcomponent "networkIF" in the merlin.Bridge component; see repotest/memH/testBridge_Mordred.py - original copied from sst-elements/memHierarchy/testBridge.py which is alongside testBridge_Mordred.py)
 
 ## Random thoughts/questions/discussion
 - See comments towards top of MordredEvents.h for a description of the event types
@@ -29,12 +15,12 @@ The table below outlines the current initialization process. The (s) notes a sen
 - Buffers are all individualized per VN,VC - no sharing of buffer space
 
 ## Notes on VN,VC
-In Merlin, the topology is what defines the number of VCs per VN - so this is a factor of the topology, not the router. Within the router, the sum the number of VCs across the VNs and use this value (num_vcs) when allocating data structures, etc.
+In Merlin, the topology is what defines the number of VCs per VN - so this is a factor of the topology, not the router. Within the router, they sum the number of VCs across the VNs and use this value (num_vcs) when allocating data structures, etc.
 
 Here, most data structures are multi-dimensional arrays contained within a port (or within a per-port object) where one dimension is the number of VNs and another dimension is the number of VCs.
 
 ## TODOs
-- Assuming 1 flit traverses the link at a time; see the channel_width branch for some initial support that modifies this (may be out of date)
+- Assuming 1 flit traverses the link at a time; see the channel_width branch for some initial support that modifies this (this branch is likely out of date)
 - Priority is completely unimplemented
 - Additional topologies and arbitration methods can be added
 - Router latency is fixed
@@ -56,13 +42,21 @@ We do a similar thing for the flits that are in need of switch allocation.
 Currently, the SimpleRtr performs a switch allocation on a per packet basis however, it should be able to handle doing allocations
 on a per clock tick basis (this should be tested).
 
-## Note on merlin_test_nic
-This was copied over from merlin and incorporated here so debugging statements and such could be added.  This should not
-be needed in the long term.
+### Notes on the initialization process
 
-## Compatibility/Assumptions/Etc
-Endpoints are expected to be connected to the local ports of the router; do not connect endpoints to the normal "routing" ports (for example, if doing a mesh, endpoints should be connected to port 4 or higher).
+Currently, the initialization procedure does not send any information "globally" to all routers/endpoints; the
+initialization is strictly done between the endpoint NIC (MordredNIC) and the port control of the router (RtrPortControl
+is the only one implemented).
 
-The mordredNIC subcomponent has been tested as the subcomponent(s) in both memHierarchy.MemNIC and memHierarchy.MemNICFour and found to operate correctly.  An example of the former is repotest/sst_ipdps2025tutorial_demo7.py and for the latter in repotest/memH/testKingsley_Mordred.py - this test was originally in sst-elements/memHierarchy/)
+Note to self: If there are no messages during a phase of init(), the init() process ends.
 
-The mordredNIC subcomponent has also been tested as a subcomponent "networkIF" in the merlin.Bridge component; see repotest/memH/testBridge_Mordred.py - original copied from sst-elements/memHierarchy/testBridge.py which is alongside testBridge_Mordred.py)
+The table below outlines the current initialization process. The (s) notes a send, (r) notes a receive.
+
+| Phase | MordredNIC                                        | RtrPortControl                                                                                                                                                          |
+|-------|---------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| 0     | (s) Report Endpoint                               | - (s) Report Router <br> - (s) Router ID <br> - (s) Port Number                                                                                                         |
+| 1     | - (r) Router report <br> - (r) Router ID <br> - (r) Port Number | (r) Connection type <br> - If Router <br>   - (r) Router ID <br>   - (r) Port Number <br> - Else (endpoint) <br> - (s) Num VNs <br> - (s) Num VCs <br> - (s) Flit Width |
+| 2     | - (r) Num VNs <br> - (r) Num VCs <br> - (r) Flit Width <br> | If connection_type = Endpoint <br> - (s) Endpoint ID                                                                                                                    |
+| 3     | (r) Endpoint ID                                   | IDLE (held for channel width setup if needed in the future)                                                                                                             |
+| 4     | Send credits                                      | Send credits                                                                                                                                                            |
+| 5+    | Receive Credits; enqueue anything else            | Receive Credits; enqueue anything else                                                                                                                                  |

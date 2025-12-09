@@ -3,3 +3,7 @@
 *.exe
 build/*
 *.dylib
+*.dot
+*.pdf
+*.csv
+__pycache__/
