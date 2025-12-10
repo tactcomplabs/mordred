@@ -145,6 +145,9 @@ public:
 
   virtual uint32_t getSendingPort()                                                                  = 0;
 
+  virtual std::pair<uint32_t, uint32_t> getSwitchSendVnVc()                                            = 0;
+  virtual std::pair<uint32_t, uint32_t> getSwitchRecvVnVc()                                            = 0;
+
   // VC Allocator functions
   virtual uint32_t getDestPort( uint32_t vn, uint32_t vc ) = 0;
   virtual OutVcStateE getOutputState( uint32_t vn, uint32_t vc ) = 0;

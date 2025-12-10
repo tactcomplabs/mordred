@@ -234,6 +234,19 @@ bool SimpleRTR::clockTick( Cycle_t cycle ) {
     // Give the flit to the receiver
     portsVec.at( i )->recvOutBufFlit( flit );
 
+    // Do tracing
+    if ( ( flit->ftype == MordredFlit::HEAD ) && ( flit->getRequest()->getTraceType() == Interfaces::SimpleNetwork::Request::FULL ) ) {
+      std::pair<uint32_t,uint32_t> src_vn_vc, dest_vn_vc;
+      src_vn_vc = portsVec.at( sending_port )->getSwitchSendVnVc();
+      dest_vn_vc = portsVec.at( i )->getSwitchRecvVnVc();
+      output.output( "TRACE(%d): %" PRIu64 " ns at %s: Move head flit from port.vn.vc = %u.%u.%u to %u.%u.%u\n",
+                          flit->getRequest()->getTraceID(),
+                          getCurrentSimTimeNano(),
+                          getName().c_str(),
+                          sending_port, src_vn_vc.first, src_vn_vc.second,
+                          i, dest_vn_vc.first, dest_vn_vc.second );
+    }
+
     if ( flit->ftype == MordredFlit::TAIL ) {
       // These MUST be reset prior to calling the resetSwitch{Send,Recv}Allocation functions in a clockTick
       // as the rely on the values that are reset when calling them

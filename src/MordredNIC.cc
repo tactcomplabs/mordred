@@ -278,9 +278,10 @@ bool MordredNIC::send( Request* req, int32_t vn ) {
   flit->pkt_created_cycle = getCurrentSimCycle();
   outBuf.at(u_vn).push( flit );
 
-  //output->verbose( CALL_INFO, 7, 0, "EPNIC Send to [RTR.Port]=[%u,%u] with dest=%" PRIu64 "; head_flit=%s, num_flits=%u\n",
-  //  rtrId, rtrPort, req->dest, head_flit->pktIdStr().c_str(), u_num_flits );
-  //output->flush();
+  if ( req->getTraceType() != Request::NONE ) {
+    output->output( "TRACE(%d): %" PRIu64 " ns send called on %s\n", req->getTraceID(),
+      getCurrentSimTimeNano(), getName().c_str() );
+  }
 
   return true;
 }
@@ -296,6 +297,11 @@ SST::Interfaces::SimpleNetwork::Request* MordredNIC::recv( int32_t vn ) {
 
   Request* req = inBuf.at(u_vn).front();
   inBuf.at(u_vn).pop();
+
+  if ( req->getTraceType() != Request::NONE ) {
+    output->output( "TRACE(%d): %" PRIu64 " ns recv called on %s\n", req->getTraceID(),
+      getCurrentSimTimeNano(), getName().c_str() );
+  }
 
   // Move to handleIncomingPacket()?
   if ( req->dest != netID ) {
@@ -343,13 +349,17 @@ bool MordredNIC::clockTick( Cycle_t cycle ) {
         outBuf.at(vn).pop();
         if ( flit->ftype == MordredFlit::HEAD ) {
           headInjectCycle = getCurrentSimCycle();
-          //output->verbose( CALL_INFO, 7, 0, "Sent head flit %s to link at cycle=%" PRIu64 "; rtrCredits=%" PRId32 "\n",
-          //  flit->pktIdStr().c_str(), cycle, rtrCredits.at(vn) );
+          if ( flit->req->getTraceType() == Request::FULL ) {
+            output->output( "TRACE(%d): %" PRIu64 " ns put head flit on link %s\n", flit->req->getTraceID(),
+              getCurrentSimTimeNano(), getName().c_str() );
+          }
         } else if ( flit->ftype == MordredFlit::TAIL ) {
           flit->head_inject_cycle = headInjectCycle;
           headInjectCycle = UINT64_MAX;
-          output->verbose( CALL_INFO, 5, 0, "Sent tail flit %s to link at cycle=%" PRIu64 "; rtrCredits=%" PRId32 "\n",
-            flit->pktIdStr().c_str(), cycle, rtrCredits.at(vn) );
+          if ( flit->req->getTraceType() == Request::FULL ) {
+            output->output( "TRACE(%d): %" PRIu64 " ns put tail flit on link %s\n", flit->req->getTraceID(),
+              getCurrentSimTimeNano(), getName().c_str() );
+          }
           if (sendFunctor != nullptr) {
             bool keep = (*sendFunctor)((int)vn);
             if ( !keep ) sendFunctor = nullptr;
@@ -432,15 +442,23 @@ void MordredNIC::handleIncomingPacket( SST::Event* ev ) {
   } // end CREDIT
   case baseMordredEvent::FLIT: {
     auto flit = static_cast<MordredFlit*>( ev );
-    output->verbose( CALL_INFO, 7, 0, "Received flit vn,vc=%" PRIu32 ", %" PRIu32 ", type=%s\n",
-      flit->vn, flit->cur_vc, flit->getFtypeStr().c_str() );
+    if ( flit == nullptr )
+      output->fatal( CALL_INFO, -1, "flit was nullptr!\n" );
+    Request* req = flit->getRequest();
+    if ( req == nullptr )
+      output->fatal( CALL_INFO, -1, "Request was nullptr!\n" );
+    if ( ( flit->ftype == MordredFlit::HEAD  ) && ( req->getTraceType() == Request::FULL ) ) {
+      output->output( "TRACE(%d): %" PRIu64 " ns received head flit from link %s\n", flit->req->getTraceID(),
+        getCurrentSimTimeNano(), getName().c_str() );
+    }
+
     if ( flit->ftype == MordredFlit::TAIL) {
-      Request* req = flit->getRequest();
-      if ( req == nullptr ) {
-        output->fatal( CALL_INFO, -1, "Request was nullptr!\n" );
-      }
       if ( flit->vn >= numVns )
         output->fatal( CALL_INFO, -1, "Unsupported vn=%u\n", flit->vn );
+      if ( req->getTraceType() == Request::FULL ) {
+        output->output( "TRACE(%d): %" PRIu64 " ns received tail flit from link %s\n", flit->req->getTraceID(),
+          getCurrentSimTimeNano(), getName().c_str() );
+      }
       inBuf.at(flit->vn).push( req );
       //inBuf.at(0).push( req ); // hackery for testing multiple VNs
       // Compute elapsed latency of the packet
