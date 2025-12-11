@@ -1,7 +1,18 @@
 # mordred - SST NoC Library
 
-## Compatibility/Assumptions/Etc
+## Usage/Assumptions/Etc
 Endpoints are expected to be connected to the local ports of the router; do not connect endpoints to the normal "routing" ports (for example, if doing a mesh, endpoints should be connected to port 4 or higher).
+
+All routers should have the same number of local ports to ensure proper endpoint numbering.  Unconnected local ports are allowed.
+
+### Mesh/2D Torus Topology
+For these topologies, $x = 0, y = 0$ is the bottom left corner of the network.  The router ID is calculated as $(y * xDim) + x$.  Router IDs are expected to increase linearly following this equation.
+
+### Flattened Butterfly Topology
+The FlattenedButterfly class in tests/flatbutterfly_k2n4_testnic.py will handle the naming and numbering of routers and endpoints.
+
+## Tested Compatibility
+To replace a merlin.hr_router using a singlerouter topology, a single mordred.simple_rtr can be used with a 1x1 mesh topology.  The links between the endpoints and the merlin.hr_router then become links between the endpoints and the local ports of mordred.simple_rtr
 
 The mordredNIC subcomponent has been tested as the subcomponent(s) in both memHierarchy.MemNIC and memHierarchy.MemNICFour and found to operate correctly.  An example of the former is repotest/sst_ipdps2025tutorial_demo7.py and for the latter in repotest/memH/testKingsley_Mordred.py - this test was originally in sst-elements/memHierarchy/)
 
@@ -13,6 +24,7 @@ The mordredNIC subcomponent has also been tested as a subcomponent "networkIF" i
   - Do we want to have a configurable arbitration for which VN,VC gets access? Currently designed as round-robin
   - In merlin, there is an OutputArbitration API class that is a member of the PortInterface (see comments in RtrPortControlAPI.h) 
 - Buffers are all individualized per VN,VC - no sharing of buffer space
+- NetworkInspectors are not yet supported.
 
 ## Notes on VN,VC
 In Merlin, the topology is what defines the number of VCs per VN - so this is a factor of the topology, not the router. Within the router, they sum the number of VCs across the VNs and use this value (num_vcs) when allocating data structures, etc.
@@ -42,7 +54,7 @@ We do a similar thing for the flits that are in need of switch allocation.
 Currently, the SimpleRtr performs a switch allocation on a per packet basis however, it should be able to handle doing allocations
 on a per clock tick basis (this should be tested).
 
-### Notes on the initialization process
+## Notes on the initialization process
 
 Currently, the initialization procedure does not send any information "globally" to all routers/endpoints; the
 initialization is strictly done between the endpoint NIC (MordredNIC) and the port control of the router (RtrPortControl
