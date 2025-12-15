@@ -49,18 +49,31 @@ TrafficGenParams = {
     "link_bw" : noc_link_bw,
     #"topology" : "merlin.mesh", # Is this even used?
     "buffer_length" : "1kiB",
-    "packets_to_send" : "20",
-    "packet_size" : "16B", # Seems to dominate over the PacketSize.Range{Min,Max} parameters
+    "packets_to_send" : "1000",
+    # "packet_size" : "16B",
     "delay_between_packets" : "10ns",
     "message_rate" : "1GHz"
 }
 
+# This configuration bombed hardcore
 TrafficGenMessagingParams = {
+    # Binomial is not supported for merlin
     "PacketDest.pattern" : "Uniform",
-    # "PacketDest.RangeMax" -- set to num_peers (when defining the system)
-    "PacketSize.pattern" : "Uniform",
-    "PacketSize.RangeMin" : "4B",
-    "PacketSize.RangeMax" : "32B",
+    # "PacketDest.RangeMax" -- set to num_peers (when defining the system; see note for HotSpot)
+    "PacketDest.HotSpot.target" : "6",
+    "PacketDest.HotSpot.targetProbability" : ".5",
+    "PacketDest.Normal.Mean" : "4",
+    "PacketDest.Normal.Sigma" : "2",
+    "PacketDest.NearestNeighbor.Size" : "3 3 1",
+
+    "PacketSize.pattern" : "Normal",
+    "PacketSize.RangeMin" : "32", #4B, integer for bits, not UnitAlgebra
+    "PacketSize.RangeMax" : "256", #32B, integer for bits, not UnitAlgebra
+    "PacketSize.HotSpot.target" : "224",
+    "PacketSize.HotSpot.targetProbability" : ".99",
+    "PacketSize.Normal.Mean" : "96",
+    "PacketSize.Normal.Sigma" : "16",
+
     "PacketDelay.pattern" : "Uniform",
     "PacketDelay.RangeMax" : "20",
 }

@@ -9,9 +9,9 @@ from sim_params import *
 testname = "mesh_testnic"
 
 # Endpoint selection
-Endpoint = "TestNIC"
+#Endpoint = "TestNIC"
 #Endpoint = "OfferedLoad"
-#Endpoint = "TrafficGen"
+Endpoint = "TrafficGen"
 
 # Function for creating/managing links
 links = dict()
@@ -83,7 +83,9 @@ def createMesh(x_size, y_size, local_ports):
                 elif Endpoint == "TrafficGen" :
                     ep.addParams(TrafficGenParams)
                     ep.addParams(TrafficGenMessagingParams)
-                    ep.addParam("PacketDest.RangeMax", num_eps)
+                    ## NOTE: If doing "PacketDest.pattern" : "HotSpot", RangeMax must be num_eps-1
+                    #ep.addParam("PacketDest.RangeMax", num_eps-1)
+                    ep.addParam("PacketDest.RangeMax", num_eps) # works for PacketDest.{Uniform,Normal}
                 else :
                     print("Invalid endpoint type")
                     exit(1)

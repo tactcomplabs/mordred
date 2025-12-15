@@ -230,8 +230,8 @@ SST::Interfaces::SimpleNetwork::Request* MordredNIC::recvUntimedData() {
 
 int32_t MordredNIC::calcNumFlits( uint32_t num_bits ) {
   // Need to see if we have enough credits to send this
-  auto num_flits = static_cast<int32_t>(ceil( num_bits / flitSize ));
-  //output->verbose( CALL_INFO, 5, 0, "Sending request of size=%" PRIu32 " bits; num_flits=%" PRId32 "\n", num_bits, num_flits );
+  auto num_flits = static_cast<int32_t>(ceil( (float)num_bits / (float)flitSize ));
+  //output->output( CALL_INFO, "Sending request of size=%" PRIu32 " bits; flitSize=%" PRIu32 ", num_flits=%" PRId32 "\n", num_bits, flitSize, num_flits );
   if ( num_flits < 2 ) // per current docs, at least 2 flits per packet
     num_flits = 2;
   return num_flits;
