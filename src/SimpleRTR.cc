@@ -24,6 +24,7 @@ SimpleRTR::SimpleRTR( ComponentId_t cid, Params& params ) : Component( cid ) {
   auto Verbosity = params.find<uint32_t>( "verbose", 5 );
   // Initialize the output handler
   output.init( "SimpleRTR[" + getName() + ":@p:@t]: ", Verbosity, 0, SST::Output::STDOUT );
+  //output.setVerboseMask( DEBUG_INIT_PHASE );
 
   id = params.find<uint32_t>("id",UINT32_MAX);
   if ( id == UINT32_MAX ) {
@@ -249,7 +250,7 @@ bool SimpleRTR::clockTick( Cycle_t cycle ) {
 
     if ( flit->ftype == MordredFlit::TAIL ) {
       // These MUST be reset prior to calling the resetSwitch{Send,Recv}Allocation functions in a clockTick
-      // as the rely on the values that are reset when calling them
+      // as the next two lines rely on the values that are reset when calling resetSwitch{Send,Recv}Allocation
       portsVec.at(sending_port)->resetPerVcDest();
       portsVec.at(i)->resetPerVcSrc();
       // The switch allocation could be done more frequently than on a packet basis

@@ -21,7 +21,7 @@ noc_link_bw = clk * flit_size
 FixedRtrParams = {
     "verbose" : "0",
     "clock" : clk,
-    "num_vcs" : "1",
+    "num_vcs" : "2",
     "num_vns" : num_vns,
     "flit_size" : flit_size,
     "input_buf_size" : UnitAlgebra(16)*flit_size,
@@ -29,7 +29,7 @@ FixedRtrParams = {
 }
 
 FixedTestNicParams = {
-    "num_messages" : 10,
+    "num_messages" : 1000,
     "message_size" : UnitAlgebra(4)*flit_size,
     "send_untimed_broadcast" : "false", # matches default
     #"send_untimed_broadcast" : "true",
