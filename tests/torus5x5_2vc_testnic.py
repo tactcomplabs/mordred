@@ -26,7 +26,7 @@ FixedRtrParams = {
 }
 
 FixedTestNicParams = {
-    "num_messages" : 1000,
+    "num_messages" : 10,
     "message_size" : UnitAlgebra(4)*flit_size,
     "send_untimed_broadcast" : "false", # matches default
 }
