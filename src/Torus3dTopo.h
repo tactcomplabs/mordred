@@ -1,5 +1,5 @@
 //
-// Torus2dTopo.h
+// Torus3dTopo.h
 //
 // Copyright (C) 2025-2025 Tactical Computing Laboratories, LLC
 // All Rights Reserved
@@ -8,8 +8,8 @@
 // See LICENSE in the top level directory for licensing details
 //
 
-#ifndef TORUS2DTOPO_H
-#define TORUS2DTOPO_H
+#ifndef TORUS3DTOPO_H
+#define TORUS3DTOPO_H
 
 // Standard headers
 #include <cstdint>
@@ -125,5 +125,4 @@ private:
 
 } // namespace SST::Mordred
 
-
-#endif //MESHTOPOLOGY_H
+#endif //TORUS3DTOPO_H

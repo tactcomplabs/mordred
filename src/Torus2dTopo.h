@@ -117,4 +117,4 @@ private:
 } // namespace SST::Mordred
 
 
-#endif //MESHTOPOLOGY_H
+#endif //TORUS2DTOPO_H

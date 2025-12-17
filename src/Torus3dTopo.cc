@@ -1,5 +1,5 @@
 //
-// Torus2dTopo.cc
+// Torus3dTopo.cc
 //
 // Copyright (C) 2025-2025 Tactical Computing Laboratories, LLC
 // All Rights Reserved
