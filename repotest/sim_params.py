@@ -21,7 +21,7 @@ noc_link_bw = clk * flit_size
 FixedRtrParams = {
     "verbose" : "0",
     "clock" : clk,
-    "num_vcs" : "1",
+    "num_vcs" : "2",
     "num_vns" : num_vns,
     "flit_size" : flit_size,
     "input_buf_size" : UnitAlgebra(16)*flit_size,

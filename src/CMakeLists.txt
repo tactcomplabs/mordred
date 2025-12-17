@@ -26,6 +26,8 @@ set(MordredSrcs
         FlatButterflyTopo.cc
         Torus2dTopo.h
         Torus2dTopo.cc
+        Torus3dTopo.h
+        Torus3dTopo.cc
 )
 
 add_library(mordred SHARED ${MordredSrcs})

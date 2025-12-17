@@ -28,9 +28,9 @@ VcAllocRR::VcAllocRR( ComponentId_t id, Params& params, uint32_t rtr_id, uint32_
 
 void VcAllocRR::arbitrate( std::vector<RtrPortControlAPI*>& ports, std::vector<RtrOwnedSharedObjs>& rtr_shared_objs ) {
   for( uint32_t i = 0, portnum = rr_port; i < numPorts; ++i, portnum = ( portnum + 1 ) % numPorts ) {
-    resetSrcVnVc();
     if ( ports.at(portnum) == nullptr )
       continue;
+    resetSrcVnVc();
     auto& shared_obj  = rtr_shared_objs[portnum];
     MordredFlit* flit = findMappableFlit( &shared_obj );
     if( flit != nullptr ) {

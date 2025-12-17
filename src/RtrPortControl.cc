@@ -368,16 +368,16 @@ void RtrPortControl::ClockTick( Cycle_t cycle ) {
         sent = true;
         outStateVec.at( vn ).at ( vc ).destCredits--;
         if ( ( flit->ftype == MordredFlit::HEAD  ) && ( flit->getRequest()->getTraceType() == Interfaces::SimpleNetwork::Request::FULL ) ) {
-          output->output( "TRACE(%d): %" PRIu64 " ns sending head flit on link %s\n", flit->req->getTraceID(),
-            getCurrentSimTimeNano(), getName().c_str() );
+          output->output( "TRACE(%d): %" PRIu64 " ns sending head flit on link %s.%u\n", flit->req->getTraceID(),
+            getCurrentSimTimeNano(), getName().c_str(), portId );
         }
 
         if ( flit->ftype == MordredFlit::TAIL ) {
           statLinkSentFlitCnt.at( vn ).at( vc )->addData( flit->flit_id + 1 );
           statLinkSentPacketCnt.at( vn ).at( vc )->addData( 1 );
           if ( flit->getRequest()->getTraceType() == Interfaces::SimpleNetwork::Request::FULL ) {
-            output->output( "TRACE(%d): %" PRIu64 " ns sending tail flit on link %s\n", flit->req->getTraceID(),
-              getCurrentSimTimeNano(), getName().c_str() );
+            output->output( "TRACE(%d): %" PRIu64 " ns sending tail flit on link %s.%u\n", flit->req->getTraceID(),
+              getCurrentSimTimeNano(), getName().c_str(), portId );
           }
         }
         //output->verbose( CALL_INFO, 5, 0, "Sending output flit %s; outBufCredits=%" PRId32 ", destCredits=%" PRId32 "\n",
@@ -419,14 +419,14 @@ void RtrPortControl::inHandler( SST::Event* ev ) {
     validateVnVc( flit->vn, flit->cur_vc );
     inStateVec.at( flit->vn ).at( flit->cur_vc ).inBuf.push( flit );
     if ( ( flit->ftype == MordredFlit::HEAD  ) && ( flit->getRequest()->getTraceType() != Interfaces::SimpleNetwork::Request::NONE ) ) {
-      output->output( "TRACE(%d): %" PRIu64 " ns received head flit from link %s\n", flit->req->getTraceID(),
-        getCurrentSimTimeNano(), getName().c_str() );
+      output->output( "TRACE(%d): %" PRIu64 " ns received head flit from link %s.%u\n", flit->req->getTraceID(),
+        getCurrentSimTimeNano(), getName().c_str(), portId );
     }
     if ( flit->ftype == MordredFlit::TAIL ) {
       statLinkRecvFlitCnt.at( flit->vn ).at( flit->cur_vc )->addData( flit->flit_id + 1 );
       if ( flit->getRequest()->getTraceType() != Interfaces::SimpleNetwork::Request::NONE )
-        output->output( "TRACE(%d): %" PRIu64 " ns received tail flit from link %s\n", flit->req->getTraceID(),
-          getCurrentSimTimeNano(), getName().c_str() );
+        output->output( "TRACE(%d): %" PRIu64 " ns received tail flit from link %s.%u\n", flit->req->getTraceID(),
+          getCurrentSimTimeNano(), getName().c_str(), portId );
     }
     break;
   } // end FLIT

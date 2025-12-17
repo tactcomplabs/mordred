@@ -24,6 +24,9 @@ class testcase_mordred(SSTTestCase):
     def test_mordred_flatbutterfly_k2n4_testnic(self):
         self.mordred_test_template("flatbutterfly_k2n4_testnic")
 
+    def test_mordred_torus3D_3x3x3_2vc_testnic(self):
+        self.mordred_test_template("torus3D_3x3x3_2vc_testnic")
+
     # Add subsequent tests here...
 
 #####
