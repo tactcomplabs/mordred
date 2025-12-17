@@ -1,0 +1,82 @@
+982:  0 Finished sending packets (total of 10)
+982:  9 Finished sending packets (total of 10)
+982:  18 Finished sending packets (total of 10)
+984:  5 Finished sending packets (total of 10)
+984:  14 Finished sending packets (total of 10)
+984:  23 Finished sending packets (total of 10)
+986:  4 Finished sending packets (total of 10)
+986:  13 Finished sending packets (total of 10)
+986:  22 Finished sending packets (total of 10)
+987:  2 Finished sending packets (total of 10)
+987:  11 Finished sending packets (total of 10)
+987:  20 Finished sending packets (total of 10)
+989:  8 Finished sending packets (total of 10)
+989:  17 Finished sending packets (total of 10)
+989:  26 Finished sending packets (total of 10)
+992:  3 Finished sending packets (total of 10)
+992:  12 Finished sending packets (total of 10)
+992:  21 Finished sending packets (total of 10)
+997:  7 Finished sending packets (total of 10)
+997:  16 Finished sending packets (total of 10)
+997:  25 Finished sending packets (total of 10)
+1000:  1 Finished sending packets (total of 10)
+1000:  6 Finished sending packets (total of 10)
+1000:  10 Finished sending packets (total of 10)
+1000:  15 Finished sending packets (total of 10)
+1000:  19 Finished sending packets (total of 10)
+1000:  24 Finished sending packets (total of 10)
+1928: NIC 3 received all packets (total of 270)!
+1928: NIC 12 received all packets (total of 270)!
+1928: NIC 21 received all packets (total of 270)!
+1930: NIC 2 received all packets (total of 270)!
+1930: NIC 4 received all packets (total of 270)!
+1930: NIC 11 received all packets (total of 270)!
+1930: NIC 13 received all packets (total of 270)!
+1930: NIC 20 received all packets (total of 270)!
+1930: NIC 22 received all packets (total of 270)!
+1932: NIC 7 received all packets (total of 270)!
+1932: NIC 16 received all packets (total of 270)!
+1932: NIC 25 received all packets (total of 270)!
+1933: NIC 6 received all packets (total of 270)!
+1933: NIC 15 received all packets (total of 270)!
+1933: NIC 24 received all packets (total of 270)!
+1934: NIC 0 received all packets (total of 270)!
+1934: NIC 5 received all packets (total of 270)!
+1934: NIC 9 received all packets (total of 270)!
+1934: NIC 14 received all packets (total of 270)!
+1934: NIC 18 received all packets (total of 270)!
+1934: NIC 23 received all packets (total of 270)!
+1936: NIC 1 received all packets (total of 270)!
+1936: NIC 10 received all packets (total of 270)!
+1936: NIC 19 received all packets (total of 270)!
+1937: NIC 8 received all packets (total of 270)!
+1937: NIC 17 received all packets (total of 270)!
+1937: NIC 26 received all packets (total of 270)!
+Nic 26 had 719 stalled cycles.
+Nic 25 had 727 stalled cycles.
+Nic 24 had 730 stalled cycles.
+Nic 23 had 714 stalled cycles.
+Nic 22 had 716 stalled cycles.
+Nic 21 had 722 stalled cycles.
+Nic 20 had 717 stalled cycles.
+Nic 19 had 730 stalled cycles.
+Nic 18 had 712 stalled cycles.
+Nic 17 had 719 stalled cycles.
+Nic 16 had 727 stalled cycles.
+Nic 15 had 730 stalled cycles.
+Nic 14 had 714 stalled cycles.
+Nic 13 had 716 stalled cycles.
+Nic 12 had 722 stalled cycles.
+Nic 11 had 717 stalled cycles.
+Nic 10 had 730 stalled cycles.
+Nic 9 had 712 stalled cycles.
+Nic 8 had 719 stalled cycles.
+Nic 7 had 727 stalled cycles.
+Nic 6 had 730 stalled cycles.
+Nic 5 had 714 stalled cycles.
+Nic 4 had 716 stalled cycles.
+Nic 3 had 722 stalled cycles.
+Nic 2 had 717 stalled cycles.
+Nic 1 had 730 stalled cycles.
+Nic 0 had 712 stalled cycles.
+Simulation is complete, simulated time: 1.937 us
