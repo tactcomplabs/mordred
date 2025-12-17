@@ -104,11 +104,11 @@ public:
 
   // VC Alloc interactions
   std::pair<uint32_t, uint32_t> getSwitchSendVnVc() final {
-    return std::tuple(switch_alloc_sendfrom_vn, switch_alloc_sendfrom_vc );
+    return std::pair(switch_alloc_sendfrom_vn, switch_alloc_sendfrom_vc );
   }
 
   std::pair<uint32_t, uint32_t> getSwitchRecvVnVc() final {
-    return std::tuple(switch_alloc_rcvto_vn, switch_alloc_rcvto_vc );
+    return std::pair(switch_alloc_rcvto_vn, switch_alloc_rcvto_vc );
   }
 
   uint32_t getDestPort( uint32_t vn, uint32_t vc ) final {
