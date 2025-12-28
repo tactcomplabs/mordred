@@ -31,11 +31,14 @@ endif()
 cmake_minimum_required(VERSION 3.19)
 project(mordred CXX)
 
-# Make sure Git hooks are set properly
-# execute_process(COMMAND_ERROR_IS_FATAL ANY COMMAND_ECHO STDERR COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/scripts/test_git_hooks.sh)
+# SST Configuration Sanity Check
+find_program(SST sst)
+find_program(SST_CONFIG sst-config)
+if(NOT SST OR NOT SST_CONFIG)
+    message(FATAL_ERROR "No SST binary or sst-config binary found in path")
+endif()
 
-# SST Setup
-# TODO: Update when SST supports coherent CMake support
+# SST Environment Derivation
 execute_process(COMMAND sst-config --prefix
         OUTPUT_VARIABLE SST_INSTALL_DIR
         OUTPUT_STRIP_TRAILING_WHITESPACE
@@ -46,14 +49,6 @@ if(NOT (EXISTS "${SST_INSTALL_DIR}"))
 endif()
 include_directories(SST_SRC ${SST_INSTALL_DIR})
 
-# SST Configuration Sanity Check
-find_program(SST sst)
-find_program(SST_CONFIG sst-config)
-if(NOT SST OR NOT SST_CONFIG)
-    message(FATAL_ERROR "No SST binary or sst-config binary found in path")
-endif()
-
-# SST Environment Derivation
 execute_process(COMMAND sst-config --CXX
         OUTPUT_VARIABLE CXX
         OUTPUT_STRIP_TRAILING_WHITESPACE
@@ -110,17 +105,11 @@ else()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wmissing-format-attribute -Wsuggest-final-methods -Wsuggest-final-types -Wvolatile")
 endif()
 
-set(CMAKE_CXX_FLAGS "-std=c++17 ${FP_MODE_FLAG} -O2 -Wall -Wextra -Wsuggest-override -Wmissing-noreturn -Wvla -Wuninitialized -Wdouble-promotion -Wsign-conversion -Wno-unused-parameter -Wno-deprecated-declarations -Wno-macro-redefined -Werror ${CMAKE_CXX_FLAGS} -I./ ${LDFLAGS} ${REVCPU_COMPILER_MACROS}")
-#set(CMAKE_CXX_FLAGS "-std=c++17 ${FP_MODE_FLAG} -g -Wall -Wextra -Wsuggest-override -Wmissing-noreturn -Wvla -Wuninitialized -Wdouble-promotion -Wsign-conversion -Wno-unused-parameter -Wno-deprecated-declarations -Wno-macro-redefined -Werror ${CMAKE_CXX_FLAGS} -I./ ${LDFLAGS} ${REVCPU_COMPILER_MACROS}")
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 -Wall ${REVCPU_COMPILER_MACROS}")
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -Wall ${REVCPU_COMPILER_MACROS}")
-
-# Find SST packages
-find_package(SST REQUIRED CONFIG)
-message(STATUS "Found SST execute_process(COMMAND sst --version)")
-include_directories(${SST_INCLUDE_DIRS})
-add_definitions(${SST_DEFINITIONS})
+set(CMAKE_CXX_FLAGS "-std=c++17 ${FP_MODE_FLAG} -O2 -Wall -Wextra -Wsuggest-override -Wmissing-noreturn -Wvla -Wuninitialized -Wdouble-promotion -Wsign-conversion -Wno-unused-parameter -Wno-deprecated-declarations -Wno-macro-redefined -Werror ${CMAKE_CXX_FLAGS} -I./ ${LDFLAGS}")
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 -Wall")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -Wall")
 
 # Subdirectories
 add_subdirectory(src)
 
+# EOF
