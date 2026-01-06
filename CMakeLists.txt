@@ -1,10 +1,8 @@
 # Mordred Top-Level CMake
-# Copyright (C) 2025-2025 Tactical Computing Laboratories, LLC
+# Copyright (C) 2025-2026 Tactical Computing Laboratories, LLC
 # All Rights Reserved
 # contact@tactcomplabs.com
 # See LICENSE in the top level directory for licensing details
-
-# Heavily borrowed from forzarev/CMakeLists.txt
 
 # ---------------------------------------------------
 # string_contains_number
@@ -17,7 +15,6 @@ function(string_contains_number str result)
     set(${result} FALSE PARENT_SCOPE)
   endif()
 endfunction()
-
 
 # ---------------------------------------------------
 # main
