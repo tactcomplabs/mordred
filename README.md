@@ -1,5 +1,25 @@
 # mordred - SST NoC Library
 
+## Building
+### Requirements
+CMake version >= 3.19<br>
+SST and SST-Elements (especially merlin) version >= 15.0 installed and in the current `PATH`
+
+### Build steps
+```
+mkdir build && cd build
+cmake ..
+make -j
+make install
+```
+
+## Installing/Running tests
+The basic testsuite, found in the `tests/` folder, has been implemented using the standard SST testsuite approach documented [here](https://sst-simulator.org/sst-docs/docs/guides/dev/testframework).
+
+The testsuite is not registered with SST by default when building the library. Add the following flag to your cmake command to do so: `-DINSTALL_TESTS=ON`.
+
+To run the testsuite after it has been registered with SST, run: `sst-test-elements -w "*mordred*"`
+
 ## Usage/Assumptions/Etc
 Endpoints are expected to be connected to the local ports of the router; do not connect endpoints to the normal "routing" ports (for example, if doing a mesh, endpoints should be connected to port 4 or higher).
 
@@ -7,6 +27,9 @@ All routers should have the same number of local ports to ensure proper endpoint
 
 ### Mesh/2D Torus Topology
 For these topologies, $x = 0, y = 0$ is the bottom left corner of the network.  The router ID is calculated as $(y * xDim) + x$.  Router IDs are expected to increase linearly following this equation.
+
+### 3D Torus Topology
+This topology is an extension of the mesh/2D torus topology. The router ID is calculated as $(z * (xDim * yDim)) + (y * xDim) + x$. Router IDs are expected to increase linearly following this equation.
 
 ### Flattened Butterfly Topology
 The FlattenedButterfly class in tests/flatbutterfly_k2n4_testnic.py will handle the naming and numbering of routers and endpoints.
@@ -31,9 +54,9 @@ In Merlin, the topology is what defines the number of VCs per VN - so this is a 
 
 Here, most data structures are multi-dimensional arrays contained within a port (or within a per-port object) where one dimension is the number of VNs and another dimension is the number of VCs.
 
-## TODOs
+## Random thoughts/open items/TODOs
 - Assuming 1 flit traverses the link at a time; see the channel_width branch for some initial support that modifies this (this branch is likely out of date)
-- Priority is completely unimplemented
+- Priority is completely unimplemented (may need to use VNs since )
 - Additional topologies and arbitration methods can be added
 - Router latency is fixed
 - No maximum packet length (number of flits) set; packet to flit translation is happening only in MordredNIC and there is a minimum of 2 flits per packet

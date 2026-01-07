@@ -1,5 +1,9 @@
+# Copyright (C) 2025-2026 Tactical Computing Laboratories, LLC
+# All Rights Reserved
+# contact@tactcomplabs.com
+# See LICENSE in the top level directory for licensing details
+
 # mordred/src/CMakeLists.txt
-# this is not meant to be standalone
 # this is triggered via the top-level CMakeLists.txt in mordred
 
 set(MordredSrcs
