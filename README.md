@@ -54,9 +54,9 @@ In Merlin, the topology is what defines the number of VCs per VN - so this is a 
 
 Here, most data structures are multi-dimensional arrays contained within a port (or within a per-port object) where one dimension is the number of VNs and another dimension is the number of VCs.
 
-## Random thoughts/open items/TODOs
+## Random open items/TODOs
 - Assuming 1 flit traverses the link at a time; see the channel_width branch for some initial support that modifies this (this branch is likely out of date)
-- Priority is completely unimplemented (may need to use VNs since )
+- Priority is completely unimplemented (may need to use VNs since SST::SimpleNetwork::Request does not have a priority field)
 - Additional topologies and arbitration methods can be added
 - Router latency is fixed
 - No maximum packet length (number of flits) set; packet to flit translation is happening only in MordredNIC and there is a minimum of 2 flits per packet
