@@ -52,7 +52,7 @@ make -j || exit 14
 make install || exit 16
 export PATH=$PATH:$SST_INSTALL/bin
 
-# Run simple core tests
+# Run core tests
 if [ "$SST_TEST_CORE" = true ]; then
   which sst-test-core || exit 18
   sst-test-core || exit 19
@@ -68,24 +68,17 @@ make -j || exit 38
 make install || exit 39
 cd ../.. || exit 40 # return us to {some-path}/sst-core/
 
-# Let's run the merlin test suite
+# Run the merlin test suite esp since it's needed for mordred testing
 which sst-test-elements || exit 42
 sst-test-elements -w "*merlin*" | exit 44
 
-# Because we've obliterated and rebuilt sst-core and sst-elements, we shouldn't
-# need to "unregister" mordred tests (which isn't really supported by SST)
-# Should we need to unregister these tests, we can use the following option:
-# sst-register SST_ELEMENT_TESTS mordred=/dev/null
-
-# Build and install mordred
+# Build/install/test mordred
 cd mordred || exit 50
 mkdir build || exit 52
 cd build || exit 53
 cmake -DINSTALL_TESTS=ON .. || exit 54
 make -j || exit 56
 make install || exit 57
-
-# Test repo
-sst-test-elements -w "*mordred*" || exit 58
+make test || exit 58
 
 echo "#---> $0 finished"
