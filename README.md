@@ -20,6 +20,11 @@ The testsuite is not registered with SST by default when building the library. A
 
 To run the testsuite after it has been registered with SST, run: `sst-test-elements -w "*mordred*"`
 
+Alternatively, you can use the test suite locally using `ctest` as follows:
+```
+make test
+```
+
 ## Usage/Assumptions/Etc
 Endpoints are expected to be connected to the local ports of the router; do not connect endpoints to the normal "routing" ports (for example, if doing a mesh, endpoints should be connected to port 4 or higher).
 

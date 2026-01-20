@@ -112,7 +112,9 @@ option(INSTALL_TESTS "Install test suite")
 # Subdirectories
 add_subdirectory(src)
 if (INSTALL_TESTS)
-    add_subdirectory(tests)
+  set(MORDRED_ENABLE_TESTING ON)
+  enable_testing()
+  add_subdirectory(tests)
 endif()
 
 # EOF
