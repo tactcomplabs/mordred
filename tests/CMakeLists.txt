@@ -11,6 +11,9 @@ set(MORDRED_TEST_SRCS
   mesh3x3_testnic.py
   torus3D_3x3x3_2vc_testnic.py
   torus5x5_2vc_testnic.py
+  ipdps25tutorial_demo7.py
+  mordred_memNICFour.py
+  mordred_testBridge.py
 )
 
 set (passRegex "Simulation is complete")

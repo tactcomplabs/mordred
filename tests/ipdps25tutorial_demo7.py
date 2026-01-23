@@ -1,3 +1,10 @@
+# This test is derived from the following:
+# https://github.com/sstsimulator/sst-tutorials/blob/master/ipdps2025/exercises/intro/solutions/demo_7.py
+
+# This test tries out two main features:
+# - Swap out the shogun crossbar for a 2x2 mesh
+# - Use the mordred.mordredNIC subcomponent in the "linkcontrol" slot of  the memHierarchy.MemNIC subcomponent
+
 import sst
 from sst import UnitAlgebra
 
@@ -15,7 +22,6 @@ memory_capacity_block_inB = memory_per_block * 1024 * 1024
 #########################################################################
 # If this demo gets to 100ms, something has gone very wrong!
 sst.setProgramOption("stop-at", "100ms")
-
 
 #########################################################################
 ## Parameter Definitions
@@ -55,21 +61,13 @@ gen_params = dict({
     "n" : 1000,             # Number of array elements
 })
 
-
 #########################################################################
 ## Getting too many components to write out everything, so let's
 ## simplify the description of the model...
 #########################################################################
-#shogun_xbar = sst.Component("shogunxbar", "shogun.ShogunXBar")
-#shogun_xbar.addParams({
-#       "clock" : "1.0GHz",
-#       "port_count" : 4,
-#       "verbose" : 0
-#})
 
-### Going to get rid of shogun, so we need to create a 2x2 mesh
-### or make it parameterizable with numCores + numLLC routers
-### and then we hang a router off of each one
+### Original used shogun crossbar with 4 endpoints; we will create a 2x2 mesh
+### and hang a router off of each one; set basic parameters here
 link_latency = UnitAlgebra("800ps")
 flit_size = UnitAlgebra("16b")
 FixedRtrParams = {
@@ -81,12 +79,7 @@ FixedRtrParams = {
     "output_buf_size" : UnitAlgebra(1)*flit_size
 }
 
-numRtrs = 4
-local_ports = 1
-y_size = 2
-x_size = 2
-
-
+# NoC link generation
 links = dict()
 def getLink(name1, name2):
     name = "link.%s_%s"%(name1, name2)
@@ -95,13 +88,22 @@ def getLink(name1, name2):
         #print("New link: %s"%name)
     return links[name]
 
-rtr_id = 0
-routers = dict()
+# Creating the NoC - parameters
+numRtrs = 4
+local_ports = 1
+y_size = 2
+x_size = 2
 nports = 4 + local_ports
 rtr_params = {
     "num_ports": nports,
     "num_local_ports" : local_ports,
 }
+
+# Creating the NoC - initialize
+rtr_id = 0
+routers = dict()
+
+# Creating the NoC - routers
 for y in range(0, y_size):
     for x in range(0, x_size):
         rtr_name = "rtr_%d_%d"%(x, y)
@@ -115,8 +117,8 @@ for y in range(0, y_size):
         rtr_topo = routers[rtr_name].setSubComponent( "topology", "mordred.MeshTopology" )
         rtr_topo.addParams({
             "verbose" : 0,
-            "xDim" : 2,
-            "yDim" : 2
+            "xDim" : x_size,
+            "yDim" : y_size
         })
         # north links
         if y != y_size - 1:
@@ -135,6 +137,7 @@ for y in range(0, y_size):
             routers[rtr_name].addLink(getLink("rtr_%d_%d"%(x-1,y), "rtr_%d_%d"%(x,y)), "port3", link_latency)
 
 ### NOTE: NO ENDPOINTS CREATED YET
+# Set up parameters for the endpoint NICs
 MordredNICParams = {
     "verbose" : "0",
     "input_buf_size" : "1kiB",
@@ -163,7 +166,7 @@ for core_id in range (0, numCores):
    l2_up = l2_cache.setSubComponent("highlink", "memHierarchy.MemLink")
    l2_down = l2_cache.setSubComponent("lowlink", "memHierarchy.MemNIC")
    l2_down.addParams({ "group" : 2 })
-   #l2_linkctrl = l2_down.setSubComponent("linkcontrol", "shogun.ShogunNIC")
+   # Replace shogun.ShogunNIC with mordred.mordredNIC
    l2_linkctrl = l2_down.setSubComponent("linkcontrol", "mordred.mordredNIC")
    l2_linkctrl.addParams(MordredNICParams)
 
@@ -198,7 +201,7 @@ for cache_id in range (0, numLLC):
    dc_highlink.addParams({
       "group" : 3,
    })
-   #dc_linkctrl = dc_highlink.setSubComponent("linkcontrol", "shogun.ShogunNIC")
+   # Replace shogun.ShogunNIC with mordred.mordredNIC
    dc_linkctrl = dc_highlink.setSubComponent("linkcontrol", "mordred.mordredNIC")
    dc_linkctrl.addParams(MordredNICParams)
 
@@ -225,8 +228,6 @@ for cache_id in range (0, numLLC):
 
    p_n = p_n + 1
 
-
-
 #########################################################################
 ## Statistics
 #########################################################################
@@ -235,8 +236,8 @@ for cache_id in range (0, numLLC):
 # Generate statistics in CSV format
 sst.setStatisticOutput("sst.statoutputcsv")
 
-# Send the statistics to a fiel called 'stats.csv'
-sst.setStatisticOutputOptions( { "filepath"  : "stats_mordred_demo7.csv" })
+# Send the statistics to a file called 'stats.csv'
+sst.setStatisticOutputOptions( { "filepath"  : "stats.ipdps25tutorial_demo7.csv" })
 
 # Print statistics of level 5 and below (0-5)
 sst.setStatisticLoadLevel(5)
