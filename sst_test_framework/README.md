@@ -7,3 +7,4 @@ To switch back to using the SST framework, the following steps would be necessar
 - The following line should be added to `tests/CMakeLists.txt` to register the tests with SST:<br>
 `install(CODE "execute_process(COMMAND sst-register SST_ELEMENT_TESTS mordred=${CMAKE_CURRENT_SOURCE_DIR})")`
 - The testsuite can be executed (after registration): `sst-test-elements -w "*mordred*"`
+- New tests would need to be added to `testsuite_default_mordred.py` and the necessary output files added to `refFiles/`

@@ -19,9 +19,9 @@ The tests run by `make test` are in the `tests/` folder. The `repotest` folder i
 
 To replace a merlin.hr_router using a singlerouter topology, a single mordred.simple_rtr can be used with a 1x1 mesh topology.  The links between the endpoints and the merlin.hr_router then become links between the endpoints and the local ports of mordred.simple_rtr
 
-The mordredNIC subcomponent has been tested as the subcomponent(s) in both memHierarchy.MemNIC and memHierarchy.MemNICFour and found to operate correctly.  See `tests/ipdps25tutorial_demo7.py` and `tests/mordred_memNICFour.py` respectively.
+The mordredNIC subcomponent works in the subcomponent slots of memHierarchy.MemNIC and memHierarchy.MemNICFour.  See `tests/ipdps25tutorial_demo7.py` and `tests/mordred_memNICFour.py` respectively.
 
-The mordredNIC subcomponent has also been tested in the "networkIF" subcomponent slot in the merlin.Bridge component; see `tests/mordred_testBridge.py`.
+The mordredNIC subcomponent also works in the "networkIF" subcomponent slot of the merlin.Bridge component; see `tests/mordred_testBridge.py`.
 
 The `sst_test_framework` folder contains a collection of files that would be useful for executing the tests via the standard SST elements test framework.
 

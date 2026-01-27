@@ -236,7 +236,7 @@ for cache_id in range (0, numLLC):
 # Generate statistics in CSV format
 sst.setStatisticOutput("sst.statoutputcsv")
 
-# Send the statistics to a file called 'stats.csv'
+# Send the statistics to a file
 sst.setStatisticOutputOptions( { "filepath"  : "stats.ipdps25tutorial_demo7.csv" })
 
 # Print statistics of level 5 and below (0-5)

@@ -109,7 +109,7 @@ def buildCPU(num, network):
     l1_lowlink = l1.setSubComponent("lowlink", "memHierarchy.MemNIC")
     l1_lowlink.addParam("network_bw", netBW)
     l1_lowlink.addParam("group", 1)
-    # Set "linkcontrol" slow in MemNIC
+    # Set "linkcontrol" slot in MemNIC
     mordred_l1nic = l1_lowlink.setSubComponent("linkcontrol", "mordred.mordredNIC")
     mordred_l1nic.addParams(MordredNICParams)
 

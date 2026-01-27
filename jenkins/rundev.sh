@@ -76,7 +76,7 @@ sst-test-elements -w "*merlin*" | exit 44
 cd mordred || exit 50
 mkdir build || exit 52
 cd build || exit 53
-cmake -DINSTALL_TESTS=ON .. || exit 54
+cmake .. || exit 54
 make -j || exit 56
 make install || exit 57
 make test || exit 58
