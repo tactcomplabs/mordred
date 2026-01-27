@@ -68,9 +68,10 @@ make -j || exit 38
 make install || exit 39
 cd ../.. || exit 40 # return us to {some-path}/sst-core/
 
-# Run the merlin test suite esp since it's needed for mordred testing
+# Run the merlin and memHierarchy test suite esp since it's needed for mordred testing
 which sst-test-elements || exit 42
-sst-test-elements -w "*merlin*" | exit 44
+sst-test-elements -w "*merlin*" || exit 44
+sst-test-elements -w "*memHierarchy" || exit 45
 
 # Build/install/test mordred
 cd mordred || exit 50
