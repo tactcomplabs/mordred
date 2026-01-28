@@ -8,6 +8,8 @@
 # Executes jenkins builds
 #
 
+module load cmake/3.22.1-gcc-13.2.0-qyvc7df sst/15.1.0
+
 echo "---- MORDRED TEST HARNESS ----"
 
 if command -v sst &> /dev/null; then
