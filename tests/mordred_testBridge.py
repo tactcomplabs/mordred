@@ -1,6 +1,12 @@
+# This test is derived from:
+# https://github.com/sstsimulator/sst-elements/blob/v15.1.0_Final/src/sst/elements/memHierarchy/tests/testBridge.py
+
+# The main purpose of this test is to use a mordred.mordredNIC in the "networkIF" slot in a
+# merlin.Bridge (used on the Net0 side of the Bridge)
+
 import sst
 from mhlib import componentlist
-from memH_sim_params import *
+from sst import UnitAlgebra
 
 num_cpu = 2
 num_mem = 2
@@ -10,13 +16,28 @@ netBW = "80GiB/s"
 debug = 1
 debug_level = 0
 
-
 # CPU0 -> L1 -> Net0
 # CPU1 -> L1 -> Net0
 # Net0 -> Bridge -> Net1
 # Mem0 -> Net1
 # Mem1 -> Net1
 
+# For the Mordred side
+BridgeRtrParams = {
+    "verbose" : "5",
+    "clock" : UnitAlgebra("1000MHz"),
+    "num_vcs" : "1",
+    "num_vns" : 1,
+    "flit_size" : "80B",
+    "input_buf_size" : UnitAlgebra(8)*UnitAlgebra("80B"),
+    "output_buf_size" : UnitAlgebra(1)*UnitAlgebra("80B")
+}
+
+MordredNICParams = {
+    "verbose" : "0",
+    "input_buf_size" : "1kiB",
+    "output_buf_size" : "1kiB",
+}
 
 class Network:
     def __init__(self, name):
@@ -88,6 +109,7 @@ def buildCPU(num, network):
     l1_lowlink = l1.setSubComponent("lowlink", "memHierarchy.MemNIC")
     l1_lowlink.addParam("network_bw", netBW)
     l1_lowlink.addParam("group", 1)
+    # Set "linkcontrol" slot in MemNIC
     mordred_l1nic = l1_lowlink.setSubComponent("linkcontrol", "mordred.mordredNIC")
     mordred_l1nic.addParams(MordredNICParams)
 
@@ -95,7 +117,6 @@ def buildCPU(num, network):
     highlink.connect( (iface, "lowlink", "500ps"), (l1, "highlink", "500ps"))
 
     rtrLink = sst.Link("L1_net_%d"%num)
-    #rtrLink.connect( (l1_lowlink, "port", "500ps"), (network.rtr, "port%d"%netPort, "500ps") )
     rtrLink.connect( (mordred_l1nic, "port", "500ps"), (network.rtr, "port%d"%netPort, "500ps") )
 
 def buildMem(num, network):
@@ -147,7 +168,6 @@ def mordred_bridge(net0, net1):
     net_if_0 = bridge.setSubComponent("networkIF", "mordred.mordredNIC", 0)
     net_if_0.addParams(MordredNICParams)
     link = sst.Link("B0_%s"%name)
-    #link.connect( (bridge, "network0", "500ps"), (net0.rtr, "port%d"%net0port, "500ps") )
     link.connect( (net_if_0, "port", "500ps"), (net0.rtr, "port%d"%net0port, "500ps") )
     link = sst.Link("B1_%s"%name)
     link.connect( (bridge, "network1", "500ps"), (net1.rtr, "port%d"%net1port, "500ps") )
@@ -180,7 +200,6 @@ for mem in range(num_mem):
 
 net2 = Network("Middle_Net")
 
-
 bridge(net1, net2)
 mordred_bridge(net0, net2)
 
@@ -188,6 +207,6 @@ sst.setStatisticLoadLevel(16)
 sst.enableAllStatisticsForAllComponents({"type": "sst.AccumulatorStatistic"})
 sst.setStatisticOutput("sst.statOutputCSV")
 sst.setStatisticOutputOptions({
-    "filepath" : "stats.csv",
+    "filepath" : "stats.mordred_testBridge.csv",
     "separator" : ", ",
     })

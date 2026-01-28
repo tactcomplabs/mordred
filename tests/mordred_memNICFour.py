@@ -1,10 +1,17 @@
+# This test is derived from the following:
+# https://github.com/sstsimulator/sst-elements/blob/v15.1.0_Final/src/sst/elements/memHierarchy/tests/testKingsley.py
+
+# This test tries out two main features:
+# - Swap out the Kingsley mesh for a Mordred mesh
+# - Use the mordred.mordredNIC subcomponent in the "data,ack,req,fwd" slots of  the memHierarchy.MemNICFour subcomponent
+
 import os
 import sst
 from mhlib import componentlist
-from memH_sim_params import *
+from sst import UnitAlgebra
 
-#quiet = True
-quiet = False
+quiet = True
+#quiet = False
 
 memCapacity = 4 # In GB
 memPageSize = 4 # in KB
@@ -13,30 +20,46 @@ memNumPages = memCapacity * 1024 * 1024 // memPageSize
 mesh_stops_x        = 3
 mesh_stops_y        = 3
 
+# Original Kingsley-centric params
 mesh_clock          = 2200
-ctrl_mesh_flit      = 8
-data_mesh_flit      = 36
 mesh_link_latency   = "100ps"    # Note, used to be 50ps, didn't seem to make a difference when bumping it up to 100
-ctrl_mesh_link_bw   = str( (mesh_clock * 1000 * 1000 * ctrl_mesh_flit) ) + "B/s"
-data_mesh_link_bw   = str( (mesh_clock * 1000 * 1000 * data_mesh_flit) ) + "B/s"
 
 core_clock         = "1800MHz"
 coherence_protocol = "MESI"
 
-ctrl_network_buffers = "32B"
-data_network_buffers = "288B"
+# Set up some parameters via UnitAlgebra for Mordred
+clk = UnitAlgebra("2200MHz")
+clk_pd = clk.invert()
+link_latency = UnitAlgebra(0.8) * clk_pd
+data_flit_size = UnitAlgebra("36B")
+ctrl_flit_size = UnitAlgebra("8B")
+num_vns = "1"
+noc_link_bw = clk * data_flit_size
 
-ctrl_network_params = {
-        "link_bw" : ctrl_mesh_link_bw,
-        "flit_size" : str(ctrl_mesh_flit) + "B",
-        "input_buf_size" : ctrl_network_buffers,
+DataRtrParams = {
+    "verbose" : "0",
+    "clock" : clk,
+    "num_vcs" : "1",
+    "num_vns" : num_vns,
+    "flit_size" : data_flit_size,
+    "input_buf_size" : UnitAlgebra(8)*data_flit_size,
+    "output_buf_size" : UnitAlgebra(1)*data_flit_size
 }
 
-data_network_params = {
-        "link_bw" : data_mesh_link_bw,
-        "flit_size" : str(data_mesh_flit) + "B",
-        "input_buf_size" : data_network_buffers,
-        "port_priority_equal" : 1,
+CtrlRtrParams = {
+    "verbose" : "0",
+    "clock" : clk,
+    "num_vcs" : "1",
+    "num_vns" : num_vns,
+    "flit_size" : ctrl_flit_size,
+    "input_buf_size" : UnitAlgebra(4)*ctrl_flit_size,
+    "output_buf_size" : UnitAlgebra(1)*ctrl_flit_size
+}
+
+MordredNICParams = {
+    "verbose" : "0",
+    "input_buf_size" : "1kiB",
+    "output_buf_size" : "1kiB",
 }
 
 # Debug parameters for memH
@@ -108,18 +131,6 @@ l2_nic_params = {
     "debug_level" : debugLev,
 }
 
-ctrl_net_params = {
-    "link_bw" : ctrl_mesh_link_bw,
-    "in_buf_size" : ctrl_network_buffers,
-    "out_buf_size" : ctrl_network_buffers
-}
-
-data_net_params = {
-    "link_bw" : data_mesh_link_bw,
-    "in_buf_size" : data_network_buffers,
-    "out_buf_size" : data_network_buffers
-}
-
 ###### DDR Directory #######
 ddr_dc_params = {
     "coherence_protocol": coherence_protocol,
@@ -172,7 +183,6 @@ ddr_nic_params = {
     "debug_level" : debugLev,
 }
 
-
 # Miranda STREAM Bench params
 thread_iters = 1000
 cpu_params = {
@@ -204,16 +214,9 @@ class DDRBuilder:
         membk.addParams({ "mem_size" : str(self.mem_capacity // 4) + "B" })
         membk.addParams(ddr_backend_params)
 
+        # Update MemNICFour slots using kingsley.linkcontrol to mordred.mordredNIC
         memNIC = mem.setSubComponent("highlink", "memHierarchy.MemNICFour")
         memNIC.addParams(ddr_nic_params)
-        # memdata = memNIC.setSubComponent("data", "kingsley.linkcontrol")
-        # memreq = memNIC.setSubComponent("req", "kingsley.linkcontrol")
-        # memack = memNIC.setSubComponent("ack", "kingsley.linkcontrol")
-        # memfwd = memNIC.setSubComponent("fwd", "kingsley.linkcontrol")
-        # memdata.addParams(data_net_params)
-        # memreq.addParams(ctrl_net_params)
-        # memfwd.addParams(ctrl_net_params)
-        # memack.addParams(ctrl_net_params)
         memdata = memNIC.setSubComponent("data", "mordred.mordredNIC")
         memreq = memNIC.setSubComponent("req", "mordred.mordredNIC")
         memack = memNIC.setSubComponent("ack", "mordred.mordredNIC")
@@ -229,9 +232,7 @@ class DDRBuilder:
             "interleave_step" : str(4 * 64) + "B",
             "interleave_size" : "64B",
         })
-        print(" - Addr start= " + str(64 * self.next_ddr_id) + " Addr end=" + str(self.mem_capacity - (64 * self.next_ddr_id)))
         self.next_ddr_id = self.next_ddr_id + 1
-        #return (memreq, "rtr_port", mesh_link_latency), (memack, "rtr_port", mesh_link_latency), (memfwd, "rtr_port", mesh_link_latency), (memdata, "rtr_port", mesh_link_latency)
         return (memreq, "port", mesh_link_latency), (memack, "port", mesh_link_latency), (memfwd, "port", mesh_link_latency), (memdata, "port", mesh_link_latency)
 
 class DDRDCBuilder:
@@ -270,16 +271,9 @@ class DDRDCBuilder:
             "interleave_size" : "64B",
         })
         # Create NIC on to interface to NoC from directory
+        # Update MemNICFour slots using kingsley.linkcontrol to mordred.mordredNIC
         dcNIC = dc.setSubComponent("highlink", "memHierarchy.MemNICFour")
         dcNIC.addParams(dc_nic_params)
-        # dcdata = dcNIC.setSubComponent("data", "kingsley.linkcontrol")
-        # dcreq = dcNIC.setSubComponent("req", "kingsley.linkcontrol")
-        # dcfwd = dcNIC.setSubComponent("fwd", "kingsley.linkcontrol")
-        # dcack = dcNIC.setSubComponent("ack", "kingsley.linkcontrol")
-        # dcreq.addParams(ctrl_net_params)
-        # dcfwd.addParams(ctrl_net_params)
-        # dcack.addParams(ctrl_net_params)
-        # dcdata.addParams(data_net_params)
         dcdata = dcNIC.setSubComponent("data", "mordred.mordredNIC")
         dcreq = dcNIC.setSubComponent("req", "mordred.mordredNIC")
         dcfwd = dcNIC.setSubComponent("fwd", "mordred.mordredNIC")
@@ -290,7 +284,6 @@ class DDRDCBuilder:
         dcdata.addParams(MordredNICParams)
 
         self.next_ddr_dc_id = self.next_ddr_dc_id + 1
-        #return (dcreq, "rtr_port", mesh_link_latency), (dcack, "rtr_port", mesh_link_latency), (dcfwd, "rtr_port", mesh_link_latency), (dcdata, "rtr_port", mesh_link_latency)
         return (dcreq, "port", mesh_link_latency), (dcack, "port", mesh_link_latency), (dcfwd, "port", mesh_link_latency), (dcdata, "port", mesh_link_latency)
 
 
@@ -314,14 +307,7 @@ class TileBuilder:
         l2NIC = tileL2cache.setSubComponent("lowlink", "memHierarchy.MemNICFour")
         l2NIC.addParams(l2_nic_params)
 
-        # l2data = l2NIC.setSubComponent("data", "kingsley.linkcontrol")
-        # l2req = l2NIC.setSubComponent("req", "kingsley.linkcontrol")
-        # l2fwd = l2NIC.setSubComponent("fwd", "kingsley.linkcontrol")
-        # l2ack = l2NIC.setSubComponent("ack", "kingsley.linkcontrol")
-        # l2data.addParams(data_net_params)
-        # l2req.addParams(ctrl_net_params)
-        # l2fwd.addParams(ctrl_net_params)
-        # l2ack.addParams(ctrl_net_params)
+        # Update MemNICFour slots using kingsley.linkcontrol to mordred.mordredNIC
         l2data = l2NIC.setSubComponent("data", "mordred.mordredNIC")
         l2req = l2NIC.setSubComponent("req", "mordred.mordredNIC")
         l2fwd = l2NIC.setSubComponent("fwd", "mordred.mordredNIC")
@@ -330,7 +316,6 @@ class TileBuilder:
         l2req.addParams(MordredNICParams)
         l2fwd.addParams(MordredNICParams)
         l2ack.addParams(MordredNICParams)
-
 
         # Bus (from l1s to l2)
         l2bus = sst.Component("l2cachebus_" + str(self.next_tile_id), "memHierarchy.Bus")
@@ -392,7 +377,6 @@ class TileBuilder:
         leftSMThighlink0.setNoCut()
         leftSMThighlink1.setNoCut()
         leftSMTL1link.setNoCut()
-
 
         leftL1L2link = sst.Link("l1cache_link_" + str(self.next_core_id))
         leftL1L2link.connect( (l2bus, "highlink0", mesh_link_latency),
@@ -458,7 +442,6 @@ class TileBuilder:
 
         self.next_core_id = self.next_core_id + 1
 
-        #return (l2req, "rtr_port", mesh_link_latency), (l2ack, "rtr_port", mesh_link_latency), (l2fwd, "rtr_port", mesh_link_latency), (l2data, "rtr_port", mesh_link_latency)
         return (l2req, "port", mesh_link_latency), (l2ack, "port", mesh_link_latency), (l2fwd, "port", mesh_link_latency), (l2data, "port", mesh_link_latency)
 
 # This is just a naming
@@ -470,42 +453,23 @@ def setNodeDist(nodeId, rtrreq, rtrack, rtrfwd, rtrdata):
     port = nodeId % 2   # Even port = tile, odd = DC
     actNode = nodeId // 2
 
-    # Mordred expects endpoints to always be connected to local ports;
-    # so we've added a third local port and tied the DDRs into it
-    # Kingsley is ok with endpoints being connected to the mesh ports
-    # of the routers
     if nodeId == 1 or nodeId == 3 or nodeId == 5 or nodeId == 7:
+        # In the original model, the memBuilder linked to a mesh port of the Kingsley router
+        # and not a local port; however, Mordred expects endpoints to always be connected to local ports.
+        # Thus, we've added a third local port (port6) and tied the DDRs into it
         req, ack, fwd, data = memBuilder.build(nodeId)
-        # if nodeId == 1:
-        #     port = "port2"
-        # elif nodeId == 3:
-        #     port = "port3"
-        # elif nodeId == 5:
-        #     port = "port1"
-        # elif nodeId == 7:
-        #     port = "port0"
+        #print("MemBuilder nodeId=%d" % nodeId)
+        rtrreqport = sst.Link("krtr_req_port6_" +str(nodeId))
+        rtrreqport.connect( (rtrreq, "port6", mesh_link_latency), req )
+        rtrackport = sst.Link("krtr_ack_port6_" + str(nodeId))
+        rtrackport.connect( (rtrack, "port6", mesh_link_latency), ack )
+        rtrfwdport = sst.Link("krtr_fwd_port6_" + str(nodeId))
+        rtrfwdport.connect( (rtrfwd, "port6", mesh_link_latency), fwd )
+        rtrdataport = sst.Link("kRtr_data_port6_" + str(nodeId))
+        rtrdataport.connect( (rtrdata, "port6", mesh_link_latency), data )
 
-        port = "port6"
-        print("MemBuilder nodeId=%d, port=%s"%(nodeId,port))
-        # rtrreqport = sst.Link("krtr_req_" + port + "_" +str(nodeId))
-        # rtrreqport.connect( (rtrreq, port, mesh_link_latency), req )
-        # rtrackport = sst.Link("krtr_ack_" + port + "_" + str(nodeId))
-        # rtrackport.connect( (rtrack, port, mesh_link_latency), ack )
-        # rtrfwdport = sst.Link("krtr_fwd_" + port + "_" + str(nodeId))
-        # rtrfwdport.connect( (rtrfwd, port, mesh_link_latency), fwd )
-        # rtrdataport = sst.Link("kRtr_data_" + port + "_" + str(nodeId))
-        # rtrdataport.connect( (rtrdata, port, mesh_link_latency), data )
-        rtrreqport = sst.Link("krtr_req_" + port + "_" +str(nodeId))
-        rtrreqport.connect( (rtrreq, port, mesh_link_latency), req )
-        rtrackport = sst.Link("krtr_ack_" + port + "_" + str(nodeId))
-        rtrackport.connect( (rtrack, port, mesh_link_latency), ack )
-        rtrfwdport = sst.Link("krtr_fwd_" + port + "_" + str(nodeId))
-        rtrfwdport.connect( (rtrfwd, port, mesh_link_latency), fwd )
-        rtrdataport = sst.Link("kRtr_data_" + port + "_" + str(nodeId))
-        rtrdataport.connect( (rtrdata, port, mesh_link_latency), data )
-
-    # Place tiles on all routers
-    print("BUILD Tiles for nodeID=%d"%(nodeId))
+    # Place tiles on all routers (local0 in Kingsley == port4 in Mordred mesh)
+    #print("BUILD Tiles for nodeID=%d"%(nodeId))
     tilereq, tileack, tilefwd, tiledata = tileBuilder.build(nodeId)
     reqport0 = sst.Link("krtr_req_port4_" + str(nodeId))
     reqport0.connect( (rtrreq, "port4", mesh_link_latency), tilereq )
@@ -517,8 +481,9 @@ def setNodeDist(nodeId, rtrreq, rtrack, rtrfwd, rtrdata):
     dataport0.connect( (rtrdata, "port4", mesh_link_latency), tiledata )
 
     # Place DC at every tile except 0
+    # (local1 in Kingsley == port5 in Mordred mesh)
     if nodeId != 0:
-        print("BUILD DCs for nodeID=%d"%(nodeId))
+        #print("BUILD DCs for nodeID=%d"%(nodeId))
         req, ack, fwd, data = DCBuilder.build(nodeId)
         reqport1 = sst.Link("krtr_req_port5_" + str(nodeId))
         reqport1.connect( (rtrreq, "port5", mesh_link_latency), req )
@@ -529,7 +494,7 @@ def setNodeDist(nodeId, rtrreq, rtrack, rtrfwd, rtrdata):
         dataport1 = sst.Link("kRtr_data_port5_" + str(nodeId))
         dataport1.connect( (rtrdata, "port5", mesh_link_latency), data )
 
-# Build Mordred Mesh
+# Mordred router/topology parameters
 topo_params = {
     "verbose" : 0,
     "xDim" : mesh_stops_x,
@@ -544,29 +509,12 @@ kRtrReq=[]
 kRtrAck=[]
 kRtrFwd=[]
 kRtrData=[]
-#for x in range (0, mesh_stops_x):
-#    for y in range (0, mesh_stops_y):
+
+# Replace Kingsley meshes with Mordred meshes
 for y in range (0, mesh_stops_y):
     for x in range (0, mesh_stops_x):
         rtr_id = y * mesh_stops_x + x
-        #nodeNum = len(kRtrReq)
         nodeNum = rtr_id
-        #rtr_id = nodeNum
-        print("Build mesh for (x,y)=(%d,%d); nodeNum=%d"%(x,y,nodeNum))
-        #print("Create router at x,y=(%d,%d), rtrId=%d, nodeNum=%d"%(x,y,rtr_id,nodeNum))
-        # kRtrReq.append(sst.Component("krtr_req_" + str(nodeNum), "kingsley.noc_mesh"))
-        # kRtrReq[-1].addParams(ctrl_network_params)
-        # kRtrAck.append(sst.Component("krtr_ack_" + str(nodeNum), "kingsley.noc_mesh"))
-        # kRtrAck[-1].addParams(ctrl_network_params)
-        # kRtrFwd.append(sst.Component("krtr_fwd_" + str(nodeNum), "kingsley.noc_mesh"))
-        # kRtrFwd[-1].addParams(ctrl_network_params)
-        # kRtrData.append(sst.Component("krtr_data_" + str(nodeNum), "kingsley.noc_mesh"))
-        # kRtrData[-1].addParams(data_network_params)
-        #
-        # kRtrReq[-1].addParams({"local_ports" : 2})
-        # kRtrAck[-1].addParams({"local_ports" : 2})
-        # kRtrFwd[-1].addParams({"local_ports" : 2})
-        # kRtrData[-1].addParams({"local_ports" : 2})
 
         kRtrReq.append(sst.Component("krtr_req_" + str(nodeNum), "mordred.simple_rtr"))
         kRtrReq[-1].addParam("id", rtr_id)
@@ -599,10 +547,8 @@ for y in range (0, mesh_stops_y):
 i = 0
 for y in range(0, mesh_stops_y):
     for x in range (0, mesh_stops_x):
-        print("Connect mesh for i=%d; x,y=%d,%d"%(i, x, y))
         # North-south connections
         if y != (mesh_stops_y -1):
-            print("NS Connect i=%d, i+mesh_x=%d"%(i, i+mesh_stops_x))
             kRtrReqNS = sst.Link("krtr_req_ns_" + str(i))
             kRtrReqNS.connect( (kRtrReq[i], "port0", mesh_link_latency), (kRtrReq[i + mesh_stops_x], "port2", mesh_link_latency) )
             kRtrAckNS = sst.Link("krtr_ack_ns_" + str(i))
@@ -612,8 +558,8 @@ for y in range(0, mesh_stops_y):
             kRtrDataNS = sst.Link("krtr_data_ns_" + str(i))
             kRtrDataNS.connect( (kRtrData[i], "port0", mesh_link_latency), (kRtrData[i + mesh_stops_x], "port2", mesh_link_latency) )
 
+        # East-west connections
         if x != (mesh_stops_x - 1):
-            print("EW Connect i=%d, i+1=%d"%(i, i+1))
             kRtrReqEW = sst.Link("krtr_req_ew_" + str(i))
             kRtrReqEW.connect( (kRtrReq[i], "port1", mesh_link_latency), (kRtrReq[i+1], "port3", mesh_link_latency) )
             kRtrAckEW = sst.Link("krtr_ack_ew_" + str(i))
@@ -629,4 +575,5 @@ for y in range(0, mesh_stops_y):
 # Enable SST Statistics Outputs for this simulation
 sst.setStatisticLoadLevel(16)
 sst.enableAllStatisticsForAllComponents({"type":"sst.AccumulatorStatistic"})
-sst.setStatisticOutput("sst.statOutputConsole")
+sst.setStatisticOutput("sst.statoutputcsv")
+sst.setStatisticOutputOptions( { "filepath"  : "stats.mordred_memNICFour.csv" })

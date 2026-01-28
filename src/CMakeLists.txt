@@ -1,5 +1,9 @@
+# Copyright (C) 2025-2026 Tactical Computing Laboratories, LLC
+# All Rights Reserved
+# contact@tactcomplabs.com
+# See LICENSE in the top level directory for licensing details
+
 # mordred/src/CMakeLists.txt
-# this is not meant to be standalone
 # this is triggered via the top-level CMakeLists.txt in mordred
 
 set(MordredSrcs
@@ -35,11 +39,5 @@ target_include_directories(mordred PUBLIC ${SST_INSTALL_DIR}/include)
 
 install(TARGETS mordred DESTINATION ${CMAKE_CURRENT_SOURCE_DIR})
 install(CODE "execute_process(COMMAND sst-register mordred mordred_LIBDIR=${CMAKE_CURRENT_SOURCE_DIR})")
-
-#if( ${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-#    install(CODE "execute_process(COMMAND_ERROR_IS_FATAL ANY COMMAND_ECHO STDERR COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_undefined_symbols.sh ${CMAKE_CURRENT_SOURCE_DIR}/libforzazqm.dylib)")
-#else()
-#    install(CODE "execute_process(COMMAND_ERROR_IS_FATAL ANY COMMAND_ECHO STDERR COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_undefined_symbols.sh ${CMAKE_CURRENT_SOURCE_DIR}/libforzazqm.so)")
-#endif()
 
 # EOF
