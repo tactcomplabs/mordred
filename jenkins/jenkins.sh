@@ -1,3 +1,4 @@
+#!/bin/bash
 # Copyright (C) 2026-2026 Tactical Computing Laboratories, LLC
 # All Rights Reserved
 # contact@tactcomplabs.com
