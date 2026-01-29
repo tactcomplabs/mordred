@@ -71,6 +71,7 @@ struct perVcInState {
     retCredits = 0;
   }
 
+#if 0
   void serialize_order(SST::Core::Serialization::serializer& ser){
     SST_SER(inVcState);
     SST_SER(outPort);
@@ -79,6 +80,7 @@ struct perVcInState {
     SST_SER(retCredits);
     SST_SER(inBuf);
   }
+#endif
 };
 
 struct perVcOutState {
@@ -100,7 +102,7 @@ struct perVcOutState {
     outBufCredits = ob_creds;
     destCredits = 0;
   }
-
+#if 0
   void serialize_order(SST::Core::Serialization::serializer& ser){
     SST_SER(outVcState);
     SST_SER(inPort);
@@ -110,6 +112,7 @@ struct perVcOutState {
     SST_SER(destCredits);
     SST_SER(outBuf);
   }
+#endif
 };
 
 class RtrPortControlAPI : public SubComponent {

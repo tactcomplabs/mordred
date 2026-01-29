@@ -52,7 +52,7 @@ public:
 
   /// default constructor
   XbarArbRR() : XbarArbAPI() {}
-
+#if 0
   /// serialization
   void serialize_order(SST::Core::Serialization::serializer& ser) override {
     SST_SER(output);
@@ -70,7 +70,7 @@ public:
 
   /// serialization implementations
   ImplementSerializable(SST::Mordred::XbarArbRR);
-
+#endif
 private:
   Output   *output;
   uint32_t rtrId;

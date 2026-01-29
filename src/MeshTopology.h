@@ -69,6 +69,7 @@ public:
   /// default constructor
   MeshTopology() : SST::Mordred::TopologyAPI() {}
 
+#if 0
   /// serialization
   void serialize_order(SST::Core::Serialization::serializer& ser) override {
     SST_SER(output);
@@ -85,6 +86,7 @@ public:
 
   /// serialization implementations
   ImplementSerializable(SST::Mordred::MeshTopology);
+#endif
 
 private:
   Output* output;

@@ -54,6 +54,7 @@ public:
   /// default constructor
   TestEP() : SST::Component() {}
 
+#if 0
   /// serialization
   void serialize_order(SST::Core::Serialization::serializer& ser) override {
     SST_SER(output);
@@ -67,6 +68,7 @@ public:
 
   /// serialization implementations
   ImplementSerializable(SST::Mordred::TestEP);
+#endif
 
 private:
   // event handlers

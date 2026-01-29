@@ -88,8 +88,8 @@ string(CONCAT SST_VERSION  ${SST_MAJOR_VERSION} "." ${SST_MINOR_VERSION})
 message(STATUS "SST FULL VERSION=${SST_VERSION}")
 
 if(NOT "${SST_MAJOR_VERSION}" STREQUAL "DEV")
-  if(${SST_VERSION} VERSION_LESS "15.0")
-    message(FATAL_ERROR "Mordred requires SST 15.0.0+")
+  if(${SST_VERSION} VERSION_LESS "14.0")
+    message(FATAL_ERROR "Mordred requires SST 14.0.0+")
   endif()
 endif()
 

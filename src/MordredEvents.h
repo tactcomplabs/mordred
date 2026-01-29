@@ -84,13 +84,14 @@ public:
   baseMordredEvent() : SST::Event() {}
 
   MordredEventType getType() { return type; }
-
+#if 0
   void serialize_order(Core::Serialization::serializer& ser) override {
     Event::serialize_order(ser);
     ser & type;
   }
 
   ImplementSerializable( SST::Mordred::baseMordredEvent );
+#endif
 
 private:
   MordredEventType type;
@@ -117,7 +118,7 @@ public:
     }
     return ret;
   }
-
+#if 0
   void serialize_order(Core::Serialization::serializer& ser) override {
     Event::serialize_order(ser);
     ser & command;
@@ -126,6 +127,7 @@ public:
   }
 
   ImplementSerializable( SST::Mordred::MordredInitEvent );
+#endif
 
 public:
   Commands command;
@@ -186,6 +188,7 @@ public:
     return ss;
   }
 
+#if 0
   // Events must provide a serialization function that serializes
   // all data members of the event
   void serialize_order( SST::Core::Serialization::serializer& ser ) override {
@@ -202,6 +205,7 @@ public:
 
   // Register this event as serializable
   ImplementSerializable( SST::Mordred::MordredFlit );
+#endif
 };
 
 // More-or-less borrowed from merlin's credit_event in router.h
@@ -215,7 +219,7 @@ public:
 
   MordredCreditEvent( uint32_t vn_, uint32_t vc_, int32_t credits_ ) :
   baseMordredEvent( CREDIT ), vn( vn_ ), vc( vc_ ), credits( credits_ ) { /* empty */ }
-
+#if 0
   void serialize_order(Core::Serialization::serializer& ser) override {
     baseMordredEvent::serialize_order(ser);
     ser & vn;
@@ -224,6 +228,7 @@ public:
   }
 
   ImplementSerializable( SST::Mordred::MordredCreditEvent );
+#endif
 
 private:
 };
@@ -254,12 +259,13 @@ struct RtrOwnedSharedObjs {
       needSwitchAlloc[i].resize( num_vcs, nullptr );
     }
   }
-
+#if 0
   void serialize_order(SST::Core::Serialization::serializer& ser){
     SST_SER(isValid);
     SST_SER(needVcAlloc);
     SST_SER(needSwitchAlloc);
   }
+#endif
 };
 
 

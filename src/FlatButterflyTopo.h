@@ -71,7 +71,7 @@ public:
 
   /// default constructor
   FlatButterflyTopo() : SST::Mordred::TopologyAPI() {}
-
+#if 0
   /// serialization
   void serialize_order(SST::Core::Serialization::serializer& ser) override {
     SST_SER(output);
@@ -88,6 +88,7 @@ public:
 
   /// serialization implementations
   ImplementSerializable(SST::Mordred::FlatButterflyTopo);
+#endif
 
 private:
   Output* output;

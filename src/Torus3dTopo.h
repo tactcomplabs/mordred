@@ -70,7 +70,7 @@ public:
 
   /// default constructor
   Torus3DTopo() : TopologyAPI() {}
-
+#if 0
   /// serialization
   void serialize_order(SST::Core::Serialization::serializer& ser) override {
     SST_SER(output);
@@ -91,6 +91,7 @@ public:
 
   /// serialization implementations
   ImplementSerializable(SST::Mordred::Torus3DTopo);
+#endif
 
 private:
   Output* output;

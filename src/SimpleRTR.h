@@ -102,6 +102,7 @@ public:
   /// default constructor
   SimpleRTR() : SST::Component() {}
 
+#if 0
   /// serialization
   void serialize_order(SST::Core::Serialization::serializer& ser) override {
     SST_SER(output);
@@ -125,7 +126,7 @@ public:
 
   /// serialization implementations
   ImplementSerializable(SST::Mordred::SimpleRTR);
-
+#endif
 private:
   Output                  output;
   uint32_t                id;

@@ -205,8 +205,9 @@ void MordredNIC::finish() {
   statAvgNocLatency->addData( avg_ticks );
   double avg_flits = (double)totalNumFlits / totalPackets;
   statAvgFlitsPerPacket->addData( avg_flits );
+  output->output( CALL_INFO, "MordredNIC Stats: packets=%" PRIu64 "; flits=%" PRIu64 "\n", totalPackets, totalNumFlits );
   //output->verbose(CALL_INFO, 7, 0, "MordredNIC finish\n");
-  //output->flush();
+  output->flush();
 }
 
 void MordredNIC::sendUntimedData( Request* req ) {
