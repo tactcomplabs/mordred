@@ -156,10 +156,10 @@ public:
 
   bool clockTick( Cycle_t cycle );
 
+#if 0
   /// default constructor
   MordredNIC() : Interfaces::SimpleNetwork() {}
 
-#if 0
   /// serialization
   void serialize_order(SST::Core::Serialization::serializer& ser) override {
     SST_SER(output);
