@@ -119,7 +119,7 @@ public:
   }
 
   void serialize_order(Core::Serialization::serializer& ser) override {
-    Event::serialize_order(ser);
+    baseMordredEvent::serialize_order(ser);
     ser & command;
     ser & ua_value;
     ser & req;
@@ -132,9 +132,6 @@ public:
   uint32_t value;
   UnitAlgebra ua_value;
   Interfaces::SimpleNetwork::Request  *req{nullptr};
-
-private:
-
 };
 
 // This is intended to be the basic Flit running around the NoC.
@@ -189,15 +186,15 @@ public:
   // Events must provide a serialization function that serializes
   // all data members of the event
   void serialize_order( SST::Core::Serialization::serializer& ser ) override {
-    Event::serialize_order( ser );
-    ser & ftype;
-    ser & req;
-    ser & vn;
-    ser & cur_vc;
-    ser & packet_id;
-    ser & flit_id;
-    ser & pkt_created_cycle;
-    ser & head_inject_cycle;
+    baseMordredEvent::serialize_order( ser );
+    SST_SER(ftype);
+    SST_SER(req);
+    SST_SER(vn);
+    SST_SER(cur_vc);
+    SST_SER(packet_id);
+    SST_SER(flit_id);
+    SST_SER(pkt_created_cycle);
+    SST_SER(head_inject_cycle);
   }
 
   // Register this event as serializable
@@ -218,14 +215,12 @@ public:
 
   void serialize_order(Core::Serialization::serializer& ser) override {
     baseMordredEvent::serialize_order(ser);
-    ser & vn;
-    ser & vc;
-    ser & credits;
+    SST_SER(vn);
+    SST_SER(vc);
+    SST_SER(credits);
   }
 
   ImplementSerializable( SST::Mordred::MordredCreditEvent );
-
-private:
 };
 
 /**
@@ -255,6 +250,7 @@ struct RtrOwnedSharedObjs {
     }
   }
 
+  // For serialization
   void serialize_order(SST::Core::Serialization::serializer& ser){
     SST_SER(isValid);
     SST_SER(needVcAlloc);
@@ -262,9 +258,6 @@ struct RtrOwnedSharedObjs {
   }
 };
 
-
-
 } // namespace SST::Mordred
-
 
 #endif

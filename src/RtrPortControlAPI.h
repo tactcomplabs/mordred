@@ -8,8 +8,8 @@
 // See LICENSE in the top level directory for licensing details
 //
 
-#ifndef RTRPORTCONTROLAPI_H
-#define RTRPORTCONTROLAPI_H
+#ifndef MORDRED_RTRPORTCONTROLAPI_H
+#define MORDRED_RTRPORTCONTROLAPI_H
 
 // Local SST config
 #include <cstdint>
@@ -17,8 +17,6 @@
 #include "sst_config.h"
 
 #include "MordredEvents.h"
-//#include "TopologyAPI.h"
-//#include "SharedStructs.h"
 
 /*
  * In Merlin, the PortInterface API is in router.h; the purpose of the PortInterface is to
@@ -178,4 +176,4 @@ public:
 
 }  // namespace SST::Mordred
 
-#endif //RTRPORTCONTROLAPI_H
+#endif //MORDRED_RTRPORTCONTROLAPI_H
