@@ -8,8 +8,8 @@
 // See LICENSE in the top level directory for licensing details
 //
 
-#ifndef TORUS2DTOPO_H
-#define TORUS2DTOPO_H
+#ifndef MORDRED_TORUS2DTOPO_H
+#define MORDRED_TORUS2DTOPO_H
 
 // Standard headers
 #include <cstdint>
@@ -117,4 +117,4 @@ private:
 } // namespace SST::Mordred
 
 
-#endif //TORUS2DTOPO_H
+#endif //MORDRED_TORUS2DTOPO_H

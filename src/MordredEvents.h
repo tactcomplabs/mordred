@@ -8,8 +8,8 @@
 // See LICENSE in the top level directory for licensing details
 //
 
-#ifndef MORDREDEVENTS_H
-#define MORDREDEVENTS_H
+#ifndef MORDRED_MORDREDEVENTS_H
+#define MORDRED_MORDREDEVENTS_H
 
 // Standard headers
 #include <cinttypes>
@@ -260,4 +260,4 @@ struct RtrOwnedSharedObjs {
 
 } // namespace SST::Mordred
 
-#endif
+#endif //MORDRED_MORDREDEVENTS_H

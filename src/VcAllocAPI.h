@@ -8,8 +8,8 @@
 // See LICENSE in the top level directory for licensing details
 //
 
-#ifndef VCALLOCAPI_H
-#define VCALLOCAPI_H
+#ifndef MORDRED_VCALLOCAPI_H
+#define MORDRED_VCALLOCAPI_H
 
 // Standard headers
 #include <cstdint>
@@ -48,4 +48,4 @@ class VcAllocAPI : public SubComponent {
 
 } // namespace SST::Mordred
 
-#endif //VCALLOCAPI_H
+#endif //MORDRED_VCALLOCAPI_H

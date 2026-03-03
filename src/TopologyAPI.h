@@ -8,8 +8,8 @@
 // See LICENSE in the top level directory for licensing details
 //
 
-#ifndef TOPOLOGYAPI_H
-#define TOPOLOGYAPI_H
+#ifndef MORDRED_TOPOLOGYAPI_H
+#define MORDRED_TOPOLOGYAPI_H
 
 // Standard headers
 #include <cstdint>
@@ -54,4 +54,4 @@ public:
 
 }  // namespace SST::Mordred
 
-#endif //TOPOLOGYAPI_H
+#endif //MORDRED_TOPOLOGYAPI_H

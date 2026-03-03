@@ -8,8 +8,8 @@
 // See LICENSE in the top level directory for licensing details
 //
 
-#ifndef MESHTOPOLOGY_H
-#define MESHTOPOLOGY_H
+#ifndef MORDRED_MESHTOPOLOGY_H
+#define MORDRED_MESHTOPOLOGY_H
 
 // Standard headers
 #include <cstdint>
@@ -111,4 +111,4 @@ private:
 } // namespace SST::Mordred
 
 
-#endif //MESHTOPOLOGY_H
+#endif //MORDRED_MESHTOPOLOGY_H

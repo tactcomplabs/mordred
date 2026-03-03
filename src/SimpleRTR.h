@@ -19,6 +19,9 @@
  *    - Credit tracker - how managed; paper shows as flexible, but would have to dig through code to compare
  */
 
+#ifndef MORDRED_SIMPLERTR_H
+#define MORDRED_SIMPLERTR_H
+
 // Standard headers
 #include <cstdint>
 #include <vector>
@@ -159,3 +162,5 @@ private:
 };  // SimpleRTR
 
 } // namespace SST::Mordred
+
+#endif //MORDRED_SIMPLERTR_H

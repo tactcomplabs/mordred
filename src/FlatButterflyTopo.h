@@ -8,8 +8,8 @@
 // See LICENSE in the top level directory for licensing details
 //
 
-#ifndef FLATBUTTERFLYTOPO_H
-#define FLATBUTTERFLYTOPO_H
+#ifndef MORDRED_FLATBUTTERFLYTOPO_H
+#define MORDRED_FLATBUTTERFLYTOPO_H
 
 // Standard headers
 #include <cstdint>
@@ -118,4 +118,4 @@ private:
 } // namespace SST::Mordred
 
 
-#endif //FLATBUTTERFLYTOPO_H
+#endif //MORDRED_FLATBUTTERFLYTOPO_H

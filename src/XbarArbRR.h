@@ -11,8 +11,8 @@
 // Changing this file up quite a bit - it was originally doing both VC and switch alloc, but
 // now it's just going to be for switch allocation
 
-#ifndef XBARARBRR_H
-#define XBARARBRR_H
+#ifndef MORDRED_XBARARBRR_H
+#define MORDRED_XBARARBRR_H
 
 // Standard headers
 #include <cstdint>
@@ -92,4 +92,4 @@ private:
 
 } // namespace SST::Mordred
 
-#endif //XBARARBRR_H
+#endif //MORDRED_XBARARBRR_H
