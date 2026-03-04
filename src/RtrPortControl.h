@@ -9,8 +9,8 @@
 //
 //
 
-#ifndef RTRPORTCONTROL_H
-#define RTRPORTCONTROL_H
+#ifndef MORDRED_RTRPORTCONTROL_H
+#define MORDRED_RTRPORTCONTROL_H
 
 // Local SST config
 #include "sst_config.h"
@@ -330,4 +330,4 @@ private:
 };
 
 } // namespace SST::Mordred
-#endif //RTRPORTCONTROL_H
+#endif //MORDRED_RTRPORTCONTROL_H

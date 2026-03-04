@@ -8,8 +8,8 @@
 // See LICENSE in the top level directory for licensing details
 //
 
-#ifndef XBARARBAPI_H
-#define XBARARBAPI_H
+#ifndef MORDRED_XBARARBAPI_H
+#define MORDRED_XBARARBAPI_H
 
 // Standard headers
 #include <cstdint>
@@ -48,4 +48,4 @@ class XbarArbAPI : public SubComponent {
 
 } // namespace SST::Mordred
 
-#endif //XBARARBAPI_H
+#endif //MORDRED_XBARARBAPI_H

@@ -8,8 +8,8 @@
 // See LICENSE in the top level directory for licensing details
 //
 
-#ifndef MORDREDNIC_H
-#define MORDREDNIC_H
+#ifndef MORDRED_MORDREDNIC_H
+#define MORDRED_MORDREDNIC_H
 
 
 /**
@@ -260,4 +260,4 @@ private:
 
 }  // namespace SST::Mordred
 
-#endif // MORDREDNIC_H
+#endif // MORDRED_MORDREDNIC_H

@@ -13,8 +13,8 @@
 // - This allocator is just looking for an IDLE destination (output) VC; not checking
 //   credits anywhere
 
-#ifndef VCALLOCRR_H
-#define VCALLOCRR_H
+#ifndef MORDRED_VCALLOCRR_H
+#define MORDRED_VCALLOCRR_H
 
 // Standard headers
 #include <cstdint>
@@ -101,4 +101,4 @@ private:
 
 } // namespace SST::Mordred
 
-#endif //VCALLOCRR_H
+#endif //MORDRED_VCALLOCRR_H
