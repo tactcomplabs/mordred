@@ -44,13 +44,13 @@ MordredNIC::MordredNIC( ComponentId_t cid, Params& params, int vns = 1 ) :
 
   // Configure the link
   std::string port_name("port");
-  link = configureLink(port_name, new Event::Handler<MordredNIC>(this,&MordredNIC::handleIncomingPacket));
+  link = configureLink(port_name, new Event::Handler<MordredNIC, &MordredNIC::handleIncomingPacket>(this));
   if (!link)
     output->fatal(CALL_INFO, -1, "Failed to initialize link\n");
   
   // Configure clock handler
   auto clock_freq = params.find<std::string>("clock", "1GHz");
-  registerClock( clock_freq, new Clock::Handler2<MordredNIC, &MordredNIC::clockTick>(this) );
+  registerClock( clock_freq, new Clock::Handler<MordredNIC, &MordredNIC::clockTick>(this) );
 
   // Compute initial bandwidth
   UnitAlgebra ua_cf(clock_freq);

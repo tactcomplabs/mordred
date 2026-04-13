@@ -74,7 +74,7 @@ private:
 
 private:
   Output  output;
-  TimeConverter*          timeConverter;
+  TimeConverter           timeConverter;
   Interfaces::SimpleNetwork*  nocIface;
 
   uint32_t Id{UINT32_MAX}; // set in init once network is initialized

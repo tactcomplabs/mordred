@@ -24,7 +24,7 @@ TestEP::TestEP( ComponentId_t cid, Params& params ) : Component( cid ) {
   output.init( "TestEP[" + getName() + ":@p:@t]: ", Verbosity, 0, SST::Output::STDOUT );
 
   auto clockFreq = params.find<std::string>("clock", "1GHz");
-  timeConverter = registerClock( clockFreq, new Clock::Handler2<TestEP, &TestEP::clockTick>(this) );
+  timeConverter = registerClock( clockFreq, new Clock::Handler<TestEP, &TestEP::clockTick>(this) );
   registerAsPrimaryComponent();
   primaryComponentDoNotEndSim();
 
