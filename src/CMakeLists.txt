@@ -12,8 +12,6 @@ set(MordredSrcs
         MordredNIC.cc
         SimpleRTR.h
         SimpleRTR.cc
-        TestEP.h
-        TestEP.cc
         TopologyAPI.h
         MeshTopology.h
         MeshTopology.cc

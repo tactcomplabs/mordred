@@ -15,15 +15,24 @@ make test
 ```
 
 ## Tests/Tested Compatibility
-The tests run by `make test` are in the `tests/` folder. The `repotest` folder is a sandbox for tests under development, scripts, etc.
+The tests run by `make test` are in the `tests/` folder. 
 
-To replace a merlin.hr_router using a singlerouter topology, a single mordred.simple_rtr can be used with a 1x1 mesh topology.  The links between the endpoints and the merlin.hr_router then become links between the endpoints and the local ports of mordred.simple_rtr
+### Tested compatibility
+To replace a `merlin.hr_router` using a singlerouter topology, a single `mordred.simple_rtr` can be used with a 1x1 mesh topology.  The links between the endpoints and the `merlin.hr_router` then become links between the endpoints and the local ports of `mordred.simple_rtr`
 
-The mordredNIC subcomponent works in the subcomponent slots of memHierarchy.MemNIC and memHierarchy.MemNICFour.  See `tests/ipdps25tutorial_demo7.py` and `tests/mordred_memNICFour.py` respectively.
+The `mordred.mordredNIC` subcomponent works in the subcomponent slots of `memHierarchy.MemNIC` and `memHierarchy.MemNICFour`.  See `tests/ipdps25tutorial_demo7.py` and `tests/mordred_memNICFour.py` respectively.
 
-The mordredNIC subcomponent also works in the "networkIF" subcomponent slot of the merlin.Bridge component; see `tests/mordred_testBridge.py`.
+The `mordred.mordredNIC` subcomponent also works in the `networkIF` subcomponent slot of the `merlin.Bridge` component; see `tests/mordred_testBridge.py`.
 
-The `sst_test_framework` folder contains a collection of files that would be useful for executing the tests via the standard SST elements test framework.
+### Comments on the `repotest` folder
+This folder is a sandbox for scipts/tests under development, performance comparisons, etc.  Feel free to use anything in here, but no promises are made as to the completeness and correctness of any script.  Only a couple of unique scripts exist - most are copy/edit from one of the original ones.
+
+In an early development stage, Mordred had a component named `mordred.test_ep` as a standin for `merlin.test_nic`; while the `test_ep` component has been removed/replaced by `test_nic`, some scripts may fail as not every script has been retested.
+
+Numerous scripts in this folder also use a component named `merlin.clocked_offered_load` - this was a local component (not upstreamed) based on `merlin.offered_load` to test using a clock rate to generate traffic (rather than a bandwidth parameter).  The behavior between the `clocked_offered_load` component and `merlin.offered_load` was equivalent when setting the `link_bw` parameter to match the link bandwidth of the Mordred network.
+
+### Comments on the `sst_test_framework` folder
+This folder contains a collection of files that would be useful for executing the tests via the standard SST elements test framework.
 
 ## Usage/Assumptions/Etc
 Endpoints are expected to be connected to the local ports of the router; do not connect endpoints to the normal "routing" ports (for example, if doing a mesh, endpoints should be connected to port 4 or higher).

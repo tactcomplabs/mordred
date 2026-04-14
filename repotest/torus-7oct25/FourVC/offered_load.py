@@ -344,55 +344,6 @@ class FlattenedButterfly:
             return self.flatfly_links[name], True
         return self.flatfly_links[name], False
 
-class Crossbar:
-    def __init__(self, num_routers, local_ports, concentration):
-        self.num_routers = num_routers
-        self.local_ports = local_ports
-        self.concentration = concentration
-        self.xbar_links = dict()
-        self.routers = self.gen_routers()
-        self.create_xbar_links()
-        self.create_local_ports()
-
-    def gen_routers(self):
-        routers = []
-        for i in range(self.num_routers):
-            rtr_name = "rtr_%d"%(i)
-            routers.append(sst.Component(rtr_name, "mordred.simple_rtr"))
-            print("Created router {}".format(rtr_name))
-        return routers
-
-    def create_xbar_links(self):
-        for i in range(self.num_routers):
-            for j in range(i+1, self.num_routers):
-                #if (i == j):
-                #    continue
-                link_name, new_link = self.getXbarLink("rtr_%d"%(i), "rtr_%d"%(j))
-                if (new_link):
-                    rtr_pname = "rtr_port" + str(getNextTopoPort("rtr_%d"%i))
-                    self.routers[i].addLink(link_name, rtr_pname, "800ps")
-                    rtr_pname = "rtr_port" + str(getNextTopoPort("rtr_%d"%j))
-                    self.routers[j].addLink(link_name, rtr_pname, "800ps")
-    
-    def getXbarLink(self, name1, name2):
-        name = "link.%s_%s"%(name1, name2)
-        if name not in self.xbar_links:
-            self.xbar_links[name] = sst.Link(name)
-            return self.xbar_links[name], True
-        return self.xbar_links[name], False
-
-    def create_local_ports(self):
-        # local ports
-        for i in range(self.num_routers):
-            for j in range(self.local_ports):
-                lcl_portname = "local_port" + str(j)
-                # create endpoint
-                ep_name = "local_ep_%d_%d"%(i,j)
-                lcl_ep = sst.Component(ep_name, "mordred.test_ep")
-                self.routers[i].addLink(getLink("rtr_%d"%(i), ep_name), lcl_portname, "800ps")
-                lcl_ep.addLink(getLink("rtr_%d"%(i), ep_name), "port", "800ps")
-
-
 # General params
 local_ports = 1 # == concentration
 
@@ -422,11 +373,8 @@ createSimpleTorus(x_size, y_size, local_ports)
 #print("Fig 3 in Micro2007 FlatFly Paper")
 #flatfly3 = FlattenedButterfly(4, 3) # 64 endpoints
 
-# Stats collection - apparently I don't know the secret handshake because I can get the dummy
-# counter in SimpleRtr to count things, but the stat in RtrPortControl is just a NullStatistic
-# Fun. Annoying.  SST documentation is clearly insufficient.
+# Stats collection
 sst.setStatisticLoadLevel(7)
-#stat_params = ( { "rate" : "0ns" } )
 sst.enableAllStatisticsForAllComponents(stat_params)
 #sst.enableAllStatisticsForComponentType("mordred.simple_rtr.rtrPortControl", stat_params, True )
 #sst.setStatisticOutput("sst.statOutputCSV", { "filepath" : "./stats.csv", "separator" : ", " } )

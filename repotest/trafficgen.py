@@ -2,9 +2,6 @@
 import sst
 from math import floor
 
-stat_params = ( { "rate" : "0ns" } )
-sst.setStatisticOutput("sst.statOutputCSV", { "filepath" : "./stats.csv", "separator" : ", " } )
-
 FixedRtrParams = {
     "flit_size" : "32b",
     "input_buf_size" : "32B",
@@ -141,7 +138,7 @@ def createSimpleTorus(x_size, y_size, local_ports):
             rtr = sst.Component(rtr_name, "mordred.simple_rtr")
             # north links
             portnum = getNextTopoPort(rtr_name)
-            rtr_portname = "rtr_port" + str(portnum)
+            rtr_portname = "port" + str(portnum)
             if y != y_size - 1:
                 rtr.addLink(getLink("rtr_%d_%d"%(x,y), "rtr_%d_%d"%(x,y+1)), rtr_portname, "800ps")
             else: # connect to y = 0 routers; y=y_size-1
@@ -149,7 +146,7 @@ def createSimpleTorus(x_size, y_size, local_ports):
 
             # south links
             portnum = getNextTopoPort(rtr_name)
-            rtr_portname = "rtr_port" + str(portnum)
+            rtr_portname = "port" + str(portnum)
             if y != 0:
                 rtr.addLink(getLink("rtr_%d_%d"%(x,y-1), "rtr_%d_%d"%(x,y)), rtr_portname, "800ps")
             else: # y=0 case, already have a link from the "north" links
@@ -157,7 +154,7 @@ def createSimpleTorus(x_size, y_size, local_ports):
 
             # east links
             portnum = getNextTopoPort(rtr_name)
-            rtr_portname = "rtr_port" + str(portnum)
+            rtr_portname = "port" + str(portnum)
             if x != x_size - 1:
                 rtr.addLink(getLink("rtr_%d_%d"%(x,y), "rtr_%d_%d"%(x+1,y)), rtr_portname, "800ps")
             else: # x=x_size-1 case; connect to x=0 rtrs
@@ -165,7 +162,7 @@ def createSimpleTorus(x_size, y_size, local_ports):
 
             # west links
             portnum = getNextTopoPort(rtr_name)
-            rtr_portname = "rtr_port" + str(portnum)
+            rtr_portname = "port" + str(portnum)
             if x != 0:
                 rtr.addLink(getLink("rtr_%d_%d"%(x-1,y), "rtr_%d_%d"%(x,y)), rtr_portname, "800ps")
             else: # x=0 case; already have a link from the "east" links
@@ -269,55 +266,6 @@ class FlattenedButterfly:
             return self.flatfly_links[name], True
         return self.flatfly_links[name], False
 
-class Crossbar:
-    def __init__(self, num_routers, local_ports, concentration):
-        self.num_routers = num_routers
-        self.local_ports = local_ports
-        self.concentration = concentration
-        self.xbar_links = dict()
-        self.routers = self.gen_routers()
-        self.create_xbar_links()
-        self.create_local_ports()
-
-    def gen_routers(self):
-        routers = []
-        for i in range(self.num_routers):
-            rtr_name = "rtr_%d"%(i)
-            routers.append(sst.Component(rtr_name, "mordred.simple_rtr"))
-            print("Created router {}".format(rtr_name))
-        return routers
-
-    def create_xbar_links(self):
-        for i in range(self.num_routers):
-            for j in range(i+1, self.num_routers):
-                #if (i == j):
-                #    continue
-                link_name, new_link = self.getXbarLink("rtr_%d"%(i), "rtr_%d"%(j))
-                if (new_link):
-                    rtr_pname = "rtr_port" + str(getNextTopoPort("rtr_%d"%i))
-                    self.routers[i].addLink(link_name, rtr_pname, "800ps")
-                    rtr_pname = "rtr_port" + str(getNextTopoPort("rtr_%d"%j))
-                    self.routers[j].addLink(link_name, rtr_pname, "800ps")
-    
-    def getXbarLink(self, name1, name2):
-        name = "link.%s_%s"%(name1, name2)
-        if name not in self.xbar_links:
-            self.xbar_links[name] = sst.Link(name)
-            return self.xbar_links[name], True
-        return self.xbar_links[name], False
-
-    def create_local_ports(self):
-        # local ports
-        for i in range(self.num_routers):
-            for j in range(self.local_ports):
-                lcl_portname = "local_port" + str(j)
-                # create endpoint
-                ep_name = "local_ep_%d_%d"%(i,j)
-                lcl_ep = sst.Component(ep_name, "mordred.test_ep")
-                self.routers[i].addLink(getLink("rtr_%d"%(i), ep_name), lcl_portname, "800ps")
-                lcl_ep.addLink(getLink("rtr_%d"%(i), ep_name), "port", "800ps")
-
-
 # General params
 local_ports = 1 # == concentration
 
@@ -325,44 +273,34 @@ local_ports = 1 # == concentration
 x_size = 5
 y_size = 3
 
-#Xbar config
-xbar_size = 6
-
 #print("Do mesh")
 #createMesh(x_size, y_size, local_ports)
 
-## TODO: ONLY THE FLATTENED BUTTERFLY HAS BEEN FIXED FOR THE NEW NAMING
-## IN THE ROUTER COMPONENT (nor do we have matching subcomponents)
-
+# NOTE: Torus isn't fully implemented - no endpoints
 #print("Do simple torus")
 #createSimpleTorus(x_size, y_size, local_ports)
-
-#print("Do crossbar")
-#xbar_net = Crossbar(xbar_size, local_ports)
 
 # Flattened Butterfly Paper
 # Flattened Butterfly : A Cost-Efficient Topology for
 # High-Radix Networks, ISCA 2007
 
 #print("Fig 1D in flat fly paper")
-flatfly = FlattenedButterfly(2, 4) # fig 1d in paper; 16 endpoints
+#flatfly = FlattenedButterfly(2, 4) # fig 1d in paper; 16 endpoints
 
 # For some reason, this version really likes to have double links in its
 # initial construction; haven't quite figured out why - could be related to
 # the dimensions count (see FlattenedButterfly.create_all_links)
 #print("Fig 1B in flat fly paper")
-#flatfly2 = FlattenedButterfly(4, 2) # fig 1b in paper; 16 endpoints
+flatfly2 = FlattenedButterfly(4, 2) # fig 1b in paper; 16 endpoints
 
 #print("Fig 3 in Micro2007 FlatFly Paper")
 #flatfly3 = FlattenedButterfly(4, 3) # 64 endpoints
 
-# Stats collection - apparently I don't know the secret handshake because I can get the dummy
-# counter in SimpleRtr to count things, but the stat in RtrPortControl is just a NullStatistic
-# Fun. Annoying.  SST documentation is clearly insufficient.
+# Stats collection
 sst.setStatisticLoadLevel(7)
-#stat_params = ( { "rate" : "0ns" } )
+stat_params = ( { "rate" : "0ns" } )
 sst.enableAllStatisticsForAllComponents(stat_params)
 #sst.enableAllStatisticsForComponentType("mordred.simple_rtr.rtrPortControl", stat_params, True )
-#sst.setStatisticOutput("sst.statOutputCSV", { "filepath" : "./stats.csv", "separator" : ", " } )
+sst.setStatisticOutput("sst.statOutputCSV", { "filepath" : "./stats.csv", "separator" : ", " } )
 
 #EOF
