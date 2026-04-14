@@ -32,7 +32,7 @@ SimpleRTR::SimpleRTR( ComponentId_t cid, Params& params ) : Component( cid ) {
   }
 
   auto clockFreq = params.find<std::string>("clock", "1GHz");
-  timeConverter = registerClock( clockFreq, new Clock::Handler<SimpleRTR, &SimpleRTR::clockTick>(this) );
+  timeConverter = registerClock( clockFreq, new Clock::Handler2<SimpleRTR, &SimpleRTR::clockTick>(this) );
 
   numPorts = params.find<uint32_t>("num_ports", 3);
   numLocalPorts = params.find<uint32_t>( "num_local_ports", UINT32_MAX );

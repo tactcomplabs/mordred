@@ -89,7 +89,7 @@ RtrPortControl::RtrPortControl( ComponentId_t id, Params& params, TopologyAPI* t
   }
 
   const std::string pname = "port" + std::to_string(port_num);
-  link = configureLink( pname, new Event::Handler<RtrPortControl, &RtrPortControl::inHandler>( this ) );
+  link = configureLink( pname, new Event::Handler2<RtrPortControl, &RtrPortControl::inHandler>( this ) );
   if (!link)
     output->fatal( CALL_INFO, -1, "Error in %s: unable to configure link %s\n", getName().c_str(), pname.c_str() );
 
