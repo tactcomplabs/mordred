@@ -1,6 +1,6 @@
 # mordred - SST NoC Library
 
-SST-UG2025-Mordred.pdf is an introductory presentation on this library from the 2025 SST User's Group meeting.
+[Here](SST-UG2025-Mordred.pdf) is an introductory presentation on this library from the 2025 SST User's Group meeting.
 
 ## Building
 ### Requirements
