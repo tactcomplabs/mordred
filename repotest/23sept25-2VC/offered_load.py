@@ -321,9 +321,7 @@ createMesh(x_size, y_size, local_ports)
 #print("Fig 3 in Micro2007 FlatFly Paper")
 #flatfly3 = FlattenedButterfly(4, 3) # 64 endpoints
 
-# Stats collection - apparently I don't know the secret handshake because I can get the dummy
-# counter in SimpleRtr to count things, but the stat in RtrPortControl is just a NullStatistic
-# Fun. Annoying.  SST documentation is clearly insufficient.
+# Stats collection
 sst.setStatisticLoadLevel(7)
 #stat_params = ( { "rate" : "0ns" } )
 sst.enableAllStatisticsForAllComponents(stat_params)
