@@ -66,7 +66,7 @@ public:
 
   void serialize_order(Core::Serialization::serializer& ser) override {
     Event::serialize_order(ser);
-    ser & str;
+    SST_SER(str);
   }
 
   ImplementSerializable( SST::Mordred::simpleTestEvent );
@@ -87,7 +87,7 @@ public:
 
   void serialize_order(Core::Serialization::serializer& ser) override {
     Event::serialize_order(ser);
-    ser & type;
+    SST_SER(type);
   }
 
   ImplementSerializable( SST::Mordred::baseMordredEvent );
@@ -120,9 +120,9 @@ public:
 
   void serialize_order(Core::Serialization::serializer& ser) override {
     baseMordredEvent::serialize_order(ser);
-    ser & command;
-    ser & ua_value;
-    ser & req;
+    SST_SER(command);
+    SST_SER(ua_value);
+    SST_SER(req);
   }
 
   ImplementSerializable( SST::Mordred::MordredInitEvent );

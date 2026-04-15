@@ -1,4 +1,9 @@
 # Automatically generated SST Python input
+
+## Note: This was initially used to just check out the wiring of some of the
+## topologies (i.e., does sst output-dot look correct?)
+# eventually did a bit more testing with it..
+
 import sst
 from math import floor
 
@@ -40,6 +45,7 @@ def createMesh(x_size, y_size, local_ports):
         "num_ports": nports,
         "num_local_ports" : local_ports,
     }
+    num_peers = x_size * y_size * local_ports
     for y in range(y_size):
         for x in range(x_size):
             rtr = sst.Component("rtr_%d_%d"%(x, y), "mordred.simple_rtr")
@@ -81,16 +87,14 @@ def createMesh(x_size, y_size, local_ports):
                 #print("Add west link with portname=%s to x,y=%d_%d"%(rtr_portname,x,y))
             rtr_portnum += 1
 
-        # router stats
-            #sst.enableAllStatisticsForComponentName("rtr_%d_%d"%(x, y), params, True )
-
         # local ports
             for k in range(local_ports):
                 lcl_portname = "port" + str(k+rtr_portnum)
                 # create endpoint
                 ep_name = "local_ep_%d_%d_%d"%(x,y,k)
-                lcl_ep = sst.Component(ep_name, "mordred.test_ep")
-                lcl_ep_iface = lcl_ep.setSubComponent("noc_iface", "mordred.mordredNIC")
+                lcl_ep = sst.Component(ep_name, "merlin.test_nic")
+                lcl_ep.addParam("num_peers", num_peers)
+                lcl_ep_iface = lcl_ep.setSubComponent("networkIF", "mordred.mordredNIC")
 
                 lcl_ep_iface.addParam("input_buf_size", "1kB")
                 lcl_ep_iface.addParam("output_buf_size", "2kiB")
@@ -207,10 +211,10 @@ class FlattenedButterfly:
             for j in range(self.k):
                 portname = "port" + str(self.local_port_start + j)
                 ep_name = "ep_%d_%d"%(i,j)
-                ep = sst.Component(ep_name, "mordred.test_ep")
+                ep = sst.Component(ep_name, "merlin.test_nic")
                 ep.addParam( "num_peers", self.num_endpoints )
                 endpoints.append(ep)
-                ep_iface = ep.setSubComponent( "noc_iface", "mordred.mordredNIC" )
+                ep_iface = ep.setSubComponent( "networkIF", "mordred.mordredNIC" )
                 ep_iface.addParams({
                     "input_buf_size" : "1kB",
                     "output_buf_size" : "1kB",
@@ -230,55 +234,6 @@ class FlattenedButterfly:
             return self.flatfly_links[name], True
         return self.flatfly_links[name], False
 
-class Crossbar:
-    def __init__(self, num_routers, local_ports, concentration):
-        self.num_routers = num_routers
-        self.local_ports = local_ports
-        self.concentration = concentration
-        self.xbar_links = dict()
-        self.routers = self.gen_routers()
-        self.create_xbar_links()
-        self.create_local_ports()
-
-    def gen_routers(self):
-        routers = []
-        for i in range(self.num_routers):
-            rtr_name = "rtr_%d"%(i)
-            routers.append(sst.Component(rtr_name, "mordred.simple_rtr"))
-            print("Created router {}".format(rtr_name))
-        return routers
-
-    def create_xbar_links(self):
-        for i in range(self.num_routers):
-            for j in range(i+1, self.num_routers):
-                #if (i == j):
-                #    continue
-                link_name, new_link = self.getXbarLink("rtr_%d"%(i), "rtr_%d"%(j))
-                if (new_link):
-                    rtr_pname = "rtr_port" + str(getNextTopoPort("rtr_%d"%i))
-                    self.routers[i].addLink(link_name, rtr_pname, "800ps")
-                    rtr_pname = "rtr_port" + str(getNextTopoPort("rtr_%d"%j))
-                    self.routers[j].addLink(link_name, rtr_pname, "800ps")
-    
-    def getXbarLink(self, name1, name2):
-        name = "link.%s_%s"%(name1, name2)
-        if name not in self.xbar_links:
-            self.xbar_links[name] = sst.Link(name)
-            return self.xbar_links[name], True
-        return self.xbar_links[name], False
-
-    def create_local_ports(self):
-        # local ports
-        for i in range(self.num_routers):
-            for j in range(self.local_ports):
-                lcl_portname = "local_port" + str(j)
-                # create endpoint
-                ep_name = "local_ep_%d_%d"%(i,j)
-                lcl_ep = sst.Component(ep_name, "mordred.test_ep")
-                self.routers[i].addLink(getLink("rtr_%d"%(i), ep_name), lcl_portname, "800ps")
-                lcl_ep.addLink(getLink("rtr_%d"%(i), ep_name), "port", "800ps")
-
-
 # General params
 local_ports = 1 # == concentration
 
@@ -286,27 +241,19 @@ local_ports = 1 # == concentration
 x_size = 3
 y_size = 3
 
-#Xbar config
-xbar_size = 6
-
 #print("Do mesh")
-#createMesh(x_size, y_size, local_ports)
+createMesh(x_size, y_size, local_ports)
 
-## TODO: ONLY THE FLATTENED BUTTERFLY HAS BEEN FIXED FOR THE NEW NAMING
-## IN THE ROUTER COMPONENT (nor do we have matching subcomponents)
-
+# Don't use - no endpoints
 #print("Do simple torus")
 #createSimpleTorus(x_size, y_size, local_ports)
-
-#print("Do crossbar")
-#xbar_net = Crossbar(xbar_size, local_ports)
 
 # Flattened Butterfly Paper
 # Flattened Butterfly : A Cost-Efficient Topology for
 # High-Radix Networks, ISCA 2007
 
 #print("Fig 1D in flat fly paper")
-flatfly = FlattenedButterfly(2, 4) # fig 1d in paper; 16 endpoints
+#flatfly = FlattenedButterfly(2, 4) # fig 1d in paper; 16 endpoints
 
 # For some reason, this version really likes to have double links in its
 # initial construction; haven't quite figured out why - could be related to
@@ -317,9 +264,7 @@ flatfly = FlattenedButterfly(2, 4) # fig 1d in paper; 16 endpoints
 #print("Fig 3 in Micro2007 FlatFly Paper")
 #flatfly3 = FlattenedButterfly(4, 3) # 64 endpoints
 
-# Stats collection - apparently I don't know the secret handshake because I can get the dummy
-# counter in SimpleRtr to count things, but the stat in RtrPortControl is just a NullStatistic
-# Fun. Annoying.  SST documentation is clearly insufficient.
+# Stats collection
 sst.setStatisticLoadLevel(7)
 #stat_params = ( { "rate" : "0ns" } )
 sst.enableAllStatisticsForAllComponents(stat_params)

@@ -132,7 +132,7 @@ public:
 private:
   Output                  output;
   uint32_t                id;
-  TimeConverter*          timeConverter;
+  TimeConverter           timeConverter;
   uint32_t                numPorts{};
   uint32_t                numLocalPorts{};
   uint32_t                numVns{};

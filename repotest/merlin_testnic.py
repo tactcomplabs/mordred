@@ -89,9 +89,7 @@ def createMesh(x_size, y_size, local_ports):
                 ep_num = (x*y_size*local_ports) + (y*local_ports) + k
                 num_eps = x_size * y_size * local_ports
                 print("%s Created endpoint %d with num_eps %d"%(ep_name, ep_num, num_eps))
-                #lcl_ep = sst.Component(ep_name, "mordred.test_ep")
                 lcl_ep = sst.Component(ep_name, "merlin.test_nic")
-                #lcl_ep = sst.Component(ep_name, "mordred.testNic")
                 lcl_ep.addParams({
                     "id" : ep_num,
                     "num_peers" : num_eps,
@@ -169,9 +167,7 @@ def createSimpleTorus(x_size, y_size, local_ports):
                 ep_num = (x*y_size*local_ports) + (y*local_ports) + k
                 num_eps = x_size * y_size * local_ports
                 print("%s Created endpoint %d with num_eps %d"%(ep_name, ep_num, num_eps))
-                #lcl_ep = sst.Component(ep_name, "mordred.test_ep")
                 lcl_ep = sst.Component(ep_name, "merlin.test_nic")
-                #lcl_ep = sst.Component(ep_name, "mordred.testNic")
                 lcl_ep.addParams({
                     "id" : ep_num,
                     "num_peers" : num_eps,
@@ -284,55 +280,6 @@ class FlattenedButterfly:
             return self.flatfly_links[name], True
         return self.flatfly_links[name], False
 
-class Crossbar:
-    def __init__(self, num_routers, local_ports, concentration):
-        self.num_routers = num_routers
-        self.local_ports = local_ports
-        self.concentration = concentration
-        self.xbar_links = dict()
-        self.routers = self.gen_routers()
-        self.create_xbar_links()
-        self.create_local_ports()
-
-    def gen_routers(self):
-        routers = []
-        for i in range(self.num_routers):
-            rtr_name = "rtr_%d"%(i)
-            routers.append(sst.Component(rtr_name, "mordred.simple_rtr"))
-            print("Created router {}".format(rtr_name))
-        return routers
-
-    def create_xbar_links(self):
-        for i in range(self.num_routers):
-            for j in range(i+1, self.num_routers):
-                #if (i == j):
-                #    continue
-                link_name, new_link = self.getXbarLink("rtr_%d"%(i), "rtr_%d"%(j))
-                if (new_link):
-                    rtr_pname = "rtr_port" + str(getNextTopoPort("rtr_%d"%i))
-                    self.routers[i].addLink(link_name, rtr_pname, "800ps")
-                    rtr_pname = "rtr_port" + str(getNextTopoPort("rtr_%d"%j))
-                    self.routers[j].addLink(link_name, rtr_pname, "800ps")
-    
-    def getXbarLink(self, name1, name2):
-        name = "link.%s_%s"%(name1, name2)
-        if name not in self.xbar_links:
-            self.xbar_links[name] = sst.Link(name)
-            return self.xbar_links[name], True
-        return self.xbar_links[name], False
-
-    def create_local_ports(self):
-        # local ports
-        for i in range(self.num_routers):
-            for j in range(self.local_ports):
-                lcl_portname = "local_port" + str(j)
-                # create endpoint
-                ep_name = "local_ep_%d_%d"%(i,j)
-                lcl_ep = sst.Component(ep_name, "mordred.test_ep")
-                self.routers[i].addLink(getLink("rtr_%d"%(i), ep_name), lcl_portname, "800ps")
-                lcl_ep.addLink(getLink("rtr_%d"%(i), ep_name), "port", "800ps")
-
-
 # General params
 local_ports = 1 # == concentration
 
@@ -340,20 +287,11 @@ local_ports = 1 # == concentration
 x_size = 8
 y_size = 5
 
-#Xbar config
-xbar_size = 6
-
 #print("Do mesh")
-# createMesh(x_size, y_size, local_ports)
+#createMesh(x_size, y_size, local_ports)
 
-## TODO: ONLY THE FLATTENED BUTTERFLY HAS BEEN FIXED FOR THE NEW NAMING
-## IN THE ROUTER COMPONENT (nor do we have matching subcomponents)
-
-print("Do simple torus")
-createSimpleTorus(x_size, y_size, local_ports)
-
-#print("Do crossbar")
-#xbar_net = Crossbar(xbar_size, local_ports)
+#print("Do simple torus")
+#createSimpleTorus(x_size, y_size, local_ports)
 
 # Flattened Butterfly Paper
 # Flattened Butterfly : A Cost-Efficient Topology for
@@ -366,14 +304,12 @@ createSimpleTorus(x_size, y_size, local_ports)
 # initial construction; haven't quite figured out why - could be related to
 # the dimensions count (see FlattenedButterfly.create_all_links)
 #print("Fig 1B in flat fly paper")
-#flatfly2 = FlattenedButterfly(4, 2) # fig 1b in paper; 16 endpoints
+flatfly2 = FlattenedButterfly(4, 2) # fig 1b in paper; 16 endpoints
 
 #print("Fig 3 in Micro2007 FlatFly Paper")
 #flatfly3 = FlattenedButterfly(4, 3) # 64 endpoints
 
-# Stats collection - apparently I don't know the secret handshake because I can get the dummy
-# counter in SimpleRtr to count things, but the stat in RtrPortControl is just a NullStatistic
-# Fun. Annoying.  SST documentation is clearly insufficient.
+# Stats collection
 sst.setStatisticLoadLevel(7)
 #stat_params = ( { "rate" : "0ns" } )
 sst.enableAllStatisticsForAllComponents(stat_params)
