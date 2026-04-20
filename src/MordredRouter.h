@@ -1,5 +1,5 @@
 //
-// SimpleRTR.h
+// MordredRouter.h
 //
 // Copyright (C) 2025-2026 Tactical Computing Laboratories, LLC
 // All Rights Reserved
@@ -19,8 +19,8 @@
  *    - Credit tracker - how managed; paper shows as flexible, but would have to dig through code to compare
  */
 
-#ifndef MORDRED_SIMPLERTR_H
-#define MORDRED_SIMPLERTR_H
+#ifndef MORDRED_MORDREDROUTER_H
+#define MORDRED_MORDREDROUTER_H
 
 // Standard headers
 #include <cstdint>
@@ -37,13 +37,13 @@
 
 namespace SST::Mordred {
 
-class SimpleRTR : public SST::Component {
+class MordredRouter : public SST::Component {
 
 public:
   SST_ELI_REGISTER_COMPONENT(
-    SimpleRTR,
+    MordredRouter,
     "mordred",
-    "simple_rtr",
+    "mordred_router",
     SST_ELI_ELEMENT_VERSION( 0, 1, 0 ),
     "Simple NoC router component",
     COMPONENT_CATEGORY_NETWORK
@@ -90,8 +90,8 @@ public:
     {"flit_unavailable", "Port does not have the flit to send thru the crossbar", "unitless", 3}
   )
 
-  SimpleRTR( ComponentId_t cid, Params& params );
-  ~SimpleRTR();
+  MordredRouter( ComponentId_t cid, Params& params );
+  ~MordredRouter();
 
   /// SST Required
   void init(uint32_t phase) override;
@@ -103,7 +103,7 @@ public:
   bool clockTick( Cycle_t cycle );
 
   /// default constructor
-  SimpleRTR() : SST::Component() {}
+  MordredRouter() : SST::Component() {}
 
   /// serialization
   void serialize_order(SST::Core::Serialization::serializer& ser) override {
@@ -127,7 +127,7 @@ public:
   }
 
   /// serialization implementations
-  ImplementSerializable(SST::Mordred::SimpleRTR);
+  ImplementSerializable(SST::Mordred::MordredRouter);
 
 private:
   Output                  output;
@@ -159,8 +159,8 @@ private:
   std::vector<Statistic<uint64_t>*> statPerPortXbarBlocked;
   std::vector<Statistic<uint64_t>*> statPerPortFlitUnavailable;
 
-};  // SimpleRTR
+};  // MordredRouter
 
 } // namespace SST::Mordred
 
-#endif //MORDRED_SIMPLERTR_H
+#endif //MORDRED_MORDREDROUTER_H
