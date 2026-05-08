@@ -29,6 +29,7 @@
 // Local SST headers
 #include "XbarArbAPI.h"
 #include "RtrPortControlAPI.h"
+#include "RtrPortControlSN.h"
 #include "TopologyAPI.h"
 #include "VcAllocAPI.h"
 #include "sst_config.h"
@@ -74,7 +75,7 @@ public:
   // Create a topology subcomponent
   SST_ELI_DOCUMENT_SUBCOMPONENT_SLOTS(
     {"topology", "Topology and routing subcomponent", "SST::Mordred::TopologyAPI"},
-    {"portcontrol", "PortControl blocks; loaded anonymously", "SST::Mordred::RtrPortControlAPI"},
+    {"portcontrol", "PortControl blocks; user-configurable (e.g. rtrPortControl, rtrPortControlSN) or loaded anonymously as rtrPortControl when a direct link is present", "SST::Mordred::RtrPortControlAPI"},
     {"vc_alloc", "VC allocator", "SST::Mordred::VcAllocAPI"},
     {"arbiter", "Arbitration scheme/model", "SST::Mordred::ArbAPI"},
   )

@@ -1,0 +1,479 @@
+//
+// RtrPortControlSN.cc
+//
+// Copyright (C) 2025-2026 Tactical Computing Laboratories, LLC
+// All Rights Reserved
+// contact@tactcomplabs.com
+//
+// See LICENSE in the top level directory for licensing details
+//
+
+#include <string>
+#include <cinttypes>
+
+#include "sst_config.h"
+
+#include "MordredEvents.h"
+#include "RtrPortControlSN.h"
+#include "TopologyAPI.h"
+
+using namespace SST;
+using namespace SST::Mordred;
+using namespace SST::Interfaces;
+
+RtrPortControlSN::RtrPortControlSN( ComponentId_t id, Params& params, TopologyAPI* topology,
+  RtrOwnedSharedObjs* rtr_shared_objs, uint32_t rtr_num, uint32_t port_num ) :
+  RtrPortControlAPI( id ),
+  topo( topology ),
+  rtrId( rtr_num ),
+  portId( port_num ),
+  rtrSharedObjs( rtr_shared_objs )
+{
+  const auto verbosity = params.find<uint32_t>("verbose", 5);
+  output = new Output(
+    "RtrPortControlSN[[" + std::to_string(rtrId) + "." + std::to_string(portId) + "]:@p:@t]: ",
+    verbosity, 0, Output::STDOUT);
+
+  if ( rtrSharedObjs == nullptr )
+    output->fatal(CALL_INFO_LONG, 1, "RtrPortControlSN: rtr_shared_objs must not be null\n");
+
+  numVns = rtrSharedObjs->needVcAlloc.size();
+  numVcs = rtrSharedObjs->needVcAlloc.at(0).size();
+
+  auto flit_size_ua = params.find<UnitAlgebra>("flit_size", "32b");
+  if ( !flit_size_ua.hasUnits("b") && !flit_size_ua.hasUnits("B") ) {
+    output->fatal(CALL_INFO, -1, "RtrPortControlSN: flit_size must be specified in bits (b) or bytes (B): %s\n",
+      flit_size_ua.toStringBestSI().c_str());
+  }
+  if ( flit_size_ua.hasUnits("B") )
+    flit_size_ua *= UnitAlgebra("8b");
+  flitSize = static_cast<uint32_t>(flit_size_ua.getRoundedValue());
+
+  bool found = false;
+  auto buf_size_ua = params.find<UnitAlgebra>("input_buf_size", found);
+  if ( !found )
+    output->fatal(CALL_INFO_LONG, 1, "RtrPortControlSN: input_buf_size must be specified\n");
+  if ( !buf_size_ua.hasUnits("b") && !buf_size_ua.hasUnits("B") )
+    output->fatal(CALL_INFO, -1, "RtrPortControlSN: input_buf_size must be in bits (b) or bytes (B): %s\n",
+      buf_size_ua.toStringBestSI().c_str());
+  if ( buf_size_ua.hasUnits("B") )
+    buf_size_ua *= UnitAlgebra("8b/B");
+  inBufSize = static_cast<uint32_t>(buf_size_ua.getRoundedValue());
+  if ( flitSize > inBufSize )
+    output->fatal(CALL_INFO, 1,
+      "Invalid configuration; flit_size=%" PRIu32 "b > input_buf_size=%" PRIu32 "b\n",
+      flitSize, inBufSize);
+
+  buf_size_ua = params.find<UnitAlgebra>("output_buf_size", found);
+  if ( !found )
+    output->fatal(CALL_INFO_LONG, 1, "RtrPortControlSN: output_buf_size must be specified\n");
+  if ( !buf_size_ua.hasUnits("b") && !buf_size_ua.hasUnits("B") )
+    output->fatal(CALL_INFO, -1, "RtrPortControlSN: output_buf_size must be in bits (b) or bytes (B): %s\n",
+      buf_size_ua.toStringBestSI().c_str());
+  if ( buf_size_ua.hasUnits("B") )
+    buf_size_ua *= UnitAlgebra("8b/B");
+  outBufSize = static_cast<uint32_t>(buf_size_ua.getRoundedValue());
+  if ( flitSize > outBufSize )
+    output->fatal(CALL_INFO, 1,
+      "Invalid configuration; flit_size=%" PRIu32 "b > output_buf_size=%" PRIu32 "b\n",
+      flitSize, outBufSize);
+
+  // The SN subcomponent's params come from its Python slot config.
+  // Users must set "port_name" = "portN" there so the SN subcomponent knows
+  // which physical link to configure.
+  sn = loadUserSubComponent<SimpleNetwork>(
+    "port_iface",
+    ComponentInfo::SHARE_PORTS | ComponentInfo::INSERT_STATS,
+    static_cast<int>(numVns));
+
+  if ( !sn )
+    output->fatal(CALL_INFO, -1,
+      "RtrPortControlSN: no SimpleNetwork subcomponent found in slot 'port_iface'\n");
+
+  sn->setNotifyOnReceive(
+    new SimpleNetwork::Handler2<RtrPortControlSN,
+                                &RtrPortControlSN::onReceive>(this));
+
+  allocateBuffers();
+
+  output->verbose(CALL_INFO, 1, 0,
+    "Constructor complete; [Rtr.Port]=[%" PRIu32 ".%" PRIu32 "], inbuf=%" PRIu32 "b, outbuf=%" PRIu32 "b\n",
+    rtrId, portId, inBufSize, outBufSize);
+}
+
+void RtrPortControlSN::allocateBuffers() {
+  const auto total_credits = outBufSize / flitSize;
+
+  inStateVec.resize(numVns);
+  outStateVec.resize(numVns);
+  statLinkRecvFlitCnt.resize(numVns);
+  statLinkSentFlitCnt.resize(numVns);
+  statLinkSentPacketCnt.resize(numVns);
+
+  for ( uint32_t i = 0; i < numVns; i++ ) {
+    inStateVec.at(i).resize(numVcs);
+    outStateVec.at(i).resize(numVcs);
+    statLinkRecvFlitCnt.at(i).resize(numVcs, nullptr);
+    statLinkSentFlitCnt.at(i).resize(numVcs, nullptr);
+    statLinkSentPacketCnt.at(i).resize(numVcs, nullptr);
+  }
+
+  for ( uint32_t i = 0; i < numVns; i++ ) {
+    for ( uint32_t j = 0; j < numVcs; j++ ) {
+      inStateVec.at(i).at(j).reset();
+      outStateVec.at(i).at(j).reset(static_cast<int16_t>(total_credits));
+    }
+  }
+
+  for ( uint32_t i = 0; i < numVns; i++ ) {
+    for ( uint32_t j = 0; j < numVcs; j++ ) {
+      std::string str = std::to_string(rtrId) + "_" + std::to_string(portId)
+                      + "_" + std::to_string(i) + "_" + std::to_string(j);
+      statLinkRecvFlitCnt.at(i).at(j)   = registerStatistic<uint64_t>("recv_flit_cnt",   str.c_str());
+      statLinkSentFlitCnt.at(i).at(j)   = registerStatistic<uint64_t>("sent_flit_cnt",   str.c_str());
+      statLinkSentPacketCnt.at(i).at(j) = registerStatistic<uint64_t>("sent_packet_cnt", str.c_str());
+    }
+  }
+  statLinkOutputStalledCnt = registerStatistic<uint64_t>("output_stalls");
+}
+
+// ---- Untimed data helpers ----
+
+static Interfaces::SimpleNetwork::Request* wrapEvent(SST::Event* ev) {
+  auto* req = new Interfaces::SimpleNetwork::Request();
+  req->givePayload(ev);
+  return req;
+}
+
+static SST::Event* unwrapRequest(Interfaces::SimpleNetwork::Request* req) {
+  if ( !req ) return nullptr;
+  SST::Event* ev = req->takePayload();
+  delete req;
+  return ev;
+}
+
+// ---- Lifecycle ----
+
+void RtrPortControlSN::init( unsigned int phase ) {
+  sn->init(phase);
+
+  switch ( phase ) {
+  case 0: {
+    auto* ev = new MordredInitEvent();
+    ev->command = MordredInitEvent::REPORT_ROUTER;
+    sn->sendUntimedData(wrapEvent(ev));
+
+    ev = new MordredInitEvent();
+    ev->command = MordredInitEvent::ROUTER_ID;
+    ev->value   = rtrId;
+    sn->sendUntimedData(wrapEvent(ev));
+
+    ev = new MordredInitEvent();
+    ev->command = MordredInitEvent::PORT_NUM;
+    ev->value   = portId;
+    sn->sendUntimedData(wrapEvent(ev));
+    break;
+  }
+
+  case 1: {
+    SST::Event* raw = unwrapRequest(sn->recvUntimedData());
+    if ( raw == nullptr )
+      output->fatal(CALL_INFO, -1, "RtrPortControlSN: unable to recv init event in phase 1\n");
+
+    auto* init_ev = static_cast<MordredInitEvent*>(raw);
+    if ( init_ev->command == MordredInitEvent::REPORT_ROUTER ) {
+      connectionType = ROUTER;
+    } else if ( init_ev->command == MordredInitEvent::REPORT_ENDPOINT ) {
+      connectionType  = ENDPOINT;
+      connectedRtrId  = UINT32_MAX - 1;
+    } else {
+      output->fatal(CALL_INFO, -1,
+        "RtrPortControlSN: unexpected command=%d in phase 1\n", (int)init_ev->command);
+    }
+    delete raw;
+
+    if ( connectionType == ROUTER ) {
+      auto* ev_id   = getInitEvent(MordredInitEvent::ROUTER_ID);
+      connectedRtrId = ev_id->value;
+      delete ev_id;
+
+      auto* ev_port = getInitEvent(MordredInitEvent::PORT_NUM);
+      connectedPortId = ev_port->value;
+      output->verbose(CALL_INFO, 5, DEBUG_INIT_PHASE,
+        "Received init from [Rtr.Port]=[%" PRIu32 ".%" PRIu32 "]\n",
+        connectedRtrId, connectedPortId);
+      delete ev_port;
+    } else if ( connectionType == ENDPOINT ) {
+      auto* ev = new MordredInitEvent();
+      ev->command = MordredInitEvent::NUM_VNS;
+      ev->value   = numVns;
+      sn->sendUntimedData(wrapEvent(ev));
+
+      ev = new MordredInitEvent();
+      ev->command = MordredInitEvent::NUM_VCS;
+      ev->value   = numVcs;
+      sn->sendUntimedData(wrapEvent(ev));
+
+      ev = new MordredInitEvent();
+      ev->command = MordredInitEvent::FLIT_WIDTH;
+      ev->value   = flitSize;
+      sn->sendUntimedData(wrapEvent(ev));
+    }
+    break;
+  }
+
+  case 2: {
+    if ( connectionType != ENDPOINT ) break;
+    auto* ev = new MordredInitEvent();
+    ev->command = MordredInitEvent::ENDPOINT_ID;
+    ev->value   = (uint32_t)topo->getEndpointId(portId);
+    sn->sendUntimedData(wrapEvent(ev));
+    break;
+  }
+
+  case 3: {
+    // Send router input-buffer credits to the remote side
+    const auto total_credits = static_cast<int32_t>(inBufSize / flitSize);
+    uint32_t max_vc = (connectionType == ROUTER) ? numVcs : 1;
+    for ( uint32_t i = 0; i < numVns; i++ ) {
+      for ( uint32_t j = 0; j < max_vc; j++ ) {
+        sn->sendUntimedData(wrapEvent(new MordredCreditEvent(i, j, total_credits)));
+      }
+    }
+    break;
+  }
+
+  default: {
+    // Drain any remaining untimed events (credits + routed packets)
+    Interfaces::SimpleNetwork::Request* req = nullptr;
+    while ( (req = sn->recvUntimedData()) != nullptr ) {
+      SST::Event* ev = req->takePayload();
+      delete req;
+      auto* base_ev = static_cast<baseMordredEvent*>(ev);
+      if ( base_ev->getType() == baseMordredEvent::CREDIT ) {
+        auto* credit_ev = static_cast<MordredCreditEvent*>(ev);
+        outStateVec.at(credit_ev->vn).at(credit_ev->vc).destCredits += credit_ev->credits;
+        delete ev;
+      } else if ( base_ev->getType() == baseMordredEvent::PACKET ) {
+        initEvents.push(ev);
+      } else {
+        output->verbose(CALL_INFO, 5, 0,
+          "Received unexpected event type=%d in init default\n", (int)base_ev->getType());
+        delete ev;
+      }
+    }
+    break;
+  }
+  }
+  output->verbose(CALL_INFO, 5, DEBUG_INIT_PHASE, "END init phase=%" PRIu32 "\n", phase);
+}
+
+void RtrPortControlSN::setup() {
+  sn->setup();
+}
+
+void RtrPortControlSN::complete( unsigned int phase ) {
+  sn->complete(phase);
+
+  Interfaces::SimpleNetwork::Request* req = nullptr;
+  while ( (req = sn->recvUntimedData()) != nullptr ) {
+    SST::Event* ev = req->takePayload();
+    delete req;
+    auto* base_ev = static_cast<baseMordredEvent*>(ev);
+    if ( base_ev->getType() == baseMordredEvent::CREDIT ) {
+      auto* credit_ev = static_cast<MordredCreditEvent*>(ev);
+      outStateVec.at(credit_ev->vn).at(credit_ev->vc).destCredits += credit_ev->credits;
+      delete ev;
+    } else if ( base_ev->getType() == baseMordredEvent::PACKET ) {
+      initEvents.push(ev);
+    } else {
+      output->verbose(CALL_INFO, 5, 0,
+        "Received unexpected event type=%d in complete\n", (int)base_ev->getType());
+      delete ev;
+    }
+  }
+}
+
+void RtrPortControlSN::sendUntimedData( Event* ev ) {
+  sn->sendUntimedData(wrapEvent(ev));
+}
+
+SST::Event* RtrPortControlSN::recvUntimedData() {
+  if ( initEvents.empty() ) return nullptr;
+  auto* ev = initEvents.front();
+  initEvents.pop();
+  return ev;
+}
+
+// ---- Clock ----
+
+void RtrPortControlSN::ClockTick( Cycle_t /*cycle*/ ) {
+  // Input pipeline: IDLE → ROUTING → WAIT_VC → IN_ACTIVE
+  for ( uint32_t vn = 0; vn < numVns; vn++ ) {
+    for ( uint32_t vc = 0; vc < numVcs; vc++ ) {
+      if ( inStateVec.at(vn).at(vc).inVcState == IN_IDLE ) {
+        if ( rtrSharedObjs->needVcAlloc.at(vn).at(vc) != nullptr )
+          output->fatal(CALL_INFO, -1, "Expected nullptr in IN_IDLE\n");
+        if ( !inStateVec.at(vn).at(vc).inBuf.empty() ) {
+          auto* flit = inStateVec.at(vn).at(vc).inBuf.front();
+          if ( flit->ftype != MordredFlit::HEAD )
+            output->fatal(CALL_INFO, -1, "Expected head flit\n");
+          inStateVec.at(vn).at(vc).inVcState = ROUTING;
+          inStateVec.at(vn).at(vc).outPort   = topo->routePacket((uint32_t)flit->req->dest);
+        }
+      } else if ( inStateVec.at(vn).at(vc).inVcState == ROUTING ) {
+        auto* flit = inStateVec.at(vn).at(vc).inBuf.front();
+        inStateVec.at(vn).at(vc).inVcState = WAIT_VC;
+        rtrSharedObjs->needVcAlloc.at(vn).at(vc) = flit;
+      } else if ( (inStateVec.at(vn).at(vc).inVcState == WAIT_VC) &&
+                  (inStateVec.at(vn).at(vc).outVc != UINT32_MAX) ) {
+        auto* flit = inStateVec.at(vn).at(vc).inBuf.front();
+        inStateVec.at(vn).at(vc).inVcState = IN_ACTIVE;
+        rtrSharedObjs->needSwitchAlloc.at(vn).at(vc) = flit;
+      }
+    }
+  }
+
+  // Output: send one flit per tick using round-robin across VN/VC
+  bool sent = false;
+  for ( uint32_t i = 0, vn = flit_vn_rr; i < numVns;
+        i++, vn = (vn != (numVns - 1)) ? vn + 1 : 0 ) {
+    for ( uint32_t j = 0, vc = flit_vc_rr; j < numVcs;
+          j++, vc = (vc != (numVcs - 1)) ? vc + 1 : 0 ) {
+      auto& out = outStateVec.at(vn).at(vc);
+      if ( !out.outBuf.empty() && out.destCredits > 0 &&
+           sn->spaceToSend(static_cast<int>(vn), static_cast<int>(flitSize)) ) {
+        auto* flit = out.outBuf.front();
+        out.outBuf.pop();
+        out.outBufCredits++;
+        out.destCredits--;
+
+        if ( (flit->ftype == MordredFlit::HEAD) &&
+             (flit->getRequest()->getTraceType() == Interfaces::SimpleNetwork::Request::FULL) ) {
+          output->output("TRACE(%d): %" PRIu64 " ns sending head flit on link %s.%u\n",
+            flit->req->getTraceID(), getCurrentSimTimeNano(), getName().c_str(), portId);
+        }
+        if ( flit->ftype == MordredFlit::TAIL ) {
+          statLinkSentFlitCnt.at(vn).at(vc)->addData(flit->flit_id + 1);
+          statLinkSentPacketCnt.at(vn).at(vc)->addData(1);
+          if ( flit->getRequest()->getTraceType() == Interfaces::SimpleNetwork::Request::FULL ) {
+            output->output("TRACE(%d): %" PRIu64 " ns sending tail flit on link %s.%u\n",
+              flit->req->getTraceID(), getCurrentSimTimeNano(), getName().c_str(), portId);
+          }
+        }
+
+        auto* req = new Interfaces::SimpleNetwork::Request();
+        req->givePayload(flit);
+        req->vn = static_cast<int>(vn);
+        sn->send(req, static_cast<int>(vn));
+        sent = true;
+        break;
+      }
+    }
+    if ( sent ) break;
+  }
+  flit_vc_rr = (flit_vc_rr + 1) % numVcs;
+  flit_vn_rr = (flit_vn_rr + 1) % numVns;
+
+  if ( !sent ) returnCredit();
+}
+
+// ---- Receive notification (called by SN when data arrives on sn_vn) ----
+
+bool RtrPortControlSN::onReceive( int sn_vn ) {
+  Interfaces::SimpleNetwork::Request* req = nullptr;
+  while ( (req = sn->recv(sn_vn)) != nullptr ) {
+    SST::Event* ev = req->takePayload();
+    delete req;
+    processIncoming(ev);
+  }
+  return true;
+}
+
+void RtrPortControlSN::processIncoming( SST::Event* ev ) {
+  auto* bev = static_cast<baseMordredEvent*>(ev);
+  if ( !bev )
+    output->fatal(CALL_INFO, -1, "Null event in processIncoming\n");
+
+  switch ( bev->getType() ) {
+  case baseMordredEvent::CREDIT: {
+    auto* credit = static_cast<MordredCreditEvent*>(bev);
+    validateVnVc(credit->vn, credit->vc);
+    outStateVec.at(credit->vn).at(credit->vc).destCredits += credit->credits;
+    delete bev;
+    break;
+  }
+  case baseMordredEvent::FLIT: {
+    auto* flit = static_cast<MordredFlit*>(ev);
+    validateVnVc(flit->vn, flit->cur_vc);
+    inStateVec.at(flit->vn).at(flit->cur_vc).inBuf.push(flit);
+    if ( (flit->ftype == MordredFlit::HEAD) &&
+         (flit->getRequest()->getTraceType() != Interfaces::SimpleNetwork::Request::NONE) ) {
+      output->output("TRACE(%d): %" PRIu64 " ns received head flit from link %s.%u\n",
+        flit->req->getTraceID(), getCurrentSimTimeNano(), getName().c_str(), portId);
+    }
+    if ( flit->ftype == MordredFlit::TAIL ) {
+      statLinkRecvFlitCnt.at(flit->vn).at(flit->cur_vc)->addData(flit->flit_id + 1);
+      if ( flit->getRequest()->getTraceType() != Interfaces::SimpleNetwork::Request::NONE )
+        output->output("TRACE(%d): %" PRIu64 " ns received tail flit from link %s.%u\n",
+          flit->req->getTraceID(), getCurrentSimTimeNano(), getName().c_str(), portId);
+    }
+    break;
+  }
+  default:
+    output->fatal(CALL_INFO, -1,
+      "processIncoming: unknown event type=%d\n", (int)bev->getType());
+  }
+}
+
+MordredFlit* RtrPortControlSN::getInBufFlit() {
+  validateVnVc(switch_alloc_sendfrom_vn, switch_alloc_sendfrom_vc);
+  auto& buf = inStateVec.at(switch_alloc_sendfrom_vn).at(switch_alloc_sendfrom_vc).inBuf;
+  if ( buf.empty() ) return nullptr;
+  MordredFlit* flit = buf.front();
+  buf.pop();
+  if ( !flit ) output->fatal(CALL_INFO, -1, "Invalid flit in getInBufFlit\n");
+  inStateVec.at(switch_alloc_sendfrom_vn).at(switch_alloc_sendfrom_vc).retCredits++;
+  return flit;
+}
+
+void RtrPortControlSN::recvOutBufFlit( MordredFlit* flit ) {
+  validateVnVc(switch_alloc_rcvto_vn, switch_alloc_rcvto_vc);
+  flit->cur_vc = switch_alloc_rcvto_vc;
+  auto& out = outStateVec.at(switch_alloc_rcvto_vn).at(switch_alloc_rcvto_vc);
+  out.outBuf.push(flit);
+  out.outBufCredits--;
+}
+
+MordredInitEvent* RtrPortControlSN::getInitEvent( MordredInitEvent::Commands cmd ) {
+  auto* req = sn->recvUntimedData();
+  if ( !req )
+    output->fatal(CALL_INFO, -1, "RtrPortControlSN: unable to recv init event\n");
+  auto* ev = static_cast<MordredInitEvent*>(req->takePayload());
+  delete req;
+  if ( ev->getType() != baseMordredEvent::INITIALIZATION )
+    output->fatal(CALL_INFO, -1, "Unexpected event type in getInitEvent: %d\n", (int)ev->getType());
+  if ( ev->command != cmd )
+    output->fatal(CALL_INFO, -1, "Unexpected init command %d, expected %d\n", (int)ev->command, (int)cmd);
+  return ev;
+}
+
+void RtrPortControlSN::returnCredit() {
+  for ( uint32_t i = 0, vn = credit_ret_vn_rr; i < numVns;
+        i++, vn = (vn != (numVns - 1)) ? vn + 1 : 0 ) {
+    for ( uint32_t j = 0, vc = credit_ret_vc_rr; j < numVcs;
+          j++, vc = (vc != (numVcs - 1)) ? vc + 1 : 0 ) {
+      auto& in = inStateVec.at(vn).at(vc);
+      if ( in.retCredits != 0 ) {
+        auto* req = new Interfaces::SimpleNetwork::Request();
+        req->givePayload(new MordredCreditEvent(vn, vc, in.retCredits));
+        req->vn = static_cast<int>(vn);
+        sn->send(req, static_cast<int>(vn));
+        in.retCredits = 0;
+        break;
+      }
+    }
+  }
+  credit_ret_vc_rr = (credit_ret_vc_rr + 1) % numVcs;
+  credit_ret_vn_rr = (credit_ret_vn_rr + 1) % numVns;
+}

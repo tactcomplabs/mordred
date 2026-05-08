@@ -18,6 +18,8 @@ set(MordredSrcs
         RtrPortControlAPI.h
         RtrPortControl.h
         RtrPortControl.cc
+        RtrPortControlSN.h
+        RtrPortControlSN.cc
         XbarArbAPI.h
         XbarArbRR.h
         XbarArbRR.cc

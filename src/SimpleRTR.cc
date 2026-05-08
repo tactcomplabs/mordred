@@ -52,19 +52,38 @@ SimpleRTR::SimpleRTR( ComponentId_t cid, Params& params ) : Component( cid ) {
     output.fatal( CALL_INFO, -1, "Couldn't load topology\n" );
 
   perPortSharedObjs.resize( numPorts );
-  // Configure local/endpt ports -- borrowed this approach from
-  // sst-elements/src/sst/elements/simpleElementExample/basicLinks.cc
+  // Configure local/endpt ports.
+  // Preference: user-provided portcontrol subcomponent at each slot index
+  // (e.g. rtrPortControlSN for SimpleNetwork-backed ports).
+  // Fallback: anonymous rtrPortControl when a direct link named "portN" is present.
+  // An unconnected port produces a nullptr entry.
+  SubComponentSlotInfo* port_ctrl_slot = getSubComponentSlotInfo("portcontrol");
+
   for ( uint32_t i = 0; i < numPorts; i++ ) {
     std::string linkname = "port" + std::to_string(i);
-    if ( isPortConnected( linkname ) ) {
+    RtrPortControlAPI* pc = nullptr;
+
+    if ( port_ctrl_slot && port_ctrl_slot->isPopulated( static_cast<int>(i) ) ) {
+      // User-configured portcontrol at this index (params come from Python slot config)
       perPortSharedObjs.at(i).allocateVecs( numVns, numVcs );
-      portsVec.push_back( loadAnonymousSubComponent<RtrPortControlAPI>("mordred.rtrPortControl", "portcontrol", (int)i,
-        ComponentInfo::SHARE_PORTS | ComponentInfo::INSERT_STATS, params, topology, &perPortSharedObjs[i], id, i) );
+      pc = port_ctrl_slot->create<RtrPortControlAPI>(
+        static_cast<int>(i),
+        ComponentInfo::SHARE_PORTS | ComponentInfo::INSERT_STATS,
+        topology, &perPortSharedObjs[i], id, i);
+    } else if ( isPortConnected( linkname ) ) {
+      // Legacy/default: direct link with anonymous rtrPortControl
+      perPortSharedObjs.at(i).allocateVecs( numVns, numVcs );
+      pc = loadAnonymousSubComponent<RtrPortControlAPI>(
+        "mordred.rtrPortControl", "portcontrol", static_cast<int>(i),
+        ComponentInfo::SHARE_PORTS | ComponentInfo::INSERT_STATS,
+        params, topology, &perPortSharedObjs[i], id, i);
     } else {
-      output.verbose( CALL_INFO, 5, 0, "Port %u with name=%s unconnected\n", i, linkname.c_str() );
-      portsVec.push_back( nullptr );
+      output.verbose( CALL_INFO, 5, 0, "Port %u (%s) unconnected\n", i, linkname.c_str() );
     }
+
+    portsVec.push_back( pc );
   }
+  delete port_ctrl_slot;
 
   arbiter = loadAnonymousSubComponent<XbarArbAPI>( "mordred.xbarArbRR", "arbiter", 0,
     ComponentInfo::SHARE_NONE, params, id, numPorts, numVns, numVcs );
