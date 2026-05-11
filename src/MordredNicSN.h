@@ -18,19 +18,18 @@
  * (e.g. merlin.test_nic), this class is identical to MordredNIC — it still
  * IS a SimpleNetwork.
  *
- * The inner SN can be any matching SimpleNetwork implementation:
+ * The inner PhysChannelAPI can be any matching implementation:
  *   mordred.genericPhysChannel — for tests (generic raw-link wrapper)
  *   ucie.ucieMultiInterface      — for production UCIe physical links
  *
- * Wire format: the inner SN determines the on-wire format.  With
- * genericPhysChannel, the link carries RequestWrapperEvent objects.
- * This is incompatible with legacy MordredNIC / RtrPortControl which use
- * raw baseMordredEvent objects; both ends must use the SN-backed path.
+ * Wire format: the inner PhysChannelAPI determines the on-wire format. With
+ * genericPhysChannel, the link carries PhysChannelLinkEvent objects.
+ * Both ends must use the PhysChannelAPI-backed path.
  *
- * Mordred's own credit protocol is unchanged.  The inner SN's flow control
- * (e.g. UCIe lane credits via spaceToSend()) and Mordred's MordredCreditEvent
- * are complementary: the inner SN protects the local TX buffer; Mordred
- * credits protect the remote router's input buffer.
+ * Mordred's own credit protocol is unchanged.  The inner channel's flow
+ * control (e.g. UCIe lane credits via spaceToSend()) and Mordred's
+ * MordredCreditEvent are complementary: the inner channel protects the local
+ * TX buffer; Mordred credits protect the remote router's input buffer.
  */
 
 // Standard headers
@@ -43,6 +42,7 @@
 
 // Local headers
 #include "MordredEvents.h"
+#include "PhysChannelAPI.h"
 
 #include <sst/core/interfaces/simpleNetwork.h>
 
@@ -74,8 +74,8 @@ public:
 
   SST_ELI_DOCUMENT_SUBCOMPONENT_SLOTS(
     {"port_iface",
-     "SimpleNetwork subcomponent that manages the physical link to the router",
-     "SST::Interfaces::SimpleNetwork"}
+     "PhysChannelAPI subcomponent that manages the physical link to the router",
+     "SST::Mordred::PhysChannelAPI"}
   )
 
   SST_ELI_DOCUMENT_STATISTICS(
@@ -121,7 +121,7 @@ public:
 
   void serialize_order( SST::Core::Serialization::serializer& ser ) override {
     SST_SER( output );
-    SST_SER( sn );
+    SST_SER( physChannel );
     SST_SER( netID );
     SST_SER( rtrId );
     SST_SER( rtrPort );
@@ -157,8 +157,8 @@ private:
   // Dispatch incoming event from inner SN
   void processIncoming( SST::Event* ev );
 
-  Output*                    output{};
-  Interfaces::SimpleNetwork* sn{};
+  Output*          output{};
+  PhysChannelAPI*  physChannel{};
 
   nid_t    netID{-1};
   uint32_t rtrId{UINT32_MAX};

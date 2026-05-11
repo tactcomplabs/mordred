@@ -9,7 +9,6 @@
 set(MORDRED_TEST_SRCS
   flatbutterfly_k2n4_testnic.py
   mesh2x1_rtrportcontrolsn.py
-  mesh2x1_rtrportcontrolsn_legacy.py
   mesh3x3_testnic.py
   torus3D_3x3x3_2vc_testnic.py
   torus5x5_2vc_testnic.py

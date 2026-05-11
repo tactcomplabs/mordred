@@ -20,8 +20,7 @@ set(MordredSrcs
         RtrPortControl.cc
         RtrPortControlSN.h
         RtrPortControlSN.cc
-        MordredPortLinkSN.h
-        MordredPortLinkSN.cc
+        PhysChannelAPI.h
         GenericPhysChannel.h
         GenericPhysChannel.cc
         MordredNicSN.h

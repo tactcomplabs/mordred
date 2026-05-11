@@ -9,9 +9,9 @@
 # MordredNicSN + GenericPhysChannel (endpoint side) on a minimal 2-router
 # (2x1) mesh.
 #
-# Both ends of every link use the SN-backed path.  The physical link carries
-# RequestWrapperEvent objects (the GenericPhysChannel wire format) rather
-# than raw baseMordredEvent objects.
+# Both ends of every link use the PhysChannelAPI-backed path.  The physical
+# link carries PhysChannelLinkEvent objects (the GenericPhysChannel wire
+# format) rather than raw baseMordredEvent objects.
 #
 # Topology:
 #   [testnic_ep_0]              [testnic_ep_1]
@@ -20,8 +20,6 @@
 #   rtr_0_0 ----port1--port3---- rtr_1_0
 #   (id=0)   <passthrough SN>    (id=1)
 #
-# For the legacy transitional case (RtrPortControlSN + MordredPortLinkSN +
-# old MordredNIC), see mesh2x1_rtrportcontrolsn_legacy.py.
 #
 
 import sst
@@ -106,7 +104,7 @@ rtr_1.addLink(rtr_link, "port3", link_latency)
 #      and MordredNicSN + GenericPhysChannel (endpoint side) ----
 #
 # IMPORTANT: both ends of every link must use the same wire format.
-# GenericPhysChannel puts RequestWrapperEvent objects on the link.
+# GenericPhysChannel puts PhysChannelLinkEvent objects on the link.
 # Therefore the router's local port (port4) must also use RtrPortControlSN +
 # GenericPhysChannel — the legacy RtrPortControl fallback is NOT used here.
 #

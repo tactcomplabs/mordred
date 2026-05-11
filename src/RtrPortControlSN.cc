@@ -17,6 +17,10 @@
 #include "RtrPortControlSN.h"
 #include "TopologyAPI.h"
 
+// Needed for SimpleNetwork::Request trace-type constants referenced in flit
+// trace output (e.g. Request::FULL, Request::NONE).
+#include <sst/core/interfaces/simpleNetwork.h>
+
 using namespace SST;
 using namespace SST::Mordred;
 using namespace SST::Interfaces;
@@ -78,21 +82,18 @@ RtrPortControlSN::RtrPortControlSN( ComponentId_t id, Params& params, TopologyAP
       "Invalid configuration; flit_size=%" PRIu32 "b > output_buf_size=%" PRIu32 "b\n",
       flitSize, outBufSize);
 
-  // The SN subcomponent's params come from its Python slot config.
-  // Users must set "port_name" = "portN" there so the SN subcomponent knows
-  // which physical link to configure.
-  sn = loadUserSubComponent<SimpleNetwork>(
+  physChannel = loadUserSubComponent<PhysChannelAPI>(
     "port_iface",
     ComponentInfo::SHARE_PORTS | ComponentInfo::INSERT_STATS,
     static_cast<int>(numVns));
 
-  if ( !sn )
+  if ( !physChannel )
     output->fatal(CALL_INFO, -1,
-      "RtrPortControlSN: no SimpleNetwork subcomponent found in slot 'port_iface'\n");
+      "RtrPortControlSN: no PhysChannelAPI subcomponent found in slot 'port_iface'\n");
 
-  sn->setNotifyOnReceive(
-    new SimpleNetwork::Handler2<RtrPortControlSN,
-                                &RtrPortControlSN::onReceive>(this));
+  physChannel->setNotifyOnReceive(
+    new PhysChannelAPI::Handler2<RtrPortControlSN,
+                                 &RtrPortControlSN::onReceive>(this));
 
   allocateBuffers();
 
@@ -137,46 +138,31 @@ void RtrPortControlSN::allocateBuffers() {
   statLinkOutputStalledCnt = registerStatistic<uint64_t>("output_stalls");
 }
 
-// ---- Untimed data helpers ----
-
-static Interfaces::SimpleNetwork::Request* wrapEvent(SST::Event* ev) {
-  auto* req = new Interfaces::SimpleNetwork::Request();
-  req->givePayload(ev);
-  return req;
-}
-
-static SST::Event* unwrapRequest(Interfaces::SimpleNetwork::Request* req) {
-  if ( !req ) return nullptr;
-  SST::Event* ev = req->takePayload();
-  delete req;
-  return ev;
-}
-
 // ---- Lifecycle ----
 
 void RtrPortControlSN::init( unsigned int phase ) {
-  sn->init(phase);
+  physChannel->init(phase);
 
   switch ( phase ) {
   case 0: {
     auto* ev = new MordredInitEvent();
     ev->command = MordredInitEvent::REPORT_ROUTER;
-    sn->sendUntimedData(wrapEvent(ev));
+    physChannel->sendUntimedData(ev);
 
     ev = new MordredInitEvent();
     ev->command = MordredInitEvent::ROUTER_ID;
     ev->value   = rtrId;
-    sn->sendUntimedData(wrapEvent(ev));
+    physChannel->sendUntimedData(ev);
 
     ev = new MordredInitEvent();
     ev->command = MordredInitEvent::PORT_NUM;
     ev->value   = portId;
-    sn->sendUntimedData(wrapEvent(ev));
+    physChannel->sendUntimedData(ev);
     break;
   }
 
   case 1: {
-    SST::Event* raw = unwrapRequest(sn->recvUntimedData());
+    SST::Event* raw = physChannel->recvUntimedData();
     if ( raw == nullptr )
       output->fatal(CALL_INFO, -1, "RtrPortControlSN: unable to recv init event in phase 1\n");
 
@@ -207,17 +193,17 @@ void RtrPortControlSN::init( unsigned int phase ) {
       auto* ev = new MordredInitEvent();
       ev->command = MordredInitEvent::NUM_VNS;
       ev->value   = numVns;
-      sn->sendUntimedData(wrapEvent(ev));
+      physChannel->sendUntimedData(ev);
 
       ev = new MordredInitEvent();
       ev->command = MordredInitEvent::NUM_VCS;
       ev->value   = numVcs;
-      sn->sendUntimedData(wrapEvent(ev));
+      physChannel->sendUntimedData(ev);
 
       ev = new MordredInitEvent();
       ev->command = MordredInitEvent::FLIT_WIDTH;
       ev->value   = flitSize;
-      sn->sendUntimedData(wrapEvent(ev));
+      physChannel->sendUntimedData(ev);
     }
     break;
   }
@@ -227,28 +213,24 @@ void RtrPortControlSN::init( unsigned int phase ) {
     auto* ev = new MordredInitEvent();
     ev->command = MordredInitEvent::ENDPOINT_ID;
     ev->value   = (uint32_t)topo->getEndpointId(portId);
-    sn->sendUntimedData(wrapEvent(ev));
+    physChannel->sendUntimedData(ev);
     break;
   }
 
   case 3: {
-    // Send router input-buffer credits to the remote side
     const auto total_credits = static_cast<int32_t>(inBufSize / flitSize);
     uint32_t max_vc = (connectionType == ROUTER) ? numVcs : 1;
     for ( uint32_t i = 0; i < numVns; i++ ) {
       for ( uint32_t j = 0; j < max_vc; j++ ) {
-        sn->sendUntimedData(wrapEvent(new MordredCreditEvent(i, j, total_credits)));
+        physChannel->sendUntimedData(new MordredCreditEvent(i, j, total_credits));
       }
     }
     break;
   }
 
   default: {
-    // Drain any remaining untimed events (credits + routed packets)
-    Interfaces::SimpleNetwork::Request* req = nullptr;
-    while ( (req = sn->recvUntimedData()) != nullptr ) {
-      SST::Event* ev = req->takePayload();
-      delete req;
+    SST::Event* ev = nullptr;
+    while ( (ev = physChannel->recvUntimedData()) != nullptr ) {
       auto* base_ev = static_cast<baseMordredEvent*>(ev);
       if ( base_ev->getType() == baseMordredEvent::CREDIT ) {
         auto* credit_ev = static_cast<MordredCreditEvent*>(ev);
@@ -269,16 +251,14 @@ void RtrPortControlSN::init( unsigned int phase ) {
 }
 
 void RtrPortControlSN::setup() {
-  sn->setup();
+  physChannel->setup();
 }
 
 void RtrPortControlSN::complete( unsigned int phase ) {
-  sn->complete(phase);
+  physChannel->complete(phase);
 
-  Interfaces::SimpleNetwork::Request* req = nullptr;
-  while ( (req = sn->recvUntimedData()) != nullptr ) {
-    SST::Event* ev = req->takePayload();
-    delete req;
+  SST::Event* ev = nullptr;
+  while ( (ev = physChannel->recvUntimedData()) != nullptr ) {
     auto* base_ev = static_cast<baseMordredEvent*>(ev);
     if ( base_ev->getType() == baseMordredEvent::CREDIT ) {
       auto* credit_ev = static_cast<MordredCreditEvent*>(ev);
@@ -295,7 +275,7 @@ void RtrPortControlSN::complete( unsigned int phase ) {
 }
 
 void RtrPortControlSN::sendUntimedData( Event* ev ) {
-  sn->sendUntimedData(wrapEvent(ev));
+  physChannel->sendUntimedData(ev);
 }
 
 SST::Event* RtrPortControlSN::recvUntimedData() {
@@ -342,30 +322,27 @@ void RtrPortControlSN::ClockTick( Cycle_t /*cycle*/ ) {
           j++, vc = (vc != (numVcs - 1)) ? vc + 1 : 0 ) {
       auto& out = outStateVec.at(vn).at(vc);
       if ( !out.outBuf.empty() && out.destCredits > 0 &&
-           sn->spaceToSend(static_cast<int>(vn), static_cast<int>(flitSize)) ) {
+           physChannel->spaceToSend(static_cast<int>(vn), static_cast<int>(flitSize)) ) {
         auto* flit = out.outBuf.front();
         out.outBuf.pop();
         out.outBufCredits++;
         out.destCredits--;
 
         if ( (flit->ftype == MordredFlit::HEAD) &&
-             (flit->getRequest()->getTraceType() == Interfaces::SimpleNetwork::Request::FULL) ) {
+             (flit->getRequest()->getTraceType() == SimpleNetwork::Request::FULL) ) {
           output->output("TRACE(%d): %" PRIu64 " ns sending head flit on link %s.%u\n",
             flit->req->getTraceID(), getCurrentSimTimeNano(), getName().c_str(), portId);
         }
         if ( flit->ftype == MordredFlit::TAIL ) {
           statLinkSentFlitCnt.at(vn).at(vc)->addData(flit->flit_id + 1);
           statLinkSentPacketCnt.at(vn).at(vc)->addData(1);
-          if ( flit->getRequest()->getTraceType() == Interfaces::SimpleNetwork::Request::FULL ) {
+          if ( flit->getRequest()->getTraceType() == SimpleNetwork::Request::FULL ) {
             output->output("TRACE(%d): %" PRIu64 " ns sending tail flit on link %s.%u\n",
               flit->req->getTraceID(), getCurrentSimTimeNano(), getName().c_str(), portId);
           }
         }
 
-        auto* req = new Interfaces::SimpleNetwork::Request();
-        req->givePayload(flit);
-        req->vn = static_cast<int>(vn);
-        sn->send(req, static_cast<int>(vn));
+        physChannel->send(flit, static_cast<int>(vn));
         sent = true;
         break;
       }
@@ -378,13 +355,11 @@ void RtrPortControlSN::ClockTick( Cycle_t /*cycle*/ ) {
   if ( !sent ) returnCredit();
 }
 
-// ---- Receive notification (called by SN when data arrives on sn_vn) ----
+// ---- Receive notification ----
 
 bool RtrPortControlSN::onReceive( int sn_vn ) {
-  Interfaces::SimpleNetwork::Request* req = nullptr;
-  while ( (req = sn->recv(sn_vn)) != nullptr ) {
-    SST::Event* ev = req->takePayload();
-    delete req;
+  SST::Event* ev = nullptr;
+  while ( (ev = physChannel->recv(sn_vn)) != nullptr ) {
     processIncoming(ev);
   }
   return true;
@@ -408,13 +383,13 @@ void RtrPortControlSN::processIncoming( SST::Event* ev ) {
     validateVnVc(flit->vn, flit->cur_vc);
     inStateVec.at(flit->vn).at(flit->cur_vc).inBuf.push(flit);
     if ( (flit->ftype == MordredFlit::HEAD) &&
-         (flit->getRequest()->getTraceType() != Interfaces::SimpleNetwork::Request::NONE) ) {
+         (flit->getRequest()->getTraceType() != SimpleNetwork::Request::NONE) ) {
       output->output("TRACE(%d): %" PRIu64 " ns received head flit from link %s.%u\n",
         flit->req->getTraceID(), getCurrentSimTimeNano(), getName().c_str(), portId);
     }
     if ( flit->ftype == MordredFlit::TAIL ) {
       statLinkRecvFlitCnt.at(flit->vn).at(flit->cur_vc)->addData(flit->flit_id + 1);
-      if ( flit->getRequest()->getTraceType() != Interfaces::SimpleNetwork::Request::NONE )
+      if ( flit->getRequest()->getTraceType() != SimpleNetwork::Request::NONE )
         output->output("TRACE(%d): %" PRIu64 " ns received tail flit from link %s.%u\n",
           flit->req->getTraceID(), getCurrentSimTimeNano(), getName().c_str(), portId);
     }
@@ -446,11 +421,9 @@ void RtrPortControlSN::recvOutBufFlit( MordredFlit* flit ) {
 }
 
 MordredInitEvent* RtrPortControlSN::getInitEvent( MordredInitEvent::Commands cmd ) {
-  auto* req = sn->recvUntimedData();
-  if ( !req )
+  auto* ev = static_cast<MordredInitEvent*>( physChannel->recvUntimedData() );
+  if ( !ev )
     output->fatal(CALL_INFO, -1, "RtrPortControlSN: unable to recv init event\n");
-  auto* ev = static_cast<MordredInitEvent*>(req->takePayload());
-  delete req;
   if ( ev->getType() != baseMordredEvent::INITIALIZATION )
     output->fatal(CALL_INFO, -1, "Unexpected event type in getInitEvent: %d\n", (int)ev->getType());
   if ( ev->command != cmd )
@@ -465,10 +438,9 @@ void RtrPortControlSN::returnCredit() {
           j++, vc = (vc != (numVcs - 1)) ? vc + 1 : 0 ) {
       auto& in = inStateVec.at(vn).at(vc);
       if ( in.retCredits != 0 ) {
-        auto* req = new Interfaces::SimpleNetwork::Request();
-        req->givePayload(new MordredCreditEvent(vn, vc, in.retCredits));
-        req->vn = static_cast<int>(vn);
-        sn->send(req, static_cast<int>(vn));
+        physChannel->send(
+          new MordredCreditEvent(vn, vc, in.retCredits),
+          static_cast<int>(vn));
         in.retCredits = 0;
         break;
       }

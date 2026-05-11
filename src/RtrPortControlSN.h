@@ -15,9 +15,8 @@
 #include "sst_config.h"
 
 #include "MordredEvents.h"
+#include "PhysChannelAPI.h"
 #include "RtrPortControlAPI.h"
-
-#include <sst/core/interfaces/simpleNetwork.h>
 
 namespace SST::Mordred {
 
@@ -56,8 +55,8 @@ public:
   SST_ELI_DOCUMENT_PORTS()
 
   SST_ELI_DOCUMENT_SUBCOMPONENT_SLOTS(
-    {"port_iface", "SimpleNetwork subcomponent that manages the physical port link",
-     "SST::Interfaces::SimpleNetwork"}
+    {"port_iface", "PhysChannelAPI subcomponent that manages the physical port link",
+     "SST::Mordred::PhysChannelAPI"}
   )
 
   SST_ELI_DOCUMENT_STATISTICS(
@@ -210,7 +209,7 @@ public:
 
   void serialize_order(SST::Core::Serialization::serializer& ser) override {
     SST_SER(output);
-    SST_SER(sn);
+    SST_SER(physChannel);
     SST_SER(topo);
     SST_SER(connectionType);
     SST_SER(rtrId);
@@ -250,8 +249,8 @@ private:
   void returnCredit();
   void processIncoming( Event* ev );
 
-  Output* output{};
-  Interfaces::SimpleNetwork* sn{};
+  Output*          output{};
+  PhysChannelAPI*  physChannel{};
   TopologyAPI* topo{};
   PortConnectionE connectionType{UNKNOWN};
   uint32_t rtrId{};

@@ -19,65 +19,54 @@
 // Local SST config
 #include "sst_config.h"
 
-#include <sst/core/interfaces/simpleNetwork.h>
+#include "PhysChannelAPI.h"
 
 namespace SST::Mordred {
 
 /**
- * Generic SST::Event wrapper that carries a SimpleNetwork::Request across a
- * raw SST::Link.  Used exclusively by GenericPhysChannel.
+ * Minimal SST::Event wrapper that carries a raw payload and VN tag across a
+ * raw SST::Link. Used exclusively by GenericPhysChannel.
  *
- * The entire Request (including its vn field and payload) is preserved, so
- * the receive side can determine VN without inspecting the payload type.
- * SimpleNetwork::Request implements serialize_order, so checkpoint/restart
- * works correctly.
+ * Replacing the old RequestWrapperEvent: we no longer need to carry the full
+ * SimpleNetwork::Request — just the payload event and the VN index.
  */
-class RequestWrapperEvent : public SST::Event {
+class PhysChannelLinkEvent : public SST::Event {
 public:
-  Interfaces::SimpleNetwork::Request* req{nullptr};
+  SST::Event* payload{nullptr};
+  int         vn{0};
 
-  RequestWrapperEvent() = default;
-  explicit RequestWrapperEvent( Interfaces::SimpleNetwork::Request* r ) : req( r ) {}
+  PhysChannelLinkEvent() = default;
+  PhysChannelLinkEvent( SST::Event* p, int v ) : payload( p ), vn( v ) {}
 
   void serialize_order( SST::Core::Serialization::serializer& ser ) override {
     Event::serialize_order( ser );
-    SST_SER( req );
+    SST_SER( payload );
+    SST_SER( vn );
   }
 
-  ImplementSerializable( SST::Mordred::RequestWrapperEvent );
+  ImplementSerializable( SST::Mordred::PhysChannelLinkEvent );
 };
 
 /**
- * Truly generic SimpleNetwork adapter that wraps the entire SimpleNetwork::Request
- * in a RequestWrapperEvent for transmission on a raw SST::Link.
+ * Format-agnostic PhysChannelAPI implementation that forwards any SST::Event*
+ * over a raw SST::Link by wrapping it in a PhysChannelLinkEvent (to preserve
+ * the VN tag across the wire).
  *
- * No knowledge of Mordred-specific event types: VN is read directly from
- * req->vn (which callers such as RtrPortControlSN always set before send()).
+ * Both ends of the link must use a GenericPhysChannel (or another component
+ * that understands the PhysChannelLinkEvent wire format).
  *
- * This component is the counterpart to MordredPortLinkSN.  The difference:
- *   MordredPortLinkSN   — extracts the baseMordredEvent payload; link carries
- *                          raw Mordred events (wire-format compatible with
- *                          MordredNIC / RtrPortControl).
- *   GenericPhysChannel — wraps the whole Request; link carries
- *                          RequestWrapperEvent objects (requires the other end
- *                          to also be a GenericPhysChannel or equivalent).
- *
- * Use GenericPhysChannel when both ends are SN-backed components
- * (e.g. RtrPortControlSN ↔ MordredNicSN).  Use MordredPortLinkSN for the
- * transitional case where one end is still the legacy direct-link MordredNIC.
- *
- * Port name: the "port_name" parameter names the physical SST::Link that
+ * Port name: the "port_name" parameter names the SST::Link that
  * configureLink() will use.
  */
-class GenericPhysChannel : public Interfaces::SimpleNetwork {
+class GenericPhysChannel : public PhysChannelAPI {
 public:
   SST_ELI_REGISTER_SUBCOMPONENT(
     GenericPhysChannel,
     "mordred",
     "genericPhysChannel",
-    SST_ELI_ELEMENT_VERSION( 0, 1, 0 ),
-    "Generic SimpleNetwork adapter that forwards Requests over a raw SST::Link via RequestWrapperEvent",
-    SST::Interfaces::SimpleNetwork
+    SST_ELI_ELEMENT_VERSION( 0, 2, 0 ),
+    "Generic PhysChannelAPI adapter that forwards events over a raw SST::Link via PhysChannelLinkEvent",
+    SST::Mordred::PhysChannelAPI
   )
 
   SST_ELI_DOCUMENT_PARAMS(
@@ -93,17 +82,17 @@ public:
   GenericPhysChannel( ComponentId_t id, Params& params, int num_vns );
   ~GenericPhysChannel() override = default;
 
-  // --- SimpleNetwork interface ---
+  // --- PhysChannelAPI interface ---
 
-  void     sendUntimedData( Request* req ) override;
-  Request* recvUntimedData()               override;
+  bool        send( SST::Event* payload, int vn ) override;
+  SST::Event* recv( int vn ) override;
 
-  bool     send( Request* req, int vn )    override;
-  Request* recv( int vn )                  override;
+  void        sendUntimedData( SST::Event* payload ) override;
+  SST::Event* recvUntimedData() override;
 
-  void     init( unsigned int phase )      override;
-  void     setup()                         override;
-  void     complete( unsigned int phase )  override;
+  void init(     unsigned int phase ) override;
+  void setup()                        override;
+  void complete( unsigned int phase ) override;
 
   bool spaceToSend( int /*vn*/, int /*num_bits*/ ) override { return true; }
 
@@ -113,20 +102,19 @@ public:
   }
 
   void setNotifyOnReceive( HandlerBase* handler ) override { recvNotifyHandler = handler; }
-  void setNotifyOnSend( HandlerBase* /*handler*/ ) override { /* not used */ }
+  void setNotifyOnSend(    HandlerBase* /*handler*/ ) override { /* not used */ }
 
   bool isNetworkInitialized() const override { return initialized; }
-  nid_t getEndpointID()       const override { return 0; }
   const UnitAlgebra& getLinkBW() const override { return linkBW; }
 
   // Incoming link event handler (registered on the SST::Link)
   void handleIncoming( SST::Event* ev );
 
   // --- Default constructor for serialization ---
-  GenericPhysChannel() : Interfaces::SimpleNetwork() {}
+  GenericPhysChannel() : PhysChannelAPI() {}
 
   void serialize_order( SST::Core::Serialization::serializer& ser ) override {
-    SimpleNetwork::serialize_order( ser );
+    PhysChannelAPI::serialize_order( ser );
     SST_SER( output );
     SST_SER( link );
     SST_SER( portName );
@@ -140,16 +128,16 @@ public:
   ImplementSerializable( SST::Mordred::GenericPhysChannel );
 
 private:
-  Output*       output{};
-  Link*         link{};
-  std::string   portName;
-  int           numVns{1};
-  bool          initialized{false};
-  UnitAlgebra   linkBW;
-  HandlerBase*  recvNotifyHandler{nullptr};
+  Output*      output{};
+  Link*        link{};
+  std::string  portName;
+  int          numVns{1};
+  bool         initialized{false};
+  UnitAlgebra  linkBW;
+  HandlerBase* recvNotifyHandler{nullptr};
 
   // Per-VN receive queues; outer index == VN
-  std::vector<std::queue<Request*>> recvQueues;
+  std::vector<std::queue<SST::Event*>> recvQueues;
 };
 
 } // namespace SST::Mordred

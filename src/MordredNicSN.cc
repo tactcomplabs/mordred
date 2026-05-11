@@ -19,21 +19,6 @@ using namespace SST;
 using namespace SST::Mordred;
 using namespace SST::Interfaces;
 
-// ---- Helpers (file-local) ----
-
-static SimpleNetwork::Request* wrapEvent( SST::Event* ev ) {
-  auto* req = new SimpleNetwork::Request();
-  req->givePayload( ev );
-  return req;
-}
-
-static SST::Event* unwrapRequest( SimpleNetwork::Request* req ) {
-  if ( !req ) return nullptr;
-  SST::Event* ev = req->takePayload();
-  delete req;
-  return ev;
-}
-
 // ---- Constructor ----
 
 MordredNicSN::MordredNicSN( ComponentId_t cid, Params& params, int vns )
@@ -62,20 +47,18 @@ MordredNicSN::MordredNicSN( ComponentId_t cid, Params& params, int vns )
   if ( outbufSize.hasUnits("B") )
     outbufSize *= UnitAlgebra("8b/B");
 
-  // Load the inner SimpleNetwork subcomponent.
-  // The inner SN is responsible for the physical link (via SHARE_PORTS).
-  // The number of VNs is passed from the outer host (e.g. merlin.test_nic).
-  sn = loadUserSubComponent<SimpleNetwork>(
+  // Load the inner PhysChannelAPI subcomponent.
+  physChannel = loadUserSubComponent<PhysChannelAPI>(
     "port_iface",
     ComponentInfo::SHARE_PORTS | ComponentInfo::INSERT_STATS,
     vns );
-  if ( !sn )
+  if ( !physChannel )
     output->fatal( CALL_INFO, -1,
-      "MordredNicSN: no SimpleNetwork subcomponent found in slot 'port_iface'\n" );
+      "MordredNicSN: no PhysChannelAPI subcomponent found in slot 'port_iface'\n" );
 
-  sn->setNotifyOnReceive(
-    new SimpleNetwork::Handler2<MordredNicSN,
-                                &MordredNicSN::onReceive>( this ) );
+  physChannel->setNotifyOnReceive(
+    new PhysChannelAPI::Handler2<MordredNicSN,
+                                 &MordredNicSN::onReceive>( this ) );
 
   // Clock
   const auto clock_freq = params.find<std::string>( "clock", "1GHz" );
@@ -97,23 +80,22 @@ MordredNicSN::MordredNicSN( ComponentId_t cid, Params& params, int vns )
 // ---- Lifecycle ----
 
 void MordredNicSN::init( uint32_t phase ) {
-  sn->init( phase );
+  physChannel->init( phase );
 
   output->verbose( CALL_INFO, 5, 0, "START init phase=%" PRIu32 "\n", phase );
 
   switch ( phase ) {
   case 0:
-    sn->sendUntimedData( wrapEvent( [&]() -> MordredInitEvent* {
+    physChannel->sendUntimedData( [&]() -> MordredInitEvent* {
       auto* ev = new MordredInitEvent();
       ev->command = MordredInitEvent::REPORT_ENDPOINT;
       ev->value   = UINT32_MAX;
       return ev;
-    }() ) );
+    }() );
     break;
 
   case 1: {
-    auto* init_ev = static_cast<MordredInitEvent*>(
-      unwrapRequest( sn->recvUntimedData() ) );
+    auto* init_ev = static_cast<MordredInitEvent*>( physChannel->recvUntimedData() );
     if ( !init_ev )
       output->fatal( CALL_INFO, -1,
         "MordredNicSN: unable to recv REPORT_ROUTER in phase 1\n" );
@@ -172,17 +154,15 @@ void MordredNicSN::init( uint32_t phase ) {
         "Invalid configuration; flit_size=%" PRIu32 "b > input_buf_size=%" PRId64 "b\n",
         flitSize, inbufSize.getRoundedValue() );
     for ( uint32_t i = 0; i < numVns; i++ ) {
-      sn->sendUntimedData( wrapEvent( new MordredCreditEvent( i, 0, credits ) ) );
+      physChannel->sendUntimedData( new MordredCreditEvent( i, 0, credits ) );
     }
     break;
   }
 
   default: {
     // Drain any remaining untimed events (credits + routed packets)
-    SimpleNetwork::Request* req = nullptr;
-    while ( (req = sn->recvUntimedData()) != nullptr ) {
-      auto* ev      = req->takePayload();
-      delete req;
+    SST::Event* ev = nullptr;
+    while ( (ev = physChannel->recvUntimedData()) != nullptr ) {
       auto* base_ev = static_cast<baseMordredEvent*>( ev );
       if ( base_ev->getType() == baseMordredEvent::CREDIT ) {
         auto* credit_ev = static_cast<MordredCreditEvent*>( ev );
@@ -207,16 +187,14 @@ void MordredNicSN::init( uint32_t phase ) {
 }
 
 void MordredNicSN::setup() {
-  sn->setup();
+  physChannel->setup();
 }
 
 void MordredNicSN::complete( uint32_t phase ) {
-  sn->complete( phase );
+  physChannel->complete( phase );
 
-  SimpleNetwork::Request* req = nullptr;
-  while ( (req = sn->recvUntimedData()) != nullptr ) {
-    auto* ev      = req->takePayload();
-    delete req;
+  SST::Event* ev = nullptr;
+  while ( (ev = physChannel->recvUntimedData()) != nullptr ) {
     auto* base_ev = static_cast<baseMordredEvent*>( ev );
     if ( base_ev->getType() == baseMordredEvent::CREDIT ) {
       auto* credit_ev = static_cast<MordredCreditEvent*>( ev );
@@ -245,7 +223,7 @@ void MordredNicSN::finish() {
 // ---- SimpleNetwork outer interface ----
 
 void MordredNicSN::sendUntimedData( Request* req ) {
-  sn->sendUntimedData( wrapEvent( new MordredInitEvent( req ) ) );
+  physChannel->sendUntimedData( new MordredInitEvent( req ) );
 }
 
 SimpleNetwork::Request* MordredNicSN::recvUntimedData() {
@@ -352,10 +330,7 @@ bool MordredNicSN::clockTick( Cycle_t cycle ) {
         }
       }
 
-      auto* req = new SimpleNetwork::Request();
-      req->givePayload( flit );
-      req->vn = static_cast<int>( vn );
-      sn->send( req, static_cast<int>( vn ) );
+      physChannel->send( flit, static_cast<int>( vn ) );
       sent = true;
       rtrCredits.at( vn )--;
       outbufCredits.at( vn )++;
@@ -371,11 +346,9 @@ bool MordredNicSN::clockTick( Cycle_t cycle ) {
   // Return one credit batch per tick
   for ( uint32_t vn = 0; vn < numVns; vn++ ) {
     if ( inReturnCredits.at( vn ) > 0 ) {
-      auto* credit_ev = new MordredCreditEvent( vn, 0, inReturnCredits.at( vn ) );
-      auto* req = new SimpleNetwork::Request();
-      req->givePayload( credit_ev );
-      req->vn = static_cast<int>( vn );
-      sn->send( req, static_cast<int>( vn ) );
+      physChannel->send(
+        new MordredCreditEvent( vn, 0, inReturnCredits.at( vn ) ),
+        static_cast<int>( vn ) );
       inReturnCredits.at( vn ) = 0;
       break;
     }
@@ -383,13 +356,11 @@ bool MordredNicSN::clockTick( Cycle_t cycle ) {
   return false;
 }
 
-// ---- Inner-SN receive callback ----
+// ---- Inner channel receive callback ----
 
 bool MordredNicSN::onReceive( int sn_vn ) {
-  SimpleNetwork::Request* req = nullptr;
-  while ( (req = sn->recv( sn_vn )) != nullptr ) {
-    auto* ev = req->takePayload();
-    delete req;
+  SST::Event* ev = nullptr;
+  while ( (ev = physChannel->recv( sn_vn )) != nullptr ) {
     processIncoming( ev );
   }
   return true;
@@ -467,7 +438,7 @@ void MordredNicSN::resizeVectors() {
 }
 
 MordredInitEvent* MordredNicSN::getInitEvent( MordredInitEvent::Commands cmd ) {
-  auto* ev = static_cast<MordredInitEvent*>( unwrapRequest( sn->recvUntimedData() ) );
+  auto* ev = static_cast<MordredInitEvent*>( physChannel->recvUntimedData() );
   if ( !ev )
     output->fatal( CALL_INFO, -1,
       "MordredNicSN: unable to recv init event (cmd=%d)\n", (int)cmd );
