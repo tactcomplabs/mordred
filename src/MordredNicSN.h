@@ -19,11 +19,11 @@
  * IS a SimpleNetwork.
  *
  * The inner SN can be any matching SimpleNetwork implementation:
- *   mordred.mordredPassthroughSN — for tests (generic raw-link wrapper)
+ *   mordred.genericPhysChannel — for tests (generic raw-link wrapper)
  *   ucie.ucieMultiInterface      — for production UCIe physical links
  *
  * Wire format: the inner SN determines the on-wire format.  With
- * mordredPassthroughSN, the link carries RequestWrapperEvent objects.
+ * genericPhysChannel, the link carries RequestWrapperEvent objects.
  * This is incompatible with legacy MordredNIC / RtrPortControl which use
  * raw baseMordredEvent objects; both ends must use the SN-backed path.
  *

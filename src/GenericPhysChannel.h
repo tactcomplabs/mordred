@@ -1,5 +1,5 @@
 //
-// MordredPassthroughSN.h
+// GenericPhysChannel.h
 //
 // Copyright (C) 2025-2026 Tactical Computing Laboratories, LLC
 // All Rights Reserved
@@ -8,8 +8,8 @@
 // See LICENSE in the top level directory for licensing details
 //
 
-#ifndef MORDRED_MORDREDPASSTHROUGHSN_H
-#define MORDRED_MORDREDPASSTHROUGHSN_H
+#ifndef MORDRED_GENERICPHYSCHANNEL_H
+#define MORDRED_GENERICPHYSCHANNEL_H
 
 // Standard headers
 #include <queue>
@@ -25,7 +25,7 @@ namespace SST::Mordred {
 
 /**
  * Generic SST::Event wrapper that carries a SimpleNetwork::Request across a
- * raw SST::Link.  Used exclusively by MordredPassthroughSN.
+ * raw SST::Link.  Used exclusively by GenericPhysChannel.
  *
  * The entire Request (including its vn field and payload) is preserved, so
  * the receive side can determine VN without inspecting the payload type.
@@ -58,23 +58,23 @@ public:
  *   MordredPortLinkSN   — extracts the baseMordredEvent payload; link carries
  *                          raw Mordred events (wire-format compatible with
  *                          MordredNIC / RtrPortControl).
- *   MordredPassthroughSN — wraps the whole Request; link carries
+ *   GenericPhysChannel — wraps the whole Request; link carries
  *                          RequestWrapperEvent objects (requires the other end
- *                          to also be a MordredPassthroughSN or equivalent).
+ *                          to also be a GenericPhysChannel or equivalent).
  *
- * Use MordredPassthroughSN when both ends are SN-backed components
+ * Use GenericPhysChannel when both ends are SN-backed components
  * (e.g. RtrPortControlSN ↔ MordredNicSN).  Use MordredPortLinkSN for the
  * transitional case where one end is still the legacy direct-link MordredNIC.
  *
  * Port name: the "port_name" parameter names the physical SST::Link that
  * configureLink() will use.
  */
-class MordredPassthroughSN : public Interfaces::SimpleNetwork {
+class GenericPhysChannel : public Interfaces::SimpleNetwork {
 public:
   SST_ELI_REGISTER_SUBCOMPONENT(
-    MordredPassthroughSN,
+    GenericPhysChannel,
     "mordred",
-    "mordredPassthroughSN",
+    "genericPhysChannel",
     SST_ELI_ELEMENT_VERSION( 0, 1, 0 ),
     "Generic SimpleNetwork adapter that forwards Requests over a raw SST::Link via RequestWrapperEvent",
     SST::Interfaces::SimpleNetwork
@@ -90,8 +90,8 @@ public:
 
   SST_ELI_DOCUMENT_STATISTICS()
 
-  MordredPassthroughSN( ComponentId_t id, Params& params, int num_vns );
-  ~MordredPassthroughSN() override = default;
+  GenericPhysChannel( ComponentId_t id, Params& params, int num_vns );
+  ~GenericPhysChannel() override = default;
 
   // --- SimpleNetwork interface ---
 
@@ -123,7 +123,7 @@ public:
   void handleIncoming( SST::Event* ev );
 
   // --- Default constructor for serialization ---
-  MordredPassthroughSN() : Interfaces::SimpleNetwork() {}
+  GenericPhysChannel() : Interfaces::SimpleNetwork() {}
 
   void serialize_order( SST::Core::Serialization::serializer& ser ) override {
     SimpleNetwork::serialize_order( ser );
@@ -137,7 +137,7 @@ public:
     SST_SER( recvQueues );
   }
 
-  ImplementSerializable( SST::Mordred::MordredPassthroughSN );
+  ImplementSerializable( SST::Mordred::GenericPhysChannel );
 
 private:
   Output*       output{};
@@ -153,4 +153,4 @@ private:
 };
 
 } // namespace SST::Mordred
-#endif // MORDRED_MORDREDPASSTHROUGHSN_H
+#endif // MORDRED_GENERICPHYSCHANNEL_H

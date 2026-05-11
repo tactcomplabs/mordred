@@ -22,8 +22,8 @@ set(MordredSrcs
         RtrPortControlSN.cc
         MordredPortLinkSN.h
         MordredPortLinkSN.cc
-        MordredPassthroughSN.h
-        MordredPassthroughSN.cc
+        GenericPhysChannel.h
+        GenericPhysChannel.cc
         MordredNicSN.h
         MordredNicSN.cc
         XbarArbAPI.h

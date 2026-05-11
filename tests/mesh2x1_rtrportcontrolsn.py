@@ -5,12 +5,12 @@
 # contact@tactcomplabs.com
 # See LICENSE in the top level directory for licensing details
 #
-# Exercise RtrPortControlSN + MordredPassthroughSN (router side) and
-# MordredNicSN + MordredPassthroughSN (endpoint side) on a minimal 2-router
+# Exercise RtrPortControlSN + GenericPhysChannel (router side) and
+# MordredNicSN + GenericPhysChannel (endpoint side) on a minimal 2-router
 # (2x1) mesh.
 #
 # Both ends of every link use the SN-backed path.  The physical link carries
-# RequestWrapperEvent objects (the MordredPassthroughSN wire format) rather
+# RequestWrapperEvent objects (the GenericPhysChannel wire format) rather
 # than raw baseMordredEvent objects.
 #
 # Topology:
@@ -82,19 +82,19 @@ rtr_1.addParams(FixedRtrParams)
 rtr_1_topo = rtr_1.setSubComponent("topology", "mordred.MeshTopology")
 rtr_1_topo.addParams({"verbose": 0, "xDim": 2, "yDim": 1})
 
-# ---- Router-router link via RtrPortControlSN + MordredPassthroughSN ----
+# ---- Router-router link via RtrPortControlSN + GenericPhysChannel ----
 #
 # rtr_0_0 uses port1 (EAST); rtr_1_0 uses port3 (WEST).
 # Slot index must match the port number.
 
 pc_0 = rtr_0.setSubComponent("portcontrol", "mordred.rtrPortControlSN", 1)
 pc_0.addParams(PortControlSNParams)
-pif_0 = pc_0.setSubComponent("port_iface", "mordred.mordredPassthroughSN", 0)
+pif_0 = pc_0.setSubComponent("port_iface", "mordred.genericPhysChannel", 0)
 pif_0.addParams({"port_name": "port1", "verbose": 0})
 
 pc_1 = rtr_1.setSubComponent("portcontrol", "mordred.rtrPortControlSN", 3)
 pc_1.addParams(PortControlSNParams)
-pif_1 = pc_1.setSubComponent("port_iface", "mordred.mordredPassthroughSN", 0)
+pif_1 = pc_1.setSubComponent("port_iface", "mordred.genericPhysChannel", 0)
 pif_1.addParams({"port_name": "port3", "verbose": 0})
 
 # Physical router-router link
@@ -102,20 +102,20 @@ rtr_link = sst.Link("link_rtr0_rtr1")
 rtr_0.addLink(rtr_link, "port1", link_latency)
 rtr_1.addLink(rtr_link, "port3", link_latency)
 
-# ---- Endpoint 0 on rtr_0_0 via RtrPortControlSN + MordredPassthroughSN (router side)
-#      and MordredNicSN + MordredPassthroughSN (endpoint side) ----
+# ---- Endpoint 0 on rtr_0_0 via RtrPortControlSN + GenericPhysChannel (router side)
+#      and MordredNicSN + GenericPhysChannel (endpoint side) ----
 #
 # IMPORTANT: both ends of every link must use the same wire format.
-# MordredPassthroughSN puts RequestWrapperEvent objects on the link.
+# GenericPhysChannel puts RequestWrapperEvent objects on the link.
 # Therefore the router's local port (port4) must also use RtrPortControlSN +
-# MordredPassthroughSN — the legacy RtrPortControl fallback is NOT used here.
+# GenericPhysChannel — the legacy RtrPortControl fallback is NOT used here.
 #
 # The physical link name on MordredNicSN is "port" (from SST_ELI_DOCUMENT_PORTS);
 # the inner PassthroughSN accesses it via SHARE_PORTS.
 
 pc_0_ep = rtr_0.setSubComponent("portcontrol", "mordred.rtrPortControlSN", 4)
 pc_0_ep.addParams(PortControlSNParams)
-pif_0_ep = pc_0_ep.setSubComponent("port_iface", "mordred.mordredPassthroughSN", 0)
+pif_0_ep = pc_0_ep.setSubComponent("port_iface", "mordred.genericPhysChannel", 0)
 pif_0_ep.addParams({"port_name": "port4", "verbose": 0})
 
 ep0 = sst.Component("testnic_ep_0", "merlin.test_nic")
@@ -123,7 +123,7 @@ ep0.addParams(FixedTestNicParams)
 ep0.addParams({"id": 0, "num_peers": 2})
 ep0_iface = ep0.setSubComponent("networkIF", "mordred.mordredNicSN")
 ep0_iface.addParams(MordredNicSNParams)
-ep0_sn = ep0_iface.setSubComponent("port_iface", "mordred.mordredPassthroughSN", 0)
+ep0_sn = ep0_iface.setSubComponent("port_iface", "mordred.genericPhysChannel", 0)
 ep0_sn.addParams({"port_name": "port", "verbose": 0})
 
 ep0_link = sst.Link("link_ep0_rtr0")
@@ -134,7 +134,7 @@ ep0_iface.addLink(ep0_link, "port", link_latency)
 
 pc_1_ep = rtr_1.setSubComponent("portcontrol", "mordred.rtrPortControlSN", 4)
 pc_1_ep.addParams(PortControlSNParams)
-pif_1_ep = pc_1_ep.setSubComponent("port_iface", "mordred.mordredPassthroughSN", 0)
+pif_1_ep = pc_1_ep.setSubComponent("port_iface", "mordred.genericPhysChannel", 0)
 pif_1_ep.addParams({"port_name": "port4", "verbose": 0})
 
 ep1 = sst.Component("testnic_ep_1", "merlin.test_nic")
@@ -142,7 +142,7 @@ ep1.addParams(FixedTestNicParams)
 ep1.addParams({"id": 1, "num_peers": 2})
 ep1_iface = ep1.setSubComponent("networkIF", "mordred.mordredNicSN")
 ep1_iface.addParams(MordredNicSNParams)
-ep1_sn = ep1_iface.setSubComponent("port_iface", "mordred.mordredPassthroughSN", 0)
+ep1_sn = ep1_iface.setSubComponent("port_iface", "mordred.genericPhysChannel", 0)
 ep1_sn.addParams({"port_name": "port", "verbose": 0})
 
 ep1_link = sst.Link("link_ep1_rtr1")
