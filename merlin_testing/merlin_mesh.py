@@ -226,7 +226,7 @@ def createSimpleTorus(x_size, y_size, local_ports):
     for y in range(y_size):
         for x in range(x_size):
             rtr_name = "rtr_%d_%d"%(x, y)
-            rtr = sst.Component(rtr_name, "mordred.simple_rtr")
+            rtr = sst.Component(rtr_name, "mordred.mordred_router")
             # north links
             portnum = getNextTopoPort(rtr_name)
             rtr_portname = "rtr_port" + str(portnum)
@@ -281,7 +281,7 @@ class FlattenedButterfly:
         routers = []
         for i in range(self.num_routers):
             rtr_name = "rtr_%d"%(i)
-            routers.append(sst.Component(rtr_name, "mordred.simple_rtr"))
+            routers.append(sst.Component(rtr_name, "mordred.mordred_router"))
             routers[i].addParam( "id", i )
             routers[i].addParams(FixedRtrParams)
             routers[i].addParam( "num_ports", self.radix )
@@ -381,7 +381,7 @@ class Crossbar:
         routers = []
         for i in range(self.num_routers):
             rtr_name = "rtr_%d"%(i)
-            routers.append(sst.Component(rtr_name, "mordred.simple_rtr"))
+            routers.append(sst.Component(rtr_name, "mordred.mordred_router"))
             print("Created router {}".format(rtr_name))
         return routers
 
@@ -455,12 +455,12 @@ createMesh(x_size, y_size, local_ports)
 #flatfly3 = FlattenedButterfly(4, 3) # 64 endpoints
 
 # Stats collection - apparently I don't know the secret handshake because I can get the dummy
-# counter in SimpleRtr to count things, but the stat in RtrPortControl is just a NullStatistic
+# counter in MordredRouter to count things, but the stat in RtrPortControl is just a NullStatistic
 # Fun. Annoying.  SST documentation is clearly insufficient.
 sst.setStatisticLoadLevel(7)
 #stat_params = ( { "rate" : "0ns" } )
 sst.enableAllStatisticsForAllComponents(stat_params)
-#sst.enableAllStatisticsForComponentType("mordred.simple_rtr.rtrPortControl", stat_params, True )
+#sst.enableAllStatisticsForComponentType("mordred.mordred_router.rtrPortControl", stat_params, True )
 #sst.setStatisticOutput("sst.statOutputCSV", { "filepath" : "./stats.csv", "separator" : ", " } )
 
 #EOF

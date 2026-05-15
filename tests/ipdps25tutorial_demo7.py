@@ -109,7 +109,7 @@ for y in range(0, y_size):
         rtr_name = "rtr_%d_%d"%(x, y)
         print("Creating router with name %s"%(rtr_name))
         if rtr_name not in routers:
-            routers[rtr_name] = sst.Component(rtr_name, "mordred.simple_rtr")
+            routers[rtr_name] = sst.Component(rtr_name, "mordred.mordred_router")
         routers[rtr_name].addParam("id", rtr_id)
         routers[rtr_name].addParams(FixedRtrParams)
         routers[rtr_name].addParams(rtr_params)

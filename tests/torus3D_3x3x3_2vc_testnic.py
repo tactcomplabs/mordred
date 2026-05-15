@@ -60,7 +60,7 @@ def createTorus(x_size, y_size, z_size, local_ports):
     for z in range(z_size):
         for y in range(y_size):
             for x in range(x_size):
-                rtr = sst.Component("rtr_%d_%d_%d"%(x, y, z), "mordred.simple_rtr")
+                rtr = sst.Component("rtr_%d_%d_%d"%(x, y, z), "mordred.mordred_router")
                 rtr.addParam("id", rtr_id)
                 rtr.addParams(FixedRtrParams)
                 rtr.addParams(rtr_params)

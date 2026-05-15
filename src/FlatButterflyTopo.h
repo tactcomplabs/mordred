@@ -100,7 +100,7 @@ private:
   uint32_t numRtrPorts;
   std::vector<uint32_t> myAddress;
 
-  std::vector<uint32_t>* perPortConnectedRtr; //owned by SimpleRtr
+  std::vector<uint32_t>* perPortConnectedRtr; //owned by MordredRouter
   std::vector< std::vector<uint32_t> > connectedRtrsByBase; // sized to numRtrPorts
 
   // In the returned vector, index[0] has the least significant digit which is generally ignored by the

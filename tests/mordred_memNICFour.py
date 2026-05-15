@@ -516,28 +516,28 @@ for y in range (0, mesh_stops_y):
         rtr_id = y * mesh_stops_x + x
         nodeNum = rtr_id
 
-        kRtrReq.append(sst.Component("krtr_req_" + str(nodeNum), "mordred.simple_rtr"))
+        kRtrReq.append(sst.Component("krtr_req_" + str(nodeNum), "mordred.mordred_router"))
         kRtrReq[-1].addParam("id", rtr_id)
         kRtrReq[-1].addParams(CtrlRtrParams)
         kRtrReq[-1].addParams(rtr_params)
         rtr_req = kRtrReq[-1].setSubComponent("topology", "mordred.MeshTopology")
         rtr_req.addParams(topo_params)
 
-        kRtrAck.append(sst.Component("krtr_ack_" + str(nodeNum), "mordred.simple_rtr"))
+        kRtrAck.append(sst.Component("krtr_ack_" + str(nodeNum), "mordred.mordred_router"))
         kRtrAck[-1].addParam("id", rtr_id)
         kRtrAck[-1].addParams(CtrlRtrParams)
         kRtrAck[-1].addParams(rtr_params)
         rtr_ack = kRtrAck[-1].setSubComponent("topology", "mordred.MeshTopology")
         rtr_ack.addParams(topo_params)
 
-        kRtrFwd.append(sst.Component("krtr_fwd_" + str(nodeNum), "mordred.simple_rtr"))
+        kRtrFwd.append(sst.Component("krtr_fwd_" + str(nodeNum), "mordred.mordred_router"))
         kRtrFwd[-1].addParam("id", rtr_id)
         kRtrFwd[-1].addParams(CtrlRtrParams)
         kRtrFwd[-1].addParams(rtr_params)
         rtr_fwd = kRtrFwd[-1].setSubComponent("topology", "mordred.MeshTopology")
         rtr_fwd.addParams(topo_params)
 
-        kRtrData.append(sst.Component("krtr_data_" + str(nodeNum), "mordred.simple_rtr"))
+        kRtrData.append(sst.Component("krtr_data_" + str(nodeNum), "mordred.mordred_router"))
         kRtrData[-1].addParam("id", rtr_id)
         kRtrData[-1].addParams(DataRtrParams)
         kRtrData[-1].addParams(rtr_params)

@@ -38,7 +38,7 @@ namespace SST::Mordred {
  *  - If this is an ENDPOINT port, it really only needs one VC; we don't pass that knowledge into
  *    the object and configure it that way though (would be pretty easy since we're passing in the
  *    full params struct)
- *  - Only connected ports should ever be created (via the SimpleRtr constructor) so we don't
+ *  - Only connected ports should ever be created (via the MordredRouter constructor) so we don't
  *      do any checking for that here
  *  - For a given clock tick, if all of the output buffers are empty/blocked from sending,
  *      then this module will try to return credits using a round-robin approach.
@@ -55,11 +55,11 @@ public:
     SST::Mordred::RtrPortControlAPI
   )
 
-  // All of the parameters are handled/passed in from the SimpleRtr
+  // All of the parameters are handled/passed in from the MordredRouter
   SST_ELI_DOCUMENT_PARAMS(
 //    { "verbose", "Sets the output verbsoity", "5" },
     )
-  // For reference, params from SimpleRtr:
+  // For reference, params from MordredRouter:
   // verbose, flit_size, channel_width, input_buf_size, output_buf_size,
 
   // Use the parent ports -- assume anonymous loading
@@ -315,7 +315,7 @@ private:
   std::vector<std::vector<perVcInState>> inStateVec;
   std::vector<std::vector<perVcOutState>> outStateVec;
 
-  // This holds the element for this specific port (SimpleRtr owns it)
+  // This holds the element for this specific port (MordredRouter owns it)
   RtrOwnedSharedObjs *rtrSharedObjs{};
 
   // Statistics

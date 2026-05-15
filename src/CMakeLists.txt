@@ -10,8 +10,8 @@ set(MordredSrcs
         MordredEvents.h
         MordredNIC.h
         MordredNIC.cc
-        SimpleRTR.h
-        SimpleRTR.cc
+        MordredRouter.h
+        MordredRouter.cc
         TopologyAPI.h
         MeshTopology.h
         MeshTopology.cc
