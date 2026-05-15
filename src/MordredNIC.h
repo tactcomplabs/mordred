@@ -13,7 +13,7 @@
 
 
 /**
- * The NIC is designed to get most of its configuration information from the SimpleRtr
+ * The NIC is designed to get most of its configuration information from the MordredRouter
  * rather than as outside parameters.  If we modify this behavior, then we'll need to
  * change the initialization procedure to match.
  *

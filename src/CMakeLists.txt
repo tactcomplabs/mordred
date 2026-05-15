@@ -10,14 +10,21 @@ set(MordredSrcs
         MordredEvents.h
         MordredNIC.h
         MordredNIC.cc
-        SimpleRTR.h
-        SimpleRTR.cc
+        MordredRouter.h
+        MordredRouter.cc
         TopologyAPI.h
         MeshTopology.h
         MeshTopology.cc
         RtrPortControlAPI.h
         RtrPortControl.h
         RtrPortControl.cc
+        RtrPortControlPC.h
+        RtrPortControlPC.cc
+        PhysChannelAPI.h
+        GenericPhysChannel.h
+        GenericPhysChannel.cc
+        MordredNicPC.h
+        MordredNicPC.cc
         XbarArbAPI.h
         XbarArbRR.h
         XbarArbRR.cc

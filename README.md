@@ -20,7 +20,7 @@ make test
 The tests run by `make test` are in the `tests/` folder. 
 
 ### Tested compatibility
-To replace a `merlin.hr_router` using a singlerouter topology, a single `mordred.simple_rtr` can be used with a 1x1 mesh topology.  The links between the endpoints and the `merlin.hr_router` then become links between the endpoints and the local ports of `mordred.simple_rtr`
+To replace a `merlin.hr_router` using a singlerouter topology, a single `mordred.mordred_router` can be used with a 1x1 mesh topology.  The links between the endpoints and the `merlin.hr_router` then become links between the endpoints and the local ports of `mordred.mordred_router`
 
 The `mordred.mordredNIC` subcomponent works in the subcomponent slots of `memHierarchy.MemNIC` and `memHierarchy.MemNICFour`.  See `tests/ipdps25tutorial_demo7.py` and `tests/mordred_memNICFour.py` respectively.
 
@@ -81,7 +81,7 @@ all the packets that are ready for an allocation, it can operate at whatever lev
 
 We do a similar thing for the flits that are in need of switch allocation.
 
-Currently, the SimpleRtr performs a switch allocation on a per packet basis however, it should be able to handle doing allocations
+Currently, the MordredRouter performs a switch allocation on a per packet basis however, it should be able to handle doing allocations
 on a per clock tick basis (this should be tested).
 
 ## Notes on the initialization process

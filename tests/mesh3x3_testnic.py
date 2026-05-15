@@ -56,7 +56,7 @@ def createMesh(x_size, y_size, local_ports):
     }
     for y in range(y_size):
         for x in range(x_size):
-            rtr = sst.Component("rtr_%d_%d"%(x, y), "mordred.simple_rtr")
+            rtr = sst.Component("rtr_%d_%d"%(x, y), "mordred.mordred_router")
             rtr.addParam("id", rtr_id)
             rtr.addParams(FixedRtrParams)
             rtr.addParams(rtr_params)

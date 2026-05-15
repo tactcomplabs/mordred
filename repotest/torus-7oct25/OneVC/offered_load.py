@@ -80,7 +80,7 @@ def createMesh(x_size, y_size, local_ports):
     }
     for y in range(y_size):
         for x in range(x_size):
-            rtr = sst.Component("rtr_%d_%d"%(x, y), "mordred.simple_rtr")
+            rtr = sst.Component("rtr_%d_%d"%(x, y), "mordred.mordred_router")
             rtr.addParam("id", rtr_id)
             rtr.addParams(FixedRtrParams)
             rtr.addParams(rtr_params)
@@ -162,7 +162,7 @@ def createSimpleTorus(x_size, y_size, local_ports):
     for y in range(y_size):
         for x in range(x_size):
             rtr_name = "rtr_%d_%d"%(x, y)
-            rtr = sst.Component(rtr_name, "mordred.simple_rtr")
+            rtr = sst.Component(rtr_name, "mordred.mordred_router")
             rtr.addParam("id", rtr_id)
             rtr.addParams(FixedRtrParams)
             rtr.addParams(rtr_params)
@@ -258,7 +258,7 @@ class FlattenedButterfly:
         routers = []
         for i in range(self.num_routers):
             rtr_name = "rtr_%d"%(i)
-            routers.append(sst.Component(rtr_name, "mordred.simple_rtr"))
+            routers.append(sst.Component(rtr_name, "mordred.mordred_router"))
             routers[i].addParam( "id", i )
             routers[i].addParams(FixedRtrParams)
             routers[i].addParam( "num_ports", self.radix )
@@ -376,7 +376,7 @@ createSimpleTorus(x_size, y_size, local_ports)
 # Stats collection
 sst.setStatisticLoadLevel(7)
 sst.enableAllStatisticsForAllComponents(stat_params)
-#sst.enableAllStatisticsForComponentType("mordred.simple_rtr.rtrPortControl", stat_params, True )
+#sst.enableAllStatisticsForComponentType("mordred.mordred_router.rtrPortControl", stat_params, True )
 #sst.setStatisticOutput("sst.statOutputCSV", { "filepath" : "./stats.csv", "separator" : ", " } )
 
 #EOF

@@ -1,5 +1,5 @@
 //
-// SimpleRTR.cc
+// MordredRouter.cc
 //
 // Copyright (C) 2025-2026 Tactical Computing Laboratories, LLC
 // All Rights Reserved
@@ -14,30 +14,30 @@
 
 #include "MordredEvents.h"
 #include "RtrPortControlAPI.h"
-#include "SimpleRTR.h"
+#include "MordredRouter.h"
 
 using namespace SST;
 using namespace SST::Mordred;
 
-SimpleRTR::SimpleRTR( ComponentId_t cid, Params& params ) : Component( cid ) {
+MordredRouter::MordredRouter( ComponentId_t cid, Params& params ) : Component( cid ) {
 
   auto Verbosity = params.find<uint32_t>( "verbose", 5 );
   // Initialize the output handler
-  output.init( "SimpleRTR[" + getName() + ":@p:@t]: ", Verbosity, 0, SST::Output::STDOUT );
+  output.init( "MordredRouter[" + getName() + ":@p:@t]: ", Verbosity, 0, SST::Output::STDOUT );
   //output.setVerboseMask( DEBUG_INIT_PHASE );
 
   id = params.find<uint32_t>("id",UINT32_MAX);
   if ( id == UINT32_MAX ) {
-    output.fatal(CALL_INFO, -1, "SimpleRTR requires id to be specified\n");
+    output.fatal(CALL_INFO, -1, "MordredRouter requires id to be specified\n");
   }
 
   auto clockFreq = params.find<std::string>("clock", "1GHz");
-  timeConverter = registerClock( clockFreq, new Clock::Handler2<SimpleRTR, &SimpleRTR::clockTick>(this) );
+  timeConverter = registerClock( clockFreq, new Clock::Handler2<MordredRouter, &MordredRouter::clockTick>(this) );
 
   numPorts = params.find<uint32_t>("num_ports", 3);
   numLocalPorts = params.find<uint32_t>( "num_local_ports", UINT32_MAX );
   if ( numLocalPorts == UINT32_MAX ) {
-    output.fatal( CALL_INFO, -1, "SimpleRTR requires num_local_ports to be specified\n" );
+    output.fatal( CALL_INFO, -1, "MordredRouter requires num_local_ports to be specified\n" );
   }
   numVns = params.find<uint32_t>( "num_vns", 1 );
   numVcs = params.find<uint32_t>( "num_vcs", 1 );
@@ -52,19 +52,38 @@ SimpleRTR::SimpleRTR( ComponentId_t cid, Params& params ) : Component( cid ) {
     output.fatal( CALL_INFO, -1, "Couldn't load topology\n" );
 
   perPortSharedObjs.resize( numPorts );
-  // Configure local/endpt ports -- borrowed this approach from
-  // sst-elements/src/sst/elements/simpleElementExample/basicLinks.cc
+  // Configure local/endpt ports.
+  // Preference: user-provided portcontrol subcomponent at each slot index
+  // (e.g. rtrPortControlPC for SimpleNetwork-backed ports).
+  // Fallback: anonymous rtrPortControl when a direct link named "portN" is present.
+  // An unconnected port produces a nullptr entry.
+  SubComponentSlotInfo* port_ctrl_slot = getSubComponentSlotInfo("portcontrol");
+
   for ( uint32_t i = 0; i < numPorts; i++ ) {
     std::string linkname = "port" + std::to_string(i);
-    if ( isPortConnected( linkname ) ) {
+    RtrPortControlAPI* pc = nullptr;
+
+    if ( port_ctrl_slot && port_ctrl_slot->isPopulated( static_cast<int>(i) ) ) {
+      // User-configured portcontrol at this index (params come from Python slot config)
       perPortSharedObjs.at(i).allocateVecs( numVns, numVcs );
-      portsVec.push_back( loadAnonymousSubComponent<RtrPortControlAPI>("mordred.rtrPortControl", "portcontrol", (int)i,
-        ComponentInfo::SHARE_PORTS | ComponentInfo::INSERT_STATS, params, topology, &perPortSharedObjs[i], id, i) );
+      pc = port_ctrl_slot->create<RtrPortControlAPI>(
+        static_cast<int>(i),
+        ComponentInfo::SHARE_PORTS | ComponentInfo::INSERT_STATS,
+        topology, &perPortSharedObjs[i], id, i);
+    } else if ( isPortConnected( linkname ) ) {
+      // Legacy/default: direct link with anonymous rtrPortControl
+      perPortSharedObjs.at(i).allocateVecs( numVns, numVcs );
+      pc = loadAnonymousSubComponent<RtrPortControlAPI>(
+        "mordred.rtrPortControl", "portcontrol", static_cast<int>(i),
+        ComponentInfo::SHARE_PORTS | ComponentInfo::INSERT_STATS,
+        params, topology, &perPortSharedObjs[i], id, i);
     } else {
-      output.verbose( CALL_INFO, 5, 0, "Port %u with name=%s unconnected\n", i, linkname.c_str() );
-      portsVec.push_back( nullptr );
+      output.verbose( CALL_INFO, 5, 0, "Port %u (%s) unconnected\n", i, linkname.c_str() );
     }
+
+    portsVec.push_back( pc );
   }
+  delete port_ctrl_slot;
 
   arbiter = loadAnonymousSubComponent<XbarArbAPI>( "mordred.xbarArbRR", "arbiter", 0,
     ComponentInfo::SHARE_NONE, params, id, numPorts, numVns, numVcs );
@@ -93,7 +112,7 @@ SimpleRTR::SimpleRTR( ComponentId_t cid, Params& params ) : Component( cid ) {
   output.flush();
 }
 
-SimpleRTR::~SimpleRTR() {
+MordredRouter::~MordredRouter() {
   for ( auto &port : portsVec )
       delete port;
   delete vcAlloc;
@@ -101,8 +120,8 @@ SimpleRTR::~SimpleRTR() {
   delete topology;
 }
 
-void SimpleRTR::init( uint32_t phase ) {
-  //output.verbose( CALL_INFO, 5, 0, "SimpleRTR::init(%" PRIu32 ")\n", phase );
+void MordredRouter::init( uint32_t phase ) {
+  //output.verbose( CALL_INFO, 5, 0, "MordredRouter::init(%" PRIu32 ")\n", phase );
   //output.flush();
 
   topology->init( phase );
@@ -152,8 +171,8 @@ void SimpleRTR::init( uint32_t phase ) {
   }
 }
 
-void SimpleRTR::setup() {
-  //output.verbose(CALL_INFO, 5, 0, "SimpleRTR::setup\n");
+void MordredRouter::setup() {
+  //output.verbose(CALL_INFO, 5, 0, "MordredRouter::setup\n");
   //output.flush();
 
   topology->setup();
@@ -164,8 +183,8 @@ void SimpleRTR::setup() {
       port->setup();
 }
 
-void SimpleRTR::complete( uint32_t phase ) {
-  //output.verbose(CALL_INFO, 5, 0, "SimpleRTR::complete(%" PRIu32 ")\n", phase);
+void MordredRouter::complete( uint32_t phase ) {
+  //output.verbose(CALL_INFO, 5, 0, "MordredRouter::complete(%" PRIu32 ")\n", phase);
   //output.flush();
 
   topology->complete( phase );
@@ -195,8 +214,8 @@ void SimpleRTR::complete( uint32_t phase ) {
   }
 }
 
-void SimpleRTR::finish() {
-  //output.verbose(CALL_INFO, 5, 0, "SimpleRTR::finish\n");
+void MordredRouter::finish() {
+  //output.verbose(CALL_INFO, 5, 0, "MordredRouter::finish\n");
   //output.flush();
   topology->finish();
   vcAlloc->finish();
@@ -206,7 +225,7 @@ void SimpleRTR::finish() {
       port->finish();
 }
 
-bool SimpleRTR::clockTick( Cycle_t cycle ) {
+bool MordredRouter::clockTick( Cycle_t cycle ) {
   // May want/need to look at how we want to time/order ticking the ports and running the crossbar/arbitration here
 
   // For all router ports, see if we can receive a flit through the crossbar
