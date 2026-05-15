@@ -1,5 +1,5 @@
 //
-// MordredNicSN.h
+// MordredNicPC.h
 //
 // Copyright (C) 2025-2026 Tactical Computing Laboratories, LLC
 // All Rights Reserved
@@ -8,11 +8,11 @@
 // See LICENSE in the top level directory for licensing details
 //
 
-#ifndef MORDRED_MORDREDNICSN_H
-#define MORDRED_MORDREDNICSN_H
+#ifndef MORDRED_MORDREDNICPC_H
+#define MORDRED_MORDREDNICPC_H
 
 /**
- * MordredNicSN is a version of MordredNIC where the raw SST::Link to the
+ * MordredNicPC is a version of MordredNIC where the raw SST::Link to the
  * router is replaced by an inner SST::Interfaces::SimpleNetwork subcomponent
  * (slot "port_iface").  From the perspective of the outer host component
  * (e.g. merlin.test_nic), this class is identical to MordredNIC — it still
@@ -48,13 +48,13 @@
 
 namespace SST::Mordred {
 
-class MordredNicSN : public Interfaces::SimpleNetwork {
+class MordredNicPC : public Interfaces::SimpleNetwork {
 
 public:
   SST_ELI_REGISTER_SUBCOMPONENT(
-    MordredNicSN,
+    MordredNicPC,
     "mordred",
-    "mordredNicSN",
+    "mordredNicPC",
     SST_ELI_ELEMENT_VERSION( 0, 1, 0 ),
     "SimpleNetwork-backed Mordred NIC endpoint; uses inner SimpleNetwork for physical link",
     SST::Interfaces::SimpleNetwork
@@ -84,8 +84,8 @@ public:
     {"average_packet_size", "Average packet size in number of flits",           "unitless", 3}
   )
 
-  MordredNicSN( ComponentId_t cid, Params& params, int vns );
-  ~MordredNicSN() override = default;
+  MordredNicPC( ComponentId_t cid, Params& params, int vns );
+  ~MordredNicPC() override = default;
 
   // SST lifecycle
   void init(     uint32_t phase ) override;
@@ -117,7 +117,7 @@ public:
   bool onReceive( int sn_vn );
 
   // Default constructor for serialization
-  MordredNicSN() : Interfaces::SimpleNetwork() {}
+  MordredNicPC() : Interfaces::SimpleNetwork() {}
 
   void serialize_order( SST::Core::Serialization::serializer& ser ) override {
     SST_SER( output );
@@ -147,7 +147,7 @@ public:
     SST_SER( statAvgFlitsPerPacket );
   }
 
-  ImplementSerializable( SST::Mordred::MordredNicSN );
+  ImplementSerializable( SST::Mordred::MordredNicPC );
 
 private:
   void resizeVectors();
@@ -200,4 +200,4 @@ private:
 };
 
 } // namespace SST::Mordred
-#endif // MORDRED_MORDREDNICSN_H
+#endif // MORDRED_MORDREDNICPC_H

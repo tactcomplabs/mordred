@@ -1,5 +1,5 @@
 //
-// MordredNicSN.cc
+// MordredNicPC.cc
 //
 // Copyright (C) 2025-2026 Tactical Computing Laboratories, LLC
 // All Rights Reserved
@@ -12,7 +12,7 @@
 
 #include "sst_config.h"
 
-#include "MordredNicSN.h"
+#include "MordredNicPC.h"
 #include "MordredEvents.h"
 
 using namespace SST;
@@ -21,13 +21,13 @@ using namespace SST::Interfaces;
 
 // ---- Constructor ----
 
-MordredNicSN::MordredNicSN( ComponentId_t cid, Params& params, int vns )
+MordredNicPC::MordredNicPC( ComponentId_t cid, Params& params, int vns )
   : SimpleNetwork( cid ),
     netID( -1 )
 {
   const auto verbosity = params.find<uint32_t>( "verbose", 5 );
   output = new Output(
-    "MordredNicSN[" + getName() + ":@p:@t]: ",
+    "MordredNicPC[" + getName() + ":@p:@t]: ",
     verbosity, 0, Output::STDOUT );
 
   // Buffer sizes
@@ -54,16 +54,16 @@ MordredNicSN::MordredNicSN( ComponentId_t cid, Params& params, int vns )
     vns );
   if ( !physChannel )
     output->fatal( CALL_INFO, -1,
-      "MordredNicSN: no PhysChannelAPI subcomponent found in slot 'port_iface'\n" );
+      "MordredNicPC: no PhysChannelAPI subcomponent found in slot 'port_iface'\n" );
 
   physChannel->setNotifyOnReceive(
-    new PhysChannelAPI::Handler2<MordredNicSN,
-                                 &MordredNicSN::onReceive>( this ) );
+    new PhysChannelAPI::Handler2<MordredNicPC,
+                                 &MordredNicPC::onReceive>( this ) );
 
   // Clock
   const auto clock_freq = params.find<std::string>( "clock", "1GHz" );
   registerClock( clock_freq,
-    new Clock::Handler2<MordredNicSN, &MordredNicSN::clockTick>( this ) );
+    new Clock::Handler2<MordredNicPC, &MordredNicPC::clockTick>( this ) );
 
   // Initial bandwidth estimate (updated in init phase 2 when flitSize is known)
   UnitAlgebra ua_cf( clock_freq );
@@ -74,12 +74,12 @@ MordredNicSN::MordredNicSN( ComponentId_t cid, Params& params, int vns )
   statAvgNocLatency     = registerStatistic<double>( "average_noc_latency" );
   statAvgFlitsPerPacket = registerStatistic<double>( "average_packet_size" );
 
-  output->verbose( CALL_INFO, 5, 0, "MordredNicSN constructed\n" );
+  output->verbose( CALL_INFO, 5, 0, "MordredNicPC constructed\n" );
 }
 
 // ---- Lifecycle ----
 
-void MordredNicSN::init( uint32_t phase ) {
+void MordredNicPC::init( uint32_t phase ) {
   physChannel->init( phase );
 
   output->verbose( CALL_INFO, 5, 0, "START init phase=%" PRIu32 "\n", phase );
@@ -98,10 +98,10 @@ void MordredNicSN::init( uint32_t phase ) {
     auto* init_ev = static_cast<MordredInitEvent*>( physChannel->recvUntimedData() );
     if ( !init_ev )
       output->fatal( CALL_INFO, -1,
-        "MordredNicSN: unable to recv REPORT_ROUTER in phase 1\n" );
+        "MordredNicPC: unable to recv REPORT_ROUTER in phase 1\n" );
     if ( init_ev->command != MordredInitEvent::REPORT_ROUTER )
       output->fatal( CALL_INFO, -1,
-        "MordredNicSN: expected REPORT_ROUTER, got command=%d\n",
+        "MordredNicPC: expected REPORT_ROUTER, got command=%d\n",
         (int)init_ev->command );
     delete init_ev;
 
@@ -186,11 +186,11 @@ void MordredNicSN::init( uint32_t phase ) {
   output->verbose( CALL_INFO, 5, 0, "END init phase=%" PRIu32 "\n", phase );
 }
 
-void MordredNicSN::setup() {
+void MordredNicPC::setup() {
   physChannel->setup();
 }
 
-void MordredNicSN::complete( uint32_t phase ) {
+void MordredNicPC::complete( uint32_t phase ) {
   physChannel->complete( phase );
 
   SST::Event* ev = nullptr;
@@ -210,7 +210,7 @@ void MordredNicSN::complete( uint32_t phase ) {
   }
 }
 
-void MordredNicSN::finish() {
+void MordredNicPC::finish() {
   const double avg_ticks =
     totalPackets > 0 ? (double)totalNocLatency / (double)totalPackets : -1.0;
   statPacketsRecv->addData( totalPackets );
@@ -222,11 +222,11 @@ void MordredNicSN::finish() {
 
 // ---- SimpleNetwork outer interface ----
 
-void MordredNicSN::sendUntimedData( Request* req ) {
+void MordredNicPC::sendUntimedData( Request* req ) {
   physChannel->sendUntimedData( new MordredInitEvent( req ) );
 }
 
-SimpleNetwork::Request* MordredNicSN::recvUntimedData() {
+SimpleNetwork::Request* MordredNicPC::recvUntimedData() {
   if ( initEvents.empty() ) return nullptr;
   auto* ev  = initEvents.front();
   initEvents.pop();
@@ -235,7 +235,7 @@ SimpleNetwork::Request* MordredNicSN::recvUntimedData() {
   return req;
 }
 
-bool MordredNicSN::send( Request* req, int vn ) {
+bool MordredNicPC::send( Request* req, int vn ) {
   const auto u_vn = static_cast<uint32_t>( vn );
   if ( numVns <= u_vn )
     output->fatal( CALL_INFO, -1,
@@ -265,7 +265,7 @@ bool MordredNicSN::send( Request* req, int vn ) {
   return true;
 }
 
-SimpleNetwork::Request* MordredNicSN::recv( int vn ) {
+SimpleNetwork::Request* MordredNicPC::recv( int vn ) {
   const auto u_vn = static_cast<uint32_t>( vn );
   if ( numVns <= u_vn )
     output->fatal( CALL_INFO, -1,
@@ -284,7 +284,7 @@ SimpleNetwork::Request* MordredNicSN::recv( int vn ) {
   return req;
 }
 
-bool MordredNicSN::spaceToSend( int vn, int num_bits ) {
+bool MordredNicPC::spaceToSend( int vn, int num_bits ) {
   const auto u_vn = static_cast<uint32_t>( vn );
   if ( numVns <= u_vn )
     output->fatal( CALL_INFO, -1,
@@ -292,7 +292,7 @@ bool MordredNicSN::spaceToSend( int vn, int num_bits ) {
   return outbufCredits.at( u_vn ) >= calcNumFlits( static_cast<uint32_t>( num_bits ) );
 }
 
-bool MordredNicSN::requestToReceive( int vn ) {
+bool MordredNicPC::requestToReceive( int vn ) {
   const auto u_vn = static_cast<uint32_t>( vn );
   if ( numVns <= u_vn )
     output->fatal( CALL_INFO, -1,
@@ -302,7 +302,7 @@ bool MordredNicSN::requestToReceive( int vn ) {
 
 // ---- Clock ----
 
-bool MordredNicSN::clockTick( Cycle_t cycle ) {
+bool MordredNicPC::clockTick( Cycle_t cycle ) {
   bool sent = false;
 
   // Send one flit per tick (with router credits)
@@ -358,7 +358,7 @@ bool MordredNicSN::clockTick( Cycle_t cycle ) {
 
 // ---- Inner channel receive callback ----
 
-bool MordredNicSN::onReceive( int sn_vn ) {
+bool MordredNicPC::onReceive( int sn_vn ) {
   SST::Event* ev = nullptr;
   while ( (ev = physChannel->recv( sn_vn )) != nullptr ) {
     processIncoming( ev );
@@ -366,7 +366,7 @@ bool MordredNicSN::onReceive( int sn_vn ) {
   return true;
 }
 
-void MordredNicSN::processIncoming( SST::Event* ev ) {
+void MordredNicPC::processIncoming( SST::Event* ev ) {
   auto* bev = static_cast<baseMordredEvent*>( ev );
   switch ( bev->getType() ) {
 
@@ -424,9 +424,9 @@ void MordredNicSN::processIncoming( SST::Event* ev ) {
 
 // ---- Private helpers ----
 
-void MordredNicSN::resizeVectors() {
+void MordredNicPC::resizeVectors() {
   if ( numVns == 0 )
-    output->fatal( CALL_INFO, -1, "MordredNicSN: numVns is 0 in resizeVectors\n" );
+    output->fatal( CALL_INFO, -1, "MordredNicPC: numVns is 0 in resizeVectors\n" );
 
   inBuf.resize( numVns );
   outBuf.resize( numVns );
@@ -437,11 +437,11 @@ void MordredNicSN::resizeVectors() {
   inReturnCredits.resize( numVns, 0 );
 }
 
-MordredInitEvent* MordredNicSN::getInitEvent( MordredInitEvent::Commands cmd ) {
+MordredInitEvent* MordredNicPC::getInitEvent( MordredInitEvent::Commands cmd ) {
   auto* ev = static_cast<MordredInitEvent*>( physChannel->recvUntimedData() );
   if ( !ev )
     output->fatal( CALL_INFO, -1,
-      "MordredNicSN: unable to recv init event (cmd=%d)\n", (int)cmd );
+      "MordredNicPC: unable to recv init event (cmd=%d)\n", (int)cmd );
   if ( ev->getType() != baseMordredEvent::INITIALIZATION )
     output->fatal( CALL_INFO, -1,
       "getInitEvent: unexpected event type=%d\n", (int)ev->getType() );
@@ -452,7 +452,7 @@ MordredInitEvent* MordredNicSN::getInitEvent( MordredInitEvent::Commands cmd ) {
   return ev;
 }
 
-int32_t MordredNicSN::calcNumFlits( uint32_t num_bits ) {
+int32_t MordredNicPC::calcNumFlits( uint32_t num_bits ) {
   auto num_flits = static_cast<int32_t>( std::ceil( (float)num_bits / (float)flitSize ) );
   if ( num_flits < 2 ) num_flits = 2;
   return num_flits;

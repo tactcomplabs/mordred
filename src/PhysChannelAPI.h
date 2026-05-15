@@ -19,8 +19,8 @@ namespace SST::Mordred {
  * Abstract base class for Mordred physical channel subcomponents.
  *
  * A physical channel moves SST::Event* objects between two endpoints over a
- * raw SST::Link. It is the pluggable transport layer beneath MordredNicSN and
- * RtrPortControlSN. Multiple virtual networks (VNs) are supported for
+ * raw SST::Link. It is the pluggable transport layer beneath MordredNicPC and
+ * RtrPortControlPC. Multiple virtual networks (VNs) are supported for
  * ordering and flow-control separation.
  *
  * VN count is passed as a constructor argument so implementations can size

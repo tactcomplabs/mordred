@@ -1,5 +1,5 @@
 //
-// RtrPortControlSN.h
+// RtrPortControlPC.h
 //
 // Copyright (C) 2025-2026 Tactical Computing Laboratories, LLC
 // All Rights Reserved
@@ -8,8 +8,8 @@
 // See LICENSE in the top level directory for licensing details
 //
 
-#ifndef MORDRED_RTRPORTCONTROLSN_H
-#define MORDRED_RTRPORTCONTROLSN_H
+#ifndef MORDRED_RTRPORTCONTROLPC_H
+#define MORDRED_RTRPORTCONTROLPC_H
 
 // Local SST config
 #include "sst_config.h"
@@ -36,12 +36,12 @@ namespace SST::Mordred {
  * params forwarded to the SN subcomponent so it calls configureLink("portN").
  * The SN implementation must support the "port_name" parameter.
  */
-class RtrPortControlSN : public RtrPortControlAPI {
+class RtrPortControlPC : public RtrPortControlAPI {
 public:
   SST_ELI_REGISTER_SUBCOMPONENT(
-    RtrPortControlSN,
+    RtrPortControlPC,
     "mordred",
-    "rtrPortControlSN",
+    "rtrPortControlPC",
     SST_ELI_ELEMENT_VERSION( 0, 1, 0 ),
     "SimpleNetwork-backed port control for the Mordred router",
     SST::Mordred::RtrPortControlAPI
@@ -66,10 +66,10 @@ public:
     {"output_stalls",    "Number of cycles stalled on output",    "unitless", 3}
   )
 
-  RtrPortControlSN( ComponentId_t id, Params& params, TopologyAPI* topology,
+  RtrPortControlPC( ComponentId_t id, Params& params, TopologyAPI* topology,
                     RtrOwnedSharedObjs* rtr_shared_objs, uint32_t rtr_num, uint32_t port_num );
 
-  ~RtrPortControlSN() final = default;
+  ~RtrPortControlPC() final = default;
 
   // Lifecycle
   void init(unsigned int phase) final;
@@ -205,7 +205,7 @@ public:
   uint32_t getConnectedRtrId() const final { return connectedRtrId; }
 
   /// default constructor (for serialization)
-  RtrPortControlSN() : RtrPortControlAPI() {}
+  RtrPortControlPC() : RtrPortControlAPI() {}
 
   void serialize_order(SST::Core::Serialization::serializer& ser) override {
     SST_SER(output);
@@ -241,7 +241,7 @@ public:
     SST_SER(statLinkOutputStalledCnt);
   }
 
-  ImplementSerializable(SST::Mordred::RtrPortControlSN);
+  ImplementSerializable(SST::Mordred::RtrPortControlPC);
 
 private:
   void allocateBuffers();
@@ -289,4 +289,4 @@ private:
 };
 
 } // namespace SST::Mordred
-#endif // MORDRED_RTRPORTCONTROLSN_H
+#endif // MORDRED_RTRPORTCONTROLPC_H

@@ -18,13 +18,13 @@ set(MordredSrcs
         RtrPortControlAPI.h
         RtrPortControl.h
         RtrPortControl.cc
-        RtrPortControlSN.h
-        RtrPortControlSN.cc
+        RtrPortControlPC.h
+        RtrPortControlPC.cc
         PhysChannelAPI.h
         GenericPhysChannel.h
         GenericPhysChannel.cc
-        MordredNicSN.h
-        MordredNicSN.cc
+        MordredNicPC.h
+        MordredNicPC.cc
         XbarArbAPI.h
         XbarArbRR.h
         XbarArbRR.cc

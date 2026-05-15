@@ -54,7 +54,7 @@ SimpleRTR::SimpleRTR( ComponentId_t cid, Params& params ) : Component( cid ) {
   perPortSharedObjs.resize( numPorts );
   // Configure local/endpt ports.
   // Preference: user-provided portcontrol subcomponent at each slot index
-  // (e.g. rtrPortControlSN for SimpleNetwork-backed ports).
+  // (e.g. rtrPortControlPC for SimpleNetwork-backed ports).
   // Fallback: anonymous rtrPortControl when a direct link named "portN" is present.
   // An unconnected port produces a nullptr entry.
   SubComponentSlotInfo* port_ctrl_slot = getSubComponentSlotInfo("portcontrol");

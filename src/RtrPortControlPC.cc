@@ -1,5 +1,5 @@
 //
-// RtrPortControlSN.cc
+// RtrPortControlPC.cc
 //
 // Copyright (C) 2025-2026 Tactical Computing Laboratories, LLC
 // All Rights Reserved
@@ -14,7 +14,7 @@
 #include "sst_config.h"
 
 #include "MordredEvents.h"
-#include "RtrPortControlSN.h"
+#include "RtrPortControlPC.h"
 #include "TopologyAPI.h"
 
 // Needed for SimpleNetwork::Request trace-type constants referenced in flit
@@ -25,7 +25,7 @@ using namespace SST;
 using namespace SST::Mordred;
 using namespace SST::Interfaces;
 
-RtrPortControlSN::RtrPortControlSN( ComponentId_t id, Params& params, TopologyAPI* topology,
+RtrPortControlPC::RtrPortControlPC( ComponentId_t id, Params& params, TopologyAPI* topology,
   RtrOwnedSharedObjs* rtr_shared_objs, uint32_t rtr_num, uint32_t port_num ) :
   RtrPortControlAPI( id ),
   topo( topology ),
@@ -35,18 +35,18 @@ RtrPortControlSN::RtrPortControlSN( ComponentId_t id, Params& params, TopologyAP
 {
   const auto verbosity = params.find<uint32_t>("verbose", 5);
   output = new Output(
-    "RtrPortControlSN[[" + std::to_string(rtrId) + "." + std::to_string(portId) + "]:@p:@t]: ",
+    "RtrPortControlPC[[" + std::to_string(rtrId) + "." + std::to_string(portId) + "]:@p:@t]: ",
     verbosity, 0, Output::STDOUT);
 
   if ( rtrSharedObjs == nullptr )
-    output->fatal(CALL_INFO_LONG, 1, "RtrPortControlSN: rtr_shared_objs must not be null\n");
+    output->fatal(CALL_INFO_LONG, 1, "RtrPortControlPC: rtr_shared_objs must not be null\n");
 
   numVns = rtrSharedObjs->needVcAlloc.size();
   numVcs = rtrSharedObjs->needVcAlloc.at(0).size();
 
   auto flit_size_ua = params.find<UnitAlgebra>("flit_size", "32b");
   if ( !flit_size_ua.hasUnits("b") && !flit_size_ua.hasUnits("B") ) {
-    output->fatal(CALL_INFO, -1, "RtrPortControlSN: flit_size must be specified in bits (b) or bytes (B): %s\n",
+    output->fatal(CALL_INFO, -1, "RtrPortControlPC: flit_size must be specified in bits (b) or bytes (B): %s\n",
       flit_size_ua.toStringBestSI().c_str());
   }
   if ( flit_size_ua.hasUnits("B") )
@@ -56,9 +56,9 @@ RtrPortControlSN::RtrPortControlSN( ComponentId_t id, Params& params, TopologyAP
   bool found = false;
   auto buf_size_ua = params.find<UnitAlgebra>("input_buf_size", found);
   if ( !found )
-    output->fatal(CALL_INFO_LONG, 1, "RtrPortControlSN: input_buf_size must be specified\n");
+    output->fatal(CALL_INFO_LONG, 1, "RtrPortControlPC: input_buf_size must be specified\n");
   if ( !buf_size_ua.hasUnits("b") && !buf_size_ua.hasUnits("B") )
-    output->fatal(CALL_INFO, -1, "RtrPortControlSN: input_buf_size must be in bits (b) or bytes (B): %s\n",
+    output->fatal(CALL_INFO, -1, "RtrPortControlPC: input_buf_size must be in bits (b) or bytes (B): %s\n",
       buf_size_ua.toStringBestSI().c_str());
   if ( buf_size_ua.hasUnits("B") )
     buf_size_ua *= UnitAlgebra("8b/B");
@@ -70,9 +70,9 @@ RtrPortControlSN::RtrPortControlSN( ComponentId_t id, Params& params, TopologyAP
 
   buf_size_ua = params.find<UnitAlgebra>("output_buf_size", found);
   if ( !found )
-    output->fatal(CALL_INFO_LONG, 1, "RtrPortControlSN: output_buf_size must be specified\n");
+    output->fatal(CALL_INFO_LONG, 1, "RtrPortControlPC: output_buf_size must be specified\n");
   if ( !buf_size_ua.hasUnits("b") && !buf_size_ua.hasUnits("B") )
-    output->fatal(CALL_INFO, -1, "RtrPortControlSN: output_buf_size must be in bits (b) or bytes (B): %s\n",
+    output->fatal(CALL_INFO, -1, "RtrPortControlPC: output_buf_size must be in bits (b) or bytes (B): %s\n",
       buf_size_ua.toStringBestSI().c_str());
   if ( buf_size_ua.hasUnits("B") )
     buf_size_ua *= UnitAlgebra("8b/B");
@@ -89,11 +89,11 @@ RtrPortControlSN::RtrPortControlSN( ComponentId_t id, Params& params, TopologyAP
 
   if ( !physChannel )
     output->fatal(CALL_INFO, -1,
-      "RtrPortControlSN: no PhysChannelAPI subcomponent found in slot 'port_iface'\n");
+      "RtrPortControlPC: no PhysChannelAPI subcomponent found in slot 'port_iface'\n");
 
   physChannel->setNotifyOnReceive(
-    new PhysChannelAPI::Handler2<RtrPortControlSN,
-                                 &RtrPortControlSN::onReceive>(this));
+    new PhysChannelAPI::Handler2<RtrPortControlPC,
+                                 &RtrPortControlPC::onReceive>(this));
 
   allocateBuffers();
 
@@ -102,7 +102,7 @@ RtrPortControlSN::RtrPortControlSN( ComponentId_t id, Params& params, TopologyAP
     rtrId, portId, inBufSize, outBufSize);
 }
 
-void RtrPortControlSN::allocateBuffers() {
+void RtrPortControlPC::allocateBuffers() {
   const auto total_credits = outBufSize / flitSize;
 
   inStateVec.resize(numVns);
@@ -140,7 +140,7 @@ void RtrPortControlSN::allocateBuffers() {
 
 // ---- Lifecycle ----
 
-void RtrPortControlSN::init( unsigned int phase ) {
+void RtrPortControlPC::init( unsigned int phase ) {
   physChannel->init(phase);
 
   switch ( phase ) {
@@ -164,7 +164,7 @@ void RtrPortControlSN::init( unsigned int phase ) {
   case 1: {
     SST::Event* raw = physChannel->recvUntimedData();
     if ( raw == nullptr )
-      output->fatal(CALL_INFO, -1, "RtrPortControlSN: unable to recv init event in phase 1\n");
+      output->fatal(CALL_INFO, -1, "RtrPortControlPC: unable to recv init event in phase 1\n");
 
     auto* init_ev = static_cast<MordredInitEvent*>(raw);
     if ( init_ev->command == MordredInitEvent::REPORT_ROUTER ) {
@@ -174,7 +174,7 @@ void RtrPortControlSN::init( unsigned int phase ) {
       connectedRtrId  = UINT32_MAX - 1;
     } else {
       output->fatal(CALL_INFO, -1,
-        "RtrPortControlSN: unexpected command=%d in phase 1\n", (int)init_ev->command);
+        "RtrPortControlPC: unexpected command=%d in phase 1\n", (int)init_ev->command);
     }
     delete raw;
 
@@ -250,11 +250,11 @@ void RtrPortControlSN::init( unsigned int phase ) {
   output->verbose(CALL_INFO, 5, DEBUG_INIT_PHASE, "END init phase=%" PRIu32 "\n", phase);
 }
 
-void RtrPortControlSN::setup() {
+void RtrPortControlPC::setup() {
   physChannel->setup();
 }
 
-void RtrPortControlSN::complete( unsigned int phase ) {
+void RtrPortControlPC::complete( unsigned int phase ) {
   physChannel->complete(phase);
 
   SST::Event* ev = nullptr;
@@ -274,11 +274,11 @@ void RtrPortControlSN::complete( unsigned int phase ) {
   }
 }
 
-void RtrPortControlSN::sendUntimedData( Event* ev ) {
+void RtrPortControlPC::sendUntimedData( Event* ev ) {
   physChannel->sendUntimedData(ev);
 }
 
-SST::Event* RtrPortControlSN::recvUntimedData() {
+SST::Event* RtrPortControlPC::recvUntimedData() {
   if ( initEvents.empty() ) return nullptr;
   auto* ev = initEvents.front();
   initEvents.pop();
@@ -287,7 +287,7 @@ SST::Event* RtrPortControlSN::recvUntimedData() {
 
 // ---- Clock ----
 
-void RtrPortControlSN::ClockTick( Cycle_t /*cycle*/ ) {
+void RtrPortControlPC::ClockTick( Cycle_t /*cycle*/ ) {
   // Input pipeline: IDLE → ROUTING → WAIT_VC → IN_ACTIVE
   for ( uint32_t vn = 0; vn < numVns; vn++ ) {
     for ( uint32_t vc = 0; vc < numVcs; vc++ ) {
@@ -357,7 +357,7 @@ void RtrPortControlSN::ClockTick( Cycle_t /*cycle*/ ) {
 
 // ---- Receive notification ----
 
-bool RtrPortControlSN::onReceive( int sn_vn ) {
+bool RtrPortControlPC::onReceive( int sn_vn ) {
   SST::Event* ev = nullptr;
   while ( (ev = physChannel->recv(sn_vn)) != nullptr ) {
     processIncoming(ev);
@@ -365,7 +365,7 @@ bool RtrPortControlSN::onReceive( int sn_vn ) {
   return true;
 }
 
-void RtrPortControlSN::processIncoming( SST::Event* ev ) {
+void RtrPortControlPC::processIncoming( SST::Event* ev ) {
   auto* bev = static_cast<baseMordredEvent*>(ev);
   if ( !bev )
     output->fatal(CALL_INFO, -1, "Null event in processIncoming\n");
@@ -401,7 +401,7 @@ void RtrPortControlSN::processIncoming( SST::Event* ev ) {
   }
 }
 
-MordredFlit* RtrPortControlSN::getInBufFlit() {
+MordredFlit* RtrPortControlPC::getInBufFlit() {
   validateVnVc(switch_alloc_sendfrom_vn, switch_alloc_sendfrom_vc);
   auto& buf = inStateVec.at(switch_alloc_sendfrom_vn).at(switch_alloc_sendfrom_vc).inBuf;
   if ( buf.empty() ) return nullptr;
@@ -412,7 +412,7 @@ MordredFlit* RtrPortControlSN::getInBufFlit() {
   return flit;
 }
 
-void RtrPortControlSN::recvOutBufFlit( MordredFlit* flit ) {
+void RtrPortControlPC::recvOutBufFlit( MordredFlit* flit ) {
   validateVnVc(switch_alloc_rcvto_vn, switch_alloc_rcvto_vc);
   flit->cur_vc = switch_alloc_rcvto_vc;
   auto& out = outStateVec.at(switch_alloc_rcvto_vn).at(switch_alloc_rcvto_vc);
@@ -420,10 +420,10 @@ void RtrPortControlSN::recvOutBufFlit( MordredFlit* flit ) {
   out.outBufCredits--;
 }
 
-MordredInitEvent* RtrPortControlSN::getInitEvent( MordredInitEvent::Commands cmd ) {
+MordredInitEvent* RtrPortControlPC::getInitEvent( MordredInitEvent::Commands cmd ) {
   auto* ev = static_cast<MordredInitEvent*>( physChannel->recvUntimedData() );
   if ( !ev )
-    output->fatal(CALL_INFO, -1, "RtrPortControlSN: unable to recv init event\n");
+    output->fatal(CALL_INFO, -1, "RtrPortControlPC: unable to recv init event\n");
   if ( ev->getType() != baseMordredEvent::INITIALIZATION )
     output->fatal(CALL_INFO, -1, "Unexpected event type in getInitEvent: %d\n", (int)ev->getType());
   if ( ev->command != cmd )
@@ -431,7 +431,7 @@ MordredInitEvent* RtrPortControlSN::getInitEvent( MordredInitEvent::Commands cmd
   return ev;
 }
 
-void RtrPortControlSN::returnCredit() {
+void RtrPortControlPC::returnCredit() {
   for ( uint32_t i = 0, vn = credit_ret_vn_rr; i < numVns;
         i++, vn = (vn != (numVns - 1)) ? vn + 1 : 0 ) {
     for ( uint32_t j = 0, vc = credit_ret_vc_rr; j < numVcs;
