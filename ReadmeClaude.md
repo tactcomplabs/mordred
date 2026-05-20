@@ -108,7 +108,7 @@ carrying the payload).
 Identical external interface to `mordredNIC` but uses an inner `PhysChannelAPI`
 subcomponent (slot `port_iface`) instead of a raw SST link. This makes the physical
 transport between the NIC and router pluggable — swap in `prydwen.genericPhysChannel`
-for a simple raw-link transport, or `ucie.UCIePhysChannel` (from the prydwen repo)
+for a simple raw-link transport, or `prydwen.uciePhysChannel` (from the prydwen repo)
 for a full UCIe adapter-layer transport.
 
 **Additional subcomponent slot**
@@ -146,7 +146,7 @@ Available implementations (registered in the prydwen element library):
 | SST name                   | Library  | Description                                              |
 |----------------------------|----------|----------------------------------------------------------|
 | `prydwen.genericPhysChannel` | prydwen | Raw `SST::Link` transport via `PhysChannelLinkEvent`     |
-| `ucie.UCIePhysChannel`      | ucie    | Full UCIe adapter-layer with FLIT serialization + credits |
+| `prydwen.uciePhysChannel`   | prydwen | Full UCIe adapter-layer with FLIT serialization + credits |
 
 ---
 
