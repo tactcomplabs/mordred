@@ -106,6 +106,11 @@ set(CMAKE_CXX_FLAGS "-std=c++17 ${FP_MODE_FLAG} -O2 -Wall -Wextra -Wsuggest-over
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 -Wall")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -Wall")
 
+# Build options
+option(MORDRED_ENABLE_PHYS_CHANNEL
+    "Build PhysChannel-backed components (RtrPortControlPC, MordredNicPC). Requires prydwen."
+    ON)
+
 # Turn on testing
 enable_testing()
 

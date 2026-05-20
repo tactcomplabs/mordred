@@ -18,10 +18,6 @@ set(MordredSrcs
         RtrPortControlAPI.h
         RtrPortControl.h
         RtrPortControl.cc
-        RtrPortControlPC.h
-        RtrPortControlPC.cc
-        MordredNicPC.h
-        MordredNicPC.cc
         XbarArbAPI.h
         XbarArbRR.h
         XbarArbRR.cc
@@ -36,14 +32,32 @@ set(MordredSrcs
         Torus3dTopo.cc
 )
 
+if(MORDRED_ENABLE_PHYS_CHANNEL)
+    set(PRYDWEN_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../prydwen/src"
+        CACHE PATH "Path to prydwen/src (for PhysChannelAPI.h)")
+    if(NOT EXISTS "${PRYDWEN_SRC_DIR}/PhysChannelAPI.h")
+        message(FATAL_ERROR
+            "MORDRED_ENABLE_PHYS_CHANNEL is ON but PhysChannelAPI.h was not found at "
+            "${PRYDWEN_SRC_DIR}. Build and install prydwen first, or set "
+            "-DMORDRED_ENABLE_PHYS_CHANNEL=OFF to skip the PhysChannel components.")
+    endif()
+    list(APPEND MordredSrcs
+        RtrPortControlPC.h
+        RtrPortControlPC.cc
+        MordredNicPC.h
+        MordredNicPC.cc
+    )
+    message(STATUS "PhysChannel components enabled (prydwen: ${PRYDWEN_SRC_DIR})")
+else()
+    message(STATUS "PhysChannel components disabled (MORDRED_ENABLE_PHYS_CHANNEL=OFF)")
+endif()
+
 add_library(mordred SHARED ${MordredSrcs})
 
-set(PRYDWEN_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../prydwen/src"
-    CACHE PATH "Path to prydwen/src (for PhysChannelAPI.h)")
-target_include_directories(mordred PUBLIC
-    ${SST_INSTALL_DIR}/include
-    ${PRYDWEN_SRC_DIR}
-)
+target_include_directories(mordred PUBLIC ${SST_INSTALL_DIR}/include)
+if(MORDRED_ENABLE_PHYS_CHANNEL)
+    target_include_directories(mordred PUBLIC ${PRYDWEN_SRC_DIR})
+endif()
 
 install(TARGETS mordred DESTINATION ${CMAKE_CURRENT_SOURCE_DIR})
 install(CODE "execute_process(COMMAND sst-register mordred mordred_LIBDIR=${CMAKE_CURRENT_SOURCE_DIR})")
