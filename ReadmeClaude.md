@@ -12,10 +12,23 @@ to be swapped independently of the routing and flow-control machinery.
 - SST and SST-Elements (including Merlin) >= 15.0
 - C++17 compiler
 - `sst` and `sst-config` must be on `PATH`
+- **Prydwen** must be built and registered before building Mordred (Mordred's build
+  system references `prydwen/src/` for the `PhysChannelAPI` header)
 
 ## Building
 
+Build prydwen first, then mordred:
+
 ```bash
+# 1. Build prydwen (physical channel library)
+cd ../prydwen
+mkdir build && cd build
+cmake ..
+make -j
+make install
+
+# 2. Build mordred
+cd ../../mordred
 mkdir build && cd build
 cmake ..
 make -j
@@ -94,15 +107,15 @@ carrying the payload).
 
 Identical external interface to `mordredNIC` but uses an inner `PhysChannelAPI`
 subcomponent (slot `port_iface`) instead of a raw SST link. This makes the physical
-transport between the NIC and router pluggable — for example, a future UCIe physical
-interface can replace `mordred.genericPhysChannel` without changing the NIC or router
-logic.
+transport between the NIC and router pluggable — swap in `prydwen.genericPhysChannel`
+for a simple raw-link transport, or `ucie.UCIePhysChannel` (from the prydwen repo)
+for a full UCIe adapter-layer transport.
 
 **Additional subcomponent slot**
 
 | Slot         | API              | Description                                     |
 |--------------|------------------|-------------------------------------------------|
-| `port_iface` | `PhysChannelAPI` | Physical channel to the router (e.g. `mordred.genericPhysChannel`) |
+| `port_iface` | `PhysChannelAPI` | Physical channel to the router (e.g. `prydwen.genericPhysChannel`) |
 
 ---
 
@@ -122,18 +135,18 @@ for the physical link, matching `mordredNicPC` on the endpoint side.
 
 ---
 
-### Physical Channel: `mordred.genericPhysChannel`
+### Physical Channel API: `SST::Mordred::PhysChannelAPI`
 
-A concrete `PhysChannelAPI` implementation that wraps any `SST::Event*` in a thin
-`PhysChannelLinkEvent` envelope (carrying the VN tag) and forwards it over a raw
-`SST::Link`. Both ends of the link must use a compatible channel implementation.
+> **Moved to the [prydwen](../prydwen) repo.** Concrete implementations and the
+> abstract API now live in `prydwen/src/`. Mordred references `prydwen/src/` at
+> build time via `PRYDWEN_SRC_DIR` in `src/CMakeLists.txt`.
 
-**Parameters**
+Available implementations (registered in the prydwen element library):
 
-| Parameter   | Description                                             | Default  |
-|-------------|---------------------------------------------------------|----------|
-| `port_name` | Name of the SST link to configure (e.g. `"port0"`)     | `"port"` |
-| `verbose`   | Verbosity level                                         | `0`      |
+| SST name                   | Library  | Description                                              |
+|----------------------------|----------|----------------------------------------------------------|
+| `prydwen.genericPhysChannel` | prydwen | Raw `SST::Link` transport via `PhysChannelLinkEvent`     |
+| `ucie.UCIePhysChannel`      | ucie    | Full UCIe adapter-layer with FLIT serialization + credits |
 
 ---
 
@@ -232,6 +245,7 @@ Tests live in `tests/` and are run via `make test` from the build directory.
 | `torus5x5_2vc_testnic.py`           | 5×5 2D torus   | 2 VCs for deadlock avoidance             |
 | `torus3D_3x3x3_2vc_testnic.py`      | 3×3×3 3D torus | 2 VCs                                    |
 | `flatbutterfly_k2n4_testnic.py`     | k=2, n=4 butterfly | —                                    |
+| `mesh2x1_rtrportcontrolsn.py`       | 2×1 mesh       | `RtrPortControlPC` + `prydwen.genericPhysChannel` |
 | `mordred_testBridge.py`             | Mesh           | Merlin Bridge integration                |
 | `ipdps25tutorial_demo7.py`          | Mesh           | MemHierarchy MemNIC integration          |
 | `mordred_memNICFour.py`             | Mesh           | MemHierarchy MemNICFour integration      |

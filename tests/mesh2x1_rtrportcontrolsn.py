@@ -87,12 +87,12 @@ rtr_1_topo.addParams({"verbose": 0, "xDim": 2, "yDim": 1})
 
 pc_0 = rtr_0.setSubComponent("portcontrol", "mordred.rtrPortControlPC", 1)
 pc_0.addParams(PortControlSNParams)
-pif_0 = pc_0.setSubComponent("port_iface", "mordred.genericPhysChannel", 0)
+pif_0 = pc_0.setSubComponent("port_iface", "prydwen.genericPhysChannel", 0)
 pif_0.addParams({"port_name": "port1", "verbose": 0})
 
 pc_1 = rtr_1.setSubComponent("portcontrol", "mordred.rtrPortControlPC", 3)
 pc_1.addParams(PortControlSNParams)
-pif_1 = pc_1.setSubComponent("port_iface", "mordred.genericPhysChannel", 0)
+pif_1 = pc_1.setSubComponent("port_iface", "prydwen.genericPhysChannel", 0)
 pif_1.addParams({"port_name": "port3", "verbose": 0})
 
 # Physical router-router link
@@ -113,7 +113,7 @@ rtr_1.addLink(rtr_link, "port3", link_latency)
 
 pc_0_ep = rtr_0.setSubComponent("portcontrol", "mordred.rtrPortControlPC", 4)
 pc_0_ep.addParams(PortControlSNParams)
-pif_0_ep = pc_0_ep.setSubComponent("port_iface", "mordred.genericPhysChannel", 0)
+pif_0_ep = pc_0_ep.setSubComponent("port_iface", "prydwen.genericPhysChannel", 0)
 pif_0_ep.addParams({"port_name": "port4", "verbose": 0})
 
 ep0 = sst.Component("testnic_ep_0", "merlin.test_nic")
@@ -121,7 +121,7 @@ ep0.addParams(FixedTestNicParams)
 ep0.addParams({"id": 0, "num_peers": 2})
 ep0_iface = ep0.setSubComponent("networkIF", "mordred.mordredNicPC")
 ep0_iface.addParams(MordredNicPCParams)
-ep0_sn = ep0_iface.setSubComponent("port_iface", "mordred.genericPhysChannel", 0)
+ep0_sn = ep0_iface.setSubComponent("port_iface", "prydwen.genericPhysChannel", 0)
 ep0_sn.addParams({"port_name": "port", "verbose": 0})
 
 ep0_link = sst.Link("link_ep0_rtr0")
@@ -132,7 +132,7 @@ ep0_iface.addLink(ep0_link, "port", link_latency)
 
 pc_1_ep = rtr_1.setSubComponent("portcontrol", "mordred.rtrPortControlPC", 4)
 pc_1_ep.addParams(PortControlSNParams)
-pif_1_ep = pc_1_ep.setSubComponent("port_iface", "mordred.genericPhysChannel", 0)
+pif_1_ep = pc_1_ep.setSubComponent("port_iface", "prydwen.genericPhysChannel", 0)
 pif_1_ep.addParams({"port_name": "port4", "verbose": 0})
 
 ep1 = sst.Component("testnic_ep_1", "merlin.test_nic")
@@ -140,7 +140,7 @@ ep1.addParams(FixedTestNicParams)
 ep1.addParams({"id": 1, "num_peers": 2})
 ep1_iface = ep1.setSubComponent("networkIF", "mordred.mordredNicPC")
 ep1_iface.addParams(MordredNicPCParams)
-ep1_sn = ep1_iface.setSubComponent("port_iface", "mordred.genericPhysChannel", 0)
+ep1_sn = ep1_iface.setSubComponent("port_iface", "prydwen.genericPhysChannel", 0)
 ep1_sn.addParams({"port_name": "port", "verbose": 0})
 
 ep1_link = sst.Link("link_ep1_rtr1")

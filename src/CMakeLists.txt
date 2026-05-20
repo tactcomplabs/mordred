@@ -20,9 +20,6 @@ set(MordredSrcs
         RtrPortControl.cc
         RtrPortControlPC.h
         RtrPortControlPC.cc
-        PhysChannelAPI.h
-        GenericPhysChannel.h
-        GenericPhysChannel.cc
         MordredNicPC.h
         MordredNicPC.cc
         XbarArbAPI.h
@@ -40,7 +37,13 @@ set(MordredSrcs
 )
 
 add_library(mordred SHARED ${MordredSrcs})
-target_include_directories(mordred PUBLIC ${SST_INSTALL_DIR}/include)
+
+set(PRYDWEN_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../prydwen/src"
+    CACHE PATH "Path to prydwen/src (for PhysChannelAPI.h)")
+target_include_directories(mordred PUBLIC
+    ${SST_INSTALL_DIR}/include
+    ${PRYDWEN_SRC_DIR}
+)
 
 install(TARGETS mordred DESTINATION ${CMAKE_CURRENT_SOURCE_DIR})
 install(CODE "execute_process(COMMAND sst-register mordred mordred_LIBDIR=${CMAKE_CURRENT_SOURCE_DIR})")
