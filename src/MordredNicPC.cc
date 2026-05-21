@@ -39,11 +39,11 @@ MordredNicPC::MordredNicPC( ComponentId_t cid, Params& params, int vns ) : Simpl
     outbufSize *= UnitAlgebra( "8b/B" );
 
   // Load the inner PhysChannelAPI subcomponent.
-  physChannel = loadUserSubComponent<PhysChannelAPI>( "port_iface", ComponentInfo::SHARE_PORTS | ComponentInfo::INSERT_STATS, vns );
+  physChannel = loadUserSubComponent<Prydwen::PhysChannelAPI>( "port_iface", ComponentInfo::SHARE_PORTS | ComponentInfo::INSERT_STATS, vns );
   if( !physChannel )
     output->fatal( CALL_INFO, -1, "MordredNicPC: no PhysChannelAPI subcomponent found in slot 'port_iface'\n" );
 
-  physChannel->setNotifyOnReceive( new PhysChannelAPI::Handler2<MordredNicPC, &MordredNicPC::onReceive>( this ) );
+  physChannel->setNotifyOnReceive( new Prydwen::PhysChannelAPI::Handler2<MordredNicPC, &MordredNicPC::onReceive>( this ) );
 
   // Clock
   const auto clock_freq = params.find<std::string>( "clock", "1GHz" );

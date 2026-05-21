@@ -160,7 +160,7 @@ private:
   void processIncoming( SST::Event* ev );
 
   Output*         output{};
-  PhysChannelAPI* physChannel{};
+  Prydwen::PhysChannelAPI* physChannel{};
 
   nid_t    netID{ -1 };
   uint32_t rtrId{ UINT32_MAX };

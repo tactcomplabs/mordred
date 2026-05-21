@@ -253,7 +253,7 @@ private:
   void              processIncoming( Event* ev );
 
   Output*         output{};
-  PhysChannelAPI* physChannel{};
+  Prydwen::PhysChannelAPI* physChannel{};
   TopologyAPI*    topo{};
   PortConnectionE connectionType{ UNKNOWN };
   uint32_t        rtrId{};

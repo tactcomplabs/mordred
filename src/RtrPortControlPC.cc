@@ -87,14 +87,14 @@ RtrPortControlPC::RtrPortControlPC(
       CALL_INFO, 1, "Invalid configuration; flit_size=%" PRIu32 "b > output_buf_size=%" PRIu32 "b\n", flitSize, outBufSize
     );
 
-  physChannel = loadUserSubComponent<PhysChannelAPI>(
+  physChannel = loadUserSubComponent<Prydwen::PhysChannelAPI>(
     "port_iface", ComponentInfo::SHARE_PORTS | ComponentInfo::INSERT_STATS, static_cast<int>( numVns )
   );
 
   if( !physChannel )
     output->fatal( CALL_INFO, -1, "RtrPortControlPC: no PhysChannelAPI subcomponent found in slot 'port_iface'\n" );
 
-  physChannel->setNotifyOnReceive( new PhysChannelAPI::Handler2<RtrPortControlPC, &RtrPortControlPC::onReceive>( this ) );
+  physChannel->setNotifyOnReceive( new Prydwen::PhysChannelAPI::Handler2<RtrPortControlPC, &RtrPortControlPC::onReceive>( this ) );
 
   allocateBuffers();
 
