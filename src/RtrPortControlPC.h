@@ -26,7 +26,7 @@ namespace SST::Mordred {
  * Instead of owning an SST::Link directly, this class loads a user-provided
  * SST::Interfaces::SimpleNetwork subcomponent (slot "port_iface") to manage
  * the physical link.  Both ends of the link must use a matching SimpleNetwork
- * type (e.g. UCIeMultiInterface), making the physical interconnect pluggable
+ * type (e.g. UCIeInterfaceSN), making the physical interconnect pluggable
  * while the router crossbar/VC/credit machinery is unchanged.
  *
  * VN mapping: SN VN i == Mordred VN i.  Both MordredFlit and MordredCreditEvent

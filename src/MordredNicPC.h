@@ -20,7 +20,7 @@
  *
  * The inner PhysChannelAPI can be any matching implementation:
  *   mordred.genericPhysChannel — for tests (generic raw-link wrapper)
- *   ucie.ucieMultiInterface      — for production UCIe physical links
+ *   ucie.ucieInterfaceSN      — for production UCIe physical links
  *
  * Wire format: the inner PhysChannelAPI determines the on-wire format. With
  * genericPhysChannel, the link carries PhysChannelLinkEvent objects.
