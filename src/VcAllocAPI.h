@@ -28,9 +28,10 @@
 namespace SST::Mordred {
 
 class VcAllocAPI : public SubComponent {
-  public:
-    SST_ELI_REGISTER_SUBCOMPONENT_API( SST::Mordred::VcAllocAPI, uint32_t, uint32_t,
-      uint32_t, uint32_t ); // rtr_id, num_ports, num_vns, num_vcs
+public:
+  SST_ELI_REGISTER_SUBCOMPONENT_API(
+    SST::Mordred::VcAllocAPI, uint32_t, uint32_t, uint32_t, uint32_t
+  );  // rtr_id, num_ports, num_vns, num_vcs
 
   /// VcAllocAPI: constructor
   VcAllocAPI( ComponentId_t id ) : SubComponent( id ) {}
@@ -39,13 +40,13 @@ class VcAllocAPI : public SubComponent {
   VcAllocAPI() : SubComponent() {}
 
   /// ArbAPI: default destructor
-  ~VcAllocAPI() override = default;
+  ~VcAllocAPI() override                                                                                             = default;
 
   /// Main arbitration function
-  virtual void arbitrate( std::vector<RtrPortControlAPI*> &ports, std::vector<RtrOwnedSharedObjs> &rtr_shared_objs ) = 0;
+  virtual void arbitrate( std::vector<RtrPortControlAPI*>& ports, std::vector<RtrOwnedSharedObjs>& rtr_shared_objs ) = 0;
 
-}; // class VcAllocAPI
+};  // class VcAllocAPI
 
-} // namespace SST::Mordred
+}  // namespace SST::Mordred
 
-#endif //MORDRED_VCALLOCAPI_H
+#endif  //MORDRED_VCALLOCAPI_H

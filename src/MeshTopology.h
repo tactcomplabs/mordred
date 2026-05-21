@@ -18,8 +18,8 @@
 #include "sst_config.h"
 
 // Local headers
-#include "TopologyAPI.h"
 #include "MordredEvents.h"
+#include "TopologyAPI.h"
 
 namespace SST::Mordred {
 
@@ -39,8 +39,8 @@ public:
   // register the parameters
   SST_ELI_DOCUMENT_PARAMS(
     { "verbose", "Sets the output verbosity", "5" },
-    { "xDim", "Number of points in the X dimension", "1"},
-     {"yDim", "Number of points in the Y dimension", "1"}
+    { "xDim", "Number of points in the X dimension", "1" },
+    { "yDim", "Number of points in the Y dimension", "1" }
   )
 
   // register the ports
@@ -50,7 +50,14 @@ public:
   SST_ELI_DOCUMENT_SUBCOMPONENT_SLOTS()
 
   /// MeshTopology: constructor
-  MeshTopology( ComponentId_t id, Params& params, uint32_t rtr_id, uint32_t num_ports, uint32_t num_local_ports, std::vector<uint32_t>* connected_ports );
+  MeshTopology(
+    ComponentId_t          id,
+    Params&                params,
+    uint32_t               rtr_id,
+    uint32_t               num_ports,
+    uint32_t               num_local_ports,
+    std::vector<uint32_t>* connected_ports
+  );
 
   /// MeshTopology: destructor
   ~MeshTopology() override = default;
@@ -70,21 +77,21 @@ public:
   MeshTopology() : SST::Mordred::TopologyAPI() {}
 
   /// serialization
-  void serialize_order(SST::Core::Serialization::serializer& ser) override {
-    SST_SER(output);
-    SST_SER(rtrId);
-    SST_SER(endptZeroId);
-    SST_SER(numPorts);
-    SST_SER(numLocalPorts);
-    SST_SER(xId);
-    SST_SER(yId);
-    SST_SER(xDim);
-    SST_SER(yDim);
-    SST_SER(perPortConnectedRtr);
+  void serialize_order( SST::Core::Serialization::serializer& ser ) override {
+    SST_SER( output );
+    SST_SER( rtrId );
+    SST_SER( endptZeroId );
+    SST_SER( numPorts );
+    SST_SER( numLocalPorts );
+    SST_SER( xId );
+    SST_SER( yId );
+    SST_SER( xDim );
+    SST_SER( yDim );
+    SST_SER( perPortConnectedRtr );
   }
 
   /// serialization implementations
-  ImplementSerializable(SST::Mordred::MeshTopology);
+  ImplementSerializable( SST::Mordred::MeshTopology );
 
 private:
   Output* output;
@@ -96,19 +103,17 @@ private:
 
   // Mesh parameters
   static constexpr uint32_t MESHNET_PORTS_PER_ROUTER = 4;
-  uint32_t xId{UINT32_MAX};
-  uint32_t yId{UINT32_MAX};
-  uint32_t xDim{UINT32_MAX};
-  uint32_t yDim{UINT32_MAX};
+  uint32_t                  xId{ UINT32_MAX };
+  uint32_t                  yId{ UINT32_MAX };
+  uint32_t                  xDim{ UINT32_MAX };
+  uint32_t                  yDim{ UINT32_MAX };
 
   // Port mapping
-  enum PortDirE : uint32_t {NORTH = 0, EAST = 1, SOUTH = 2, WEST = 3};
+  enum PortDirE : uint32_t { NORTH = 0, EAST = 1, SOUTH = 2, WEST = 3 };
 
-  std::vector<uint32_t>* perPortConnectedRtr; // Unused for this topology, but printed in setup.
-
+  std::vector<uint32_t>* perPortConnectedRtr;  // Unused for this topology, but printed in setup.
 };
 
-} // namespace SST::Mordred
+}  // namespace SST::Mordred
 
-
-#endif //MORDRED_MESHTOPOLOGY_H
+#endif  //MORDRED_MESHTOPOLOGY_H

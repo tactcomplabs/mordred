@@ -37,13 +37,14 @@
 
 namespace SST::Mordred {
 
-class InVcHeads; // forward declaration
-class TopologyAPI; // forward declaration
+class InVcHeads;    // forward declaration
+class TopologyAPI;  // forward declaration
 
 // These are for the individual VCs
 // Currently not using the {WAIT,NEED}_CREDITS states
-enum InVcStateE { IN_IDLE, ROUTING, WAIT_VC, WAIT_CREDITS, IN_ACTIVE }; // for the port input side - match Dally book
-enum OutVcStateE { OUT_IDLE, OUT_BUSY, NEED_CREDITS}; // for the port output side - mainly for xbar arb
+enum InVcStateE { IN_IDLE, ROUTING, WAIT_VC, WAIT_CREDITS, IN_ACTIVE };  // for the port input side - match Dally book
+
+enum OutVcStateE { OUT_IDLE, OUT_BUSY, NEED_CREDITS };  // for the port output side - mainly for xbar arb
 
 /**
  * For now, I'm taking the following two structures pretty much directly
@@ -54,66 +55,66 @@ enum OutVcStateE { OUT_IDLE, OUT_BUSY, NEED_CREDITS}; // for the port output sid
  *
  */
 struct perVcInState {
-  InVcStateE inVcState;
-  uint32_t outPort;
-  uint32_t outVn;
-  uint32_t outVc;
-  int32_t retCredits; // credits to return to sender as inBuf is emptied; init to zero
+  InVcStateE               inVcState;
+  uint32_t                 outPort;
+  uint32_t                 outVn;
+  uint32_t                 outVc;
+  int32_t                  retCredits;  // credits to return to sender as inBuf is emptied; init to zero
   std::queue<MordredFlit*> inBuf;
 
   void reset() {
-    inVcState = IN_IDLE;
-    outPort = UINT32_MAX;
-    outVn = UINT32_MAX;
-    outVc = UINT32_MAX;
+    inVcState  = IN_IDLE;
+    outPort    = UINT32_MAX;
+    outVn      = UINT32_MAX;
+    outVc      = UINT32_MAX;
     retCredits = 0;
   }
 
-  void serialize_order(SST::Core::Serialization::serializer& ser){
-    SST_SER(inVcState);
-    SST_SER(outPort);
-    SST_SER(outVn);
-    SST_SER(outVc);
-    SST_SER(retCredits);
-    SST_SER(inBuf);
+  void serialize_order( SST::Core::Serialization::serializer& ser ) {
+    SST_SER( inVcState );
+    SST_SER( outPort );
+    SST_SER( outVn );
+    SST_SER( outVc );
+    SST_SER( retCredits );
+    SST_SER( inBuf );
   }
 };
 
 struct perVcOutState {
   OutVcStateE outVcState;
-  uint32_t inPort;
-  uint32_t inVn;
-  uint32_t inVc;
-  int32_t outBufCredits; // space available in outBuf; dec on write to buf, inc when flit put on link
+  uint32_t    inPort;
+  uint32_t    inVn;
+  uint32_t    inVc;
+  int32_t     outBufCredits;  // space available in outBuf; dec on write to buf, inc when flit put on link
 
   // (dec on send to dest, inc when credit packet comes from dest)
-  int32_t destCredits; // maintains available credits for myVn.myVc downstream; initialized to non-zero in init (dest sends a count)
+  int32_t
+    destCredits;  // maintains available credits for myVn.myVc downstream; initialized to non-zero in init (dest sends a count)
   std::queue<MordredFlit*> outBuf;
 
   void reset( int32_t ob_creds ) {
-    outVcState = OUT_IDLE;
-    inPort = UINT32_MAX;
-    inVn = UINT32_MAX;
-    inVc = UINT32_MAX;
+    outVcState    = OUT_IDLE;
+    inPort        = UINT32_MAX;
+    inVn          = UINT32_MAX;
+    inVc          = UINT32_MAX;
     outBufCredits = ob_creds;
-    destCredits = 0;
+    destCredits   = 0;
   }
 
-  void serialize_order(SST::Core::Serialization::serializer& ser){
-    SST_SER(outVcState);
-    SST_SER(inPort);
-    SST_SER(inVn);
-    SST_SER(inVc);
-    SST_SER(outBufCredits);
-    SST_SER(destCredits);
-    SST_SER(outBuf);
+  void serialize_order( SST::Core::Serialization::serializer& ser ) {
+    SST_SER( outVcState );
+    SST_SER( inPort );
+    SST_SER( inVn );
+    SST_SER( inVc );
+    SST_SER( outBufCredits );
+    SST_SER( destCredits );
+    SST_SER( outBuf );
   }
 };
 
 class RtrPortControlAPI : public SubComponent {
 public:
-  SST_ELI_REGISTER_SUBCOMPONENT_API( SST::Mordred::RtrPortControlAPI, TopologyAPI*,
-    RtrOwnedSharedObjs*, uint32_t, uint32_t )
+  SST_ELI_REGISTER_SUBCOMPONENT_API( SST::Mordred::RtrPortControlAPI, TopologyAPI*, RtrOwnedSharedObjs*, uint32_t, uint32_t )
 
   enum PortConnectionE { ENDPOINT, ROUTER, UNKNOWN, INVALID };
 
@@ -124,56 +125,56 @@ public:
   RtrPortControlAPI() : SubComponent() {}
 
   /// RtrPortControlAPI: default destructor
-  ~RtrPortControlAPI() override = default;
+  ~RtrPortControlAPI() override                                                                        = default;
 
   /// Untimed recv/send
-  virtual void sendUntimedData(Event *ev) = 0;
-  virtual Event* recvUntimedData() = 0;
+  virtual void   sendUntimedData( Event* ev )                                                          = 0;
+  virtual Event* recvUntimedData()                                                                     = 0;
 
-  virtual PortConnectionE getConnectionType() = 0;
-  virtual uint32_t getPortId() = 0;
+  virtual PortConnectionE getConnectionType()                                                          = 0;
+  virtual uint32_t        getPortId()                                                                  = 0;
 
   // No separate clock - run off the router clock
   // NOTE: This may get broken up into separate update and execute functions; booksim approached their
   // model this way and described as update being the combinational logic and execute being the state
   // updates
-  virtual void ClockTick( Cycle_t cycle ) = 0;
+  virtual void ClockTick( Cycle_t cycle )                                                              = 0;
 
-  virtual uint32_t getConnectedRtrId() const = 0;
+  virtual uint32_t getConnectedRtrId() const                                                           = 0;
 
-  virtual uint32_t getSendingPort()                                                                  = 0;
+  virtual uint32_t getSendingPort()                                                                    = 0;
 
   virtual std::pair<uint32_t, uint32_t> getSwitchSendVnVc()                                            = 0;
   virtual std::pair<uint32_t, uint32_t> getSwitchRecvVnVc()                                            = 0;
 
   // VC Allocator functions
-  virtual uint32_t getDestPort( uint32_t vn, uint32_t vc ) = 0;
-  virtual OutVcStateE getOutputState( uint32_t vn, uint32_t vc ) = 0;
-  virtual void inUnitSetDestVc( uint32_t vn, uint32_t input_vc, uint32_t dest_vc ) = 0;
-  virtual void outUnitSetSrc( uint32_t port, uint32_t vn, uint32_t src_vc, uint32_t output_vc ) = 0;
+  virtual uint32_t    getDestPort( uint32_t vn, uint32_t vc )                                          = 0;
+  virtual OutVcStateE getOutputState( uint32_t vn, uint32_t vc )                                       = 0;
+  virtual void        inUnitSetDestVc( uint32_t vn, uint32_t input_vc, uint32_t dest_vc )              = 0;
+  virtual void        outUnitSetSrc( uint32_t port, uint32_t vn, uint32_t src_vc, uint32_t output_vc ) = 0;
 
   // Switch allocation functions
-  virtual bool isSendAllocatedToSwitch() = 0;
-  virtual void sendAllocateToSwitch( uint32_t port, uint32_t vn, uint32_t vc )                   = 0;
-  virtual void resetSwitchSendAllocation() = 0;
-  virtual uint32_t getDestVc( uint32_t vn, uint32_t vc ) = 0;
+  virtual bool     isSendAllocatedToSwitch()                                                           = 0;
+  virtual void     sendAllocateToSwitch( uint32_t port, uint32_t vn, uint32_t vc )                     = 0;
+  virtual void     resetSwitchSendAllocation()                                                         = 0;
+  virtual uint32_t getDestVc( uint32_t vn, uint32_t vc )                                               = 0;
 
-  virtual bool isRecvAllocatedFromSwitch() = 0;
-  virtual void recvAllocateFromSwitch( uint32_t sending_port, uint32_t vn, uint32_t vc ) = 0;
-  virtual void resetSwitchRecvAllocation() = 0;
+  virtual bool isRecvAllocatedFromSwitch()                                                             = 0;
+  virtual void recvAllocateFromSwitch( uint32_t sending_port, uint32_t vn, uint32_t vc )               = 0;
+  virtual void resetSwitchRecvAllocation()                                                             = 0;
 
   // Moving packets
-  virtual MordredFlit* getInBufFlit() = 0;
-  virtual void recvOutBufFlit( MordredFlit* flit )  = 0;
+  virtual MordredFlit* getInBufFlit()                                                                  = 0;
+  virtual void         recvOutBufFlit( MordredFlit* flit )                                             = 0;
 
   // Reset input/output state when we see a tail flit - use the switch_alloc variables (at least for now)
   // to determine which input/output set to reset
   // These are not my favorite names
-  virtual void resetPerVcDest() = 0;
-  virtual void resetPerVcSrc() = 0;
+  virtual void resetPerVcDest()                                                                        = 0;
+  virtual void resetPerVcSrc()                                                                         = 0;
 
 };  // class RtrPortControlAPI
 
 }  // namespace SST::Mordred
 
-#endif //MORDRED_RTRPORTCONTROLAPI_H
+#endif  //MORDRED_RTRPORTCONTROLAPI_H

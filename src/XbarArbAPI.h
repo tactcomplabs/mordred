@@ -28,9 +28,10 @@
 namespace SST::Mordred {
 
 class XbarArbAPI : public SubComponent {
-  public:
-  SST_ELI_REGISTER_SUBCOMPONENT_API( SST::Mordred::XbarArbAPI, uint32_t, uint32_t,
-    uint32_t, uint32_t ); // rtr_id, num_ports, num_vns, num_vcs
+public:
+  SST_ELI_REGISTER_SUBCOMPONENT_API(
+    SST::Mordred::XbarArbAPI, uint32_t, uint32_t, uint32_t, uint32_t
+  );  // rtr_id, num_ports, num_vns, num_vcs
 
   /// XbarArbAPI: constructor
   XbarArbAPI( ComponentId_t id ) : SubComponent( id ) {}
@@ -39,13 +40,13 @@ class XbarArbAPI : public SubComponent {
   XbarArbAPI() : SubComponent() {}
 
   /// XbarArbAPI: default destructor
-  ~XbarArbAPI() override = default;
+  ~XbarArbAPI() override                                                                                             = default;
 
   /// Main arbitration function
-  virtual void arbitrate( std::vector<RtrPortControlAPI*> &ports, std::vector<RtrOwnedSharedObjs> &rtr_shared_objs ) = 0;
+  virtual void arbitrate( std::vector<RtrPortControlAPI*>& ports, std::vector<RtrOwnedSharedObjs>& rtr_shared_objs ) = 0;
 
-}; // class XbarArbAPI
+};  // class XbarArbAPI
 
-} // namespace SST::Mordred
+}  // namespace SST::Mordred
 
-#endif //MORDRED_XBARARBAPI_H
+#endif  //MORDRED_XBARARBAPI_H

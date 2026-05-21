@@ -17,67 +17,74 @@
 
 using namespace SST::Mordred;
 
-MordredNIC::MordredNIC( ComponentId_t cid, Params& params, int vns = 1 ) :
-   SimpleNetwork(cid),
-   netID(-1)
-{
-  const auto verbosity = params.find<uint32_t>("verbose", 5);
-  output = new SST::Output("MordredNIC[" + getName() + ":@p:@t]: ", verbosity, 0, Output::STDOUT);
+MordredNIC::MordredNIC( ComponentId_t cid, Params& params, int vns = 1 ) : SimpleNetwork( cid ), netID( -1 ) {
+  const auto verbosity = params.find<uint32_t>( "verbose", 5 );
+  output               = new SST::Output( "MordredNIC[" + getName() + ":@p:@t]: ", verbosity, 0, Output::STDOUT );
   //output->setVerboseMask( DEBUG_INIT_PHASE );
 
   // Set up buffers (partially borrowed from Kingsley)
-  inbufSize = params.find<UnitAlgebra>("input_buf_size", "1kiB");
-  if ( !inbufSize.hasUnits("b") && !inbufSize.hasUnits("B") ) {
-    output->fatal(CALL_INFO,-1,"input_buf_size must be specified in either "
-                       "bits or bytes: %s\n",inbufSize.toStringBestSI().c_str());
+  inbufSize            = params.find<UnitAlgebra>( "input_buf_size", "1kiB" );
+  if( !inbufSize.hasUnits( "b" ) && !inbufSize.hasUnits( "B" ) ) {
+    output->fatal(
+      CALL_INFO,
+      -1,
+      "input_buf_size must be specified in either "
+      "bits or bytes: %s\n",
+      inbufSize.toStringBestSI().c_str()
+    );
   }
-  if ( inbufSize.hasUnits("B") )
-    inbufSize *= UnitAlgebra("8b/B");
+  if( inbufSize.hasUnits( "B" ) )
+    inbufSize *= UnitAlgebra( "8b/B" );
 
-  outbufSize = params.find<UnitAlgebra>("output_buf_size", "1kiB");
-  if ( !outbufSize.hasUnits("b") && !outbufSize.hasUnits("B") ) {
-    output->fatal(CALL_INFO,-1,"output_buf_size must be specified in either "
-                       "bits or bytes: %s\n",outbufSize.toStringBestSI().c_str());
+  outbufSize = params.find<UnitAlgebra>( "output_buf_size", "1kiB" );
+  if( !outbufSize.hasUnits( "b" ) && !outbufSize.hasUnits( "B" ) ) {
+    output->fatal(
+      CALL_INFO,
+      -1,
+      "output_buf_size must be specified in either "
+      "bits or bytes: %s\n",
+      outbufSize.toStringBestSI().c_str()
+    );
   }
-  if ( outbufSize.hasUnits("B") )
-    outbufSize *= UnitAlgebra("8b/B");
+  if( outbufSize.hasUnits( "B" ) )
+    outbufSize *= UnitAlgebra( "8b/B" );
 
   // Configure the link
-  std::string port_name("port");
-  link = configureLink(port_name, new Event::Handler2<MordredNIC, &MordredNIC::handleIncomingPacket>(this));
-  if (!link)
-    output->fatal(CALL_INFO, -1, "Failed to initialize link\n");
-  
+  std::string port_name( "port" );
+  link = configureLink( port_name, new Event::Handler2<MordredNIC, &MordredNIC::handleIncomingPacket>( this ) );
+  if( !link )
+    output->fatal( CALL_INFO, -1, "Failed to initialize link\n" );
+
   // Configure clock handler
-  auto clock_freq = params.find<std::string>("clock", "1GHz");
-  registerClock( clock_freq, new Clock::Handler2<MordredNIC, &MordredNIC::clockTick>(this) );
+  auto clock_freq = params.find<std::string>( "clock", "1GHz" );
+  registerClock( clock_freq, new Clock::Handler2<MordredNIC, &MordredNIC::clockTick>( this ) );
 
   // Compute initial bandwidth
-  UnitAlgebra ua_cf(clock_freq);
-  UnitAlgebra bps("1b");
-  bw = ua_cf * bps;
+  UnitAlgebra ua_cf( clock_freq );
+  UnitAlgebra bps( "1b" );
+  bw                    = ua_cf * bps;
 
   // Register stats
-  statPacketsRecv = registerStatistic<uint64_t>( "packets_recv" );
-  statAvgNocLatency = registerStatistic<double>( "average_noc_latency" );
+  statPacketsRecv       = registerStatistic<uint64_t>( "packets_recv" );
+  statAvgNocLatency     = registerStatistic<double>( "average_noc_latency" );
   statAvgFlitsPerPacket = registerStatistic<double>( "average_packet_size" );
 
-  output->verbose(CALL_INFO, 5, 0, "MordredNIC constructed\n");
+  output->verbose( CALL_INFO, 5, 0, "MordredNIC constructed\n" );
   output->flush();
 }
 
 void MordredNIC::init( uint32_t phase ) {
-  Event *ev;
+  Event*            ev;
   MordredInitEvent* init_ev;
 
   output->verbose( CALL_INFO, 5, DEBUG_INIT_PHASE, " START init phase=%" PRIu32 "\n", phase );
   output->flush();
 
-  switch ( phase ) {
+  switch( phase ) {
   case 0:
-    init_ev = new MordredInitEvent();
+    init_ev          = new MordredInitEvent();
     init_ev->command = MordredInitEvent::REPORT_ENDPOINT;
-    init_ev->value = UINT32_MAX;
+    init_ev->value   = UINT32_MAX;
     link->sendUntimedData( init_ev );
     break;
 
@@ -89,51 +96,71 @@ void MordredNIC::init( uint32_t phase ) {
     delete init_ev;
 
     init_ev = getInitEvent( MordredInitEvent::Commands::ROUTER_ID );
-    rtrId = init_ev->value;
+    rtrId   = init_ev->value;
     delete init_ev;
 
     init_ev = getInitEvent( MordredInitEvent::Commands::PORT_NUM );
     rtrPort = init_ev->value;
     delete init_ev;
-    output->verbose( CALL_INFO, 5, DEBUG_INIT_PHASE, "Received init phase=%" PRIu32 " packets from [Rtr.Port]=[%" PRIu32 ".%" PRIu32 "]\n",
-      phase, rtrId, rtrPort );
+    output->verbose(
+      CALL_INFO,
+      5,
+      DEBUG_INIT_PHASE,
+      "Received init phase=%" PRIu32 " packets from [Rtr.Port]=[%" PRIu32 ".%" PRIu32 "]\n",
+      phase,
+      rtrId,
+      rtrPort
+    );
     break;
 
   case 2: {
     init_ev = getInitEvent( MordredInitEvent::Commands::NUM_VNS );
-    numVns = init_ev->value;
+    numVns  = init_ev->value;
     delete init_ev;
 
     init_ev = getInitEvent( MordredInitEvent::Commands::NUM_VCS );
-    numVcs = init_ev->value;
+    numVcs  = init_ev->value;
     delete init_ev;
 
-    init_ev = getInitEvent( MordredInitEvent::Commands::FLIT_WIDTH );
-    flitSize = init_ev->value; // expected to be in bits
+    init_ev  = getInitEvent( MordredInitEvent::Commands::FLIT_WIDTH );
+    flitSize = init_ev->value;  // expected to be in bits
     // Update bandwidth
-    bw *= UnitAlgebra(std::to_string( flitSize ));
+    bw *= UnitAlgebra( std::to_string( flitSize ) );
     delete init_ev;
 
-    output->verbose( CALL_INFO, 5, DEBUG_INIT_PHASE, "Received init_phase=%" PRIu32 " packets with numVNs=%" PRIu32 ", with numVCs=%" PRIu32 ", flit_width=%" PRIu32 "\n",
-      phase, numVns, numVcs, flitSize );
+    output->verbose(
+      CALL_INFO,
+      5,
+      DEBUG_INIT_PHASE,
+      "Received init_phase=%" PRIu32 " packets with numVNs=%" PRIu32 ", with numVCs=%" PRIu32 ", flit_width=%" PRIu32 "\n",
+      phase,
+      numVns,
+      numVcs,
+      flitSize
+    );
     resizeVectors();
 
     break;
   }
 
   case 3: {
-    init_ev = getInitEvent( MordredInitEvent::Commands::ENDPOINT_ID );
-    netID = init_ev->value;
+    init_ev     = getInitEvent( MordredInitEvent::Commands::ENDPOINT_ID );
+    netID       = init_ev->value;
     initialized = true;
     output->verbose( CALL_INFO, 5, DEBUG_INIT_PHASE, "Received endpoint id = %" PRId64 "\n", netID );
     delete init_ev;
 
     // Send router credits equal to num_flits inBuf can hold
     auto credits = static_cast<int32_t>( inbufSize.getRoundedValue() / flitSize );
-    if ( credits == 0 )
-      output->fatal( CALL_INFO, -1, "Invalid configuration; flit_size=%" PRIu32 "b > input_buf_size=%" PRId64 "b (buf cannot hold a flit)\n",
-        flitSize, inbufSize.getRoundedValue() );
-    for ( uint32_t i = 0; i < numVns; i++ ) {
+    if( credits == 0 )
+      output->fatal(
+        CALL_INFO,
+        -1,
+        "Invalid configuration; flit_size=%" PRIu32 "b > input_buf_size=%" PRId64 "b (buf cannot hold a flit)\n",
+        flitSize,
+        inbufSize.getRoundedValue()
+      );
+    for( uint32_t i = 0; i < numVns; i++ ) {
       auto* credit_ev = new MordredCreditEvent( i, 0, credits );
       link->sendUntimedData( credit_ev );
     }
@@ -142,18 +169,25 @@ void MordredNIC::init( uint32_t phase ) {
 
   default:
     //output->verbose( CALL_INFO, 5, DEBUG_INIT_PHASE, "Init phase = %" PRIu32 "\n", phase );
-    while ( ( ev = link->recvUntimedData() ) != nullptr ) {
+    while( ( ev = link->recvUntimedData() ) != nullptr ) {
       auto base_ev = static_cast<baseMordredEvent*>( ev );
       if( base_ev->getType() == baseMordredEvent::CREDIT ) {
         auto credit_ev = static_cast<MordredCreditEvent*>( ev );
         rtrCredits.at( credit_ev->vn ) += credit_ev->credits;
-        output->verbose( CALL_INFO, 5, 0, "Received credit event vn=%" PRIu32 ", credits=%" PRId32 "; cur_credits=%" PRId32 "\n",
-          credit_ev->vn, credit_ev->credits, rtrCredits.at( credit_ev->vn ) );
+        output->verbose(
+          CALL_INFO,
+          5,
+          0,
+          "Received credit event vn=%" PRIu32 ", credits=%" PRId32 "; cur_credits=%" PRId32 "\n",
+          credit_ev->vn,
+          credit_ev->credits,
+          rtrCredits.at( credit_ev->vn )
+        );
         delete ev;
-      } else if ( base_ev->getType() == baseMordredEvent::PACKET ) {
+      } else if( base_ev->getType() == baseMordredEvent::PACKET ) {
         //output->verbose( CALL_INFO, 5, 0, "Received untimed packet\n" );
         //output->flush();
-        initEvents.push( static_cast<MordredInitEvent*>(ev) );
+        initEvents.push( static_cast<MordredInitEvent*>( ev ) );
       } else {
         output->verbose( CALL_INFO, 5, 0, "Received unexpected event type=%d\n", (int) base_ev->getType() );
         delete ev;
@@ -176,9 +210,9 @@ void MordredNIC::setup() {
 void MordredNIC::complete( uint32_t phase ) {
   //output->verbose(CALL_INFO, 7, 0, "MordredNIC complete; phase=%" PRIu32 "\n", phase);
   //output->flush();
-  Event *ev;
+  Event* ev;
 
-  while ( ( ev = link->recvUntimedData() ) != nullptr ) {
+  while( ( ev = link->recvUntimedData() ) != nullptr ) {
     auto base_ev = static_cast<baseMordredEvent*>( ev );
     if( base_ev->getType() == baseMordredEvent::CREDIT ) {
       auto credit_ev = static_cast<MordredCreditEvent*>( ev );
@@ -186,10 +220,10 @@ void MordredNIC::complete( uint32_t phase ) {
       //output->verbose( CALL_INFO, 5, 0, "Received credit event vn=%" PRIu32 ", credits=%" PRId32 "; cur_credits=%" PRId32 "\n",
       //  credit_ev->vn, credit_ev->credits, rtrCredits.at( credit_ev->vn ) );
       delete ev;
-    } else if ( base_ev->getType() == baseMordredEvent::PACKET ) {
+    } else if( base_ev->getType() == baseMordredEvent::PACKET ) {
       //output->verbose( CALL_INFO, 5, 0, "Received untimed packet\n" );
       //output->flush();
-      initEvents.push( static_cast<MordredInitEvent*>(ev) );
+      initEvents.push( static_cast<MordredInitEvent*>( ev ) );
     } else {
       output->verbose( CALL_INFO, 5, 0, "Received unexpected event type=%d\n", (int) base_ev->getType() );
       delete ev;
@@ -198,19 +232,19 @@ void MordredNIC::complete( uint32_t phase ) {
 }
 
 void MordredNIC::finish() {
-  double avg_ticks = (double)totalNocLatency / totalPackets;
-  if ( totalPackets == 0 ) // need this to avoid some nasty output in sst 14.0.0
+  double avg_ticks = (double) totalNocLatency / totalPackets;
+  if( totalPackets == 0 )  // need this to avoid some nasty output in sst 14.0.0
     avg_ticks = -1.0;
   statPacketsRecv->addData( totalPackets );
   statAvgNocLatency->addData( avg_ticks );
-  double avg_flits = (double)totalNumFlits / totalPackets;
+  double avg_flits = (double) totalNumFlits / totalPackets;
   statAvgFlitsPerPacket->addData( avg_flits );
   //output->verbose(CALL_INFO, 7, 0, "MordredNIC finish\n");
   //output->flush();
 }
 
 void MordredNIC::sendUntimedData( Request* req ) {
-  auto ev = new MordredInitEvent(req);
+  auto ev = new MordredInitEvent( req );
   //output->verbose( CALL_INFO, 5, 0, "MordredNIC sendUntimedData; src=%" PRIu64 ", dest=%" PRIu64 "\n",
   //  req->src, req->dest);
   //output->flush();
@@ -218,7 +252,7 @@ void MordredNIC::sendUntimedData( Request* req ) {
 }
 
 SST::Interfaces::SimpleNetwork::Request* MordredNIC::recvUntimedData() {
-  if ( initEvents.empty() )
+  if( initEvents.empty() )
     return nullptr;
 
   auto ev = initEvents.front();
@@ -230,31 +264,31 @@ SST::Interfaces::SimpleNetwork::Request* MordredNIC::recvUntimedData() {
 
 int32_t MordredNIC::calcNumFlits( uint32_t num_bits ) {
   // Need to see if we have enough credits to send this
-  auto num_flits = static_cast<int32_t>(ceil( (float)num_bits / (float)flitSize ));
+  auto num_flits = static_cast<int32_t>( ceil( (float) num_bits / (float) flitSize ) );
   //output->output( CALL_INFO, "Sending request of size=%" PRIu32 " bits; flitSize=%" PRIu32 ", num_flits=%" PRId32 "\n", num_bits, flitSize, num_flits );
-  if ( num_flits < 2 ) // per current docs, at least 2 flits per packet
+  if( num_flits < 2 )  // per current docs, at least 2 flits per packet
     num_flits = 2;
   return num_flits;
 }
 
 bool MordredNIC::send( Request* req, int32_t vn ) {
   auto u_vn = static_cast<uint32_t>( vn );
-  if ( numVns <= u_vn )
+  if( numVns <= u_vn )
     output->fatal( CALL_INFO, -1, "Requested vn=%" PRId32 "is invalid\n", vn );
 
-#if 0 // hackery for testing multiple VNs
+#if 0  // hackery for testing multiple VNs
   RNG::MersenneRNG rng;
   u_vn = rng.generateNextUInt32() % numVns;
   req->vn = (int)u_vn;
 #endif
 
   auto num_flits = calcNumFlits( req->size_in_bits );
-  if ( outbufCredits.at(u_vn) < num_flits ) {
+  if( outbufCredits.at( u_vn ) < num_flits ) {
     // The comparison here needs to stay in sync with the comparison done in spaceToSend()
     return false;
   }
   // Update credits
-  outbufCredits.at(u_vn) -= num_flits;
+  outbufCredits.at( u_vn ) -= num_flits;
 
   /* One thing to note here, we send the SimpleNetwork Request with every flit (useful for debugging
    * purposes).  When the dest NIC receives a TAIL flit, then we pull the Request out */
@@ -263,24 +297,25 @@ bool MordredNIC::send( Request* req, int32_t vn ) {
   // Consider making this a separate function if we find a need for it elsewhere
   auto u_num_flits = static_cast<uint32_t>( num_flits );
   // Head flit
-  auto flit = new MordredFlit( req, MordredFlit::HEAD, packetId, 0 );
+  auto flit        = new MordredFlit( req, MordredFlit::HEAD, packetId, 0 );
   // auto head_flit = flit;
-  outBuf.at(u_vn).push( flit );
+  outBuf.at( u_vn ).push( flit );
 
   // Body flits
-  for ( uint32_t i = 1; i < u_num_flits-1; i++ ) {
+  for( uint32_t i = 1; i < u_num_flits - 1; i++ ) {
     flit = new MordredFlit( req, MordredFlit::BODY, packetId, i );
-    outBuf.at(u_vn).push( flit );
+    outBuf.at( u_vn ).push( flit );
   }
 
   // Tail flit
-  flit = new MordredFlit( req, MordredFlit::TAIL, packetId++, u_num_flits-1 );
+  flit                    = new MordredFlit( req, MordredFlit::TAIL, packetId++, u_num_flits - 1 );
   flit->pkt_created_cycle = getCurrentSimCycle();
-  outBuf.at(u_vn).push( flit );
+  outBuf.at( u_vn ).push( flit );
 
-  if ( req->getTraceType() != Request::NONE ) {
-    output->output( "TRACE(%d): %" PRIu64 " ns send called on %s\n", req->getTraceID(),
-      getCurrentSimTimeNano(), getName().c_str() );
+  if( req->getTraceType() != Request::NONE ) {
+    output->output(
+      "TRACE(%d): %" PRIu64 " ns send called on %s\n", req->getTraceID(), getCurrentSimTimeNano(), getName().c_str()
+    );
   }
 
   return true;
@@ -289,106 +324,124 @@ bool MordredNIC::send( Request* req, int32_t vn ) {
 // Have to keep the vn argument to match SimpleNetwork interface
 SST::Interfaces::SimpleNetwork::Request* MordredNIC::recv( int32_t vn ) {
   auto u_vn = static_cast<uint32_t>( vn );
-  if ( numVns <= u_vn )
+  if( numVns <= u_vn )
     output->fatal( CALL_INFO, -1, "Requested vn=%" PRId32 "is invalid\n", vn );
 
-  if ( inBuf.at(u_vn).empty() )
+  if( inBuf.at( u_vn ).empty() )
     return nullptr;
 
-  Request* req = inBuf.at(u_vn).front();
-  inBuf.at(u_vn).pop();
+  Request* req = inBuf.at( u_vn ).front();
+  inBuf.at( u_vn ).pop();
 
-  if ( req->getTraceType() != Request::NONE ) {
-    output->output( "TRACE(%d): %" PRIu64 " ns recv called on %s\n", req->getTraceID(),
-      getCurrentSimTimeNano(), getName().c_str() );
+  if( req->getTraceType() != Request::NONE ) {
+    output->output(
+      "TRACE(%d): %" PRIu64 " ns recv called on %s\n", req->getTraceID(), getCurrentSimTimeNano(), getName().c_str()
+    );
   }
 
   // Move to handleIncomingPacket()?
-  if ( req->dest != netID ) {
+  if( req->dest != netID ) {
     output->flush();
-    output->fatal( CALL_INFO, -1, "Packet with dest=%" PRId64 " received by netID=%" PRId64 ". Enough endpoints?\n",
-      req->dest, netID );
+    output->fatal(
+      CALL_INFO, -1, "Packet with dest=%" PRId64 " received by netID=%" PRId64 ". Enough endpoints?\n", req->dest, netID
+    );
   }
   return req;
 }
 
 bool MordredNIC::spaceToSend( int vn, int num_bits ) {
-  int32_t num_flits = calcNumFlits( static_cast<uint32_t>(num_bits) );
-  auto u_vn = static_cast<uint32_t>( vn );
-  if ( numVns <= u_vn )
+  int32_t num_flits = calcNumFlits( static_cast<uint32_t>( num_bits ) );
+  auto    u_vn      = static_cast<uint32_t>( vn );
+  if( numVns <= u_vn )
     output->fatal( CALL_INFO, -1, "Requested vn=%" PRId32 "is invalid\n", vn );
 
-  if ( outbufCredits.at(u_vn) >= num_flits )
+  if( outbufCredits.at( u_vn ) >= num_flits )
     return true;
   return false;
 }
 
 bool MordredNIC::requestToReceive( int vn ) {
   auto u_vn = static_cast<uint32_t>( vn );
-  if ( numVns <= u_vn )
+  if( numVns <= u_vn )
     output->fatal( CALL_INFO, -1, "Requested vn=%" PRId32 "is invalid\n", vn );
 
-  if ( inBuf.at(u_vn).empty() )
+  if( inBuf.at( u_vn ).empty() )
     return false;
   return true;
 }
 
 bool MordredNIC::clockTick( Cycle_t cycle ) {
 
-  bool sent = false;
+  bool     sent = false;
   uint32_t vn;
 
   // Since we're only doing 1 VN for now, we could remove the for vn loops
   // No use of VCs here
 
   // Send a flit to the router (if credit available)
-  for ( vn = 0; vn < numVns; vn++ ) {
-    if ( !outBuf.at(vn).empty() ) {
-      if ( rtrCredits.at(vn) > 0 ) {
-        auto flit = outBuf.at(vn).front();
-        outBuf.at(vn).pop();
-        if ( flit->ftype == MordredFlit::HEAD ) {
+  for( vn = 0; vn < numVns; vn++ ) {
+    if( !outBuf.at( vn ).empty() ) {
+      if( rtrCredits.at( vn ) > 0 ) {
+        auto flit = outBuf.at( vn ).front();
+        outBuf.at( vn ).pop();
+        if( flit->ftype == MordredFlit::HEAD ) {
           headInjectCycle = getCurrentSimCycle();
-          if ( flit->req->getTraceType() == Request::FULL ) {
-            output->output( "TRACE(%d): %" PRIu64 " ns put head flit on link %s\n", flit->req->getTraceID(),
-              getCurrentSimTimeNano(), getName().c_str() );
+          if( flit->req->getTraceType() == Request::FULL ) {
+            output->output(
+              "TRACE(%d): %" PRIu64 " ns put head flit on link %s\n",
+              flit->req->getTraceID(),
+              getCurrentSimTimeNano(),
+              getName().c_str()
+            );
           }
-        } else if ( flit->ftype == MordredFlit::TAIL ) {
+        } else if( flit->ftype == MordredFlit::TAIL ) {
           flit->head_inject_cycle = headInjectCycle;
-          headInjectCycle = UINT64_MAX;
-          if ( flit->req->getTraceType() == Request::FULL ) {
-            output->output( "TRACE(%d): %" PRIu64 " ns put tail flit on link %s\n", flit->req->getTraceID(),
-              getCurrentSimTimeNano(), getName().c_str() );
+          headInjectCycle         = UINT64_MAX;
+          if( flit->req->getTraceType() == Request::FULL ) {
+            output->output(
+              "TRACE(%d): %" PRIu64 " ns put tail flit on link %s\n",
+              flit->req->getTraceID(),
+              getCurrentSimTimeNano(),
+              getName().c_str()
+            );
           }
-          if (sendFunctor != nullptr) {
-            bool keep = (*sendFunctor)((int)vn);
-            if ( !keep ) sendFunctor = nullptr;
+          if( sendFunctor != nullptr ) {
+            bool keep = ( *sendFunctor )( (int) vn );
+            if( !keep )
+              sendFunctor = nullptr;
           }
         }
         //output->flush();
         link->send( flit );
         sent = true;
-        rtrCredits.at(vn)--;
-        outbufCredits.at(vn)++;
-        output->verbose( CALL_INFO, 7, 0, "Sent flit %s to link at cycle=%" PRIu64 "; rtrCredits=%" PRId32 "\n",
-          flit->pktIdStr().c_str(), cycle, rtrCredits.at(vn) );
+        rtrCredits.at( vn )--;
+        outbufCredits.at( vn )++;
+        output->verbose(
+          CALL_INFO,
+          7,
+          0,
+          "Sent flit %s to link at cycle=%" PRIu64 "; rtrCredits=%" PRId32 "\n",
+          flit->pktIdStr().c_str(),
+          cycle,
+          rtrCredits.at( vn )
+        );
         output->flush();
       }
     }
   }
 
-  if (sent)
+  if( sent )
     return false;
 
   // Didn't send a flit, try returning credits
   // Once we send a credit packet out, we're done for this cycle
-  for ( vn = 0; vn < numVns; vn++ ) {
-    if ( inReturnCredits.at(vn) > 0 ) {
-      auto credit_ev = new MordredCreditEvent( vn, 0, inReturnCredits.at(vn) );
+  for( vn = 0; vn < numVns; vn++ ) {
+    if( inReturnCredits.at( vn ) > 0 ) {
+      auto credit_ev = new MordredCreditEvent( vn, 0, inReturnCredits.at( vn ) );
       link->send( credit_ev );
       //output->verbose( CALL_INFO, 5, 0, "Returning %" PRId32 " credits to router vn=%" PRIu32 "\n",
       //  inReturnCredits.at(vn), vn );
-      inReturnCredits.at(vn) = 0;
+      inReturnCredits.at( vn ) = 0;
       break;
     }
   }
@@ -396,7 +449,7 @@ bool MordredNIC::clockTick( Cycle_t cycle ) {
 }
 
 void MordredNIC::resizeVectors() {
-  if ( numVns == 0 ) {
+  if( numVns == 0 ) {
     output->flush();
     output->fatal( CALL_INFO, -1, "MordredNIC resizing vectors failure\n" );
   }
@@ -411,17 +464,16 @@ void MordredNIC::resizeVectors() {
 }
 
 MordredInitEvent* MordredNIC::getInitEvent( MordredInitEvent::Commands cmd ) {
-  Event *ev = link->recvUntimedData();
-  if ( ev == nullptr ) {
+  Event* ev = link->recvUntimedData();
+  if( ev == nullptr ) {
     output->fatal( CALL_INFO, -1, "Error in %s: unable to recv init event\n", getName().c_str() );
   }
-  auto init_ev = static_cast<MordredInitEvent*>(ev);
-  if ( init_ev->getType() != baseMordredEvent::INITIALIZATION ) {
-    output->fatal( CALL_INFO, -1, "Incoming event type != %d; =%d\n",
-      baseMordredEvent::INITIALIZATION, (int)init_ev->getType() );
+  auto init_ev = static_cast<MordredInitEvent*>( ev );
+  if( init_ev->getType() != baseMordredEvent::INITIALIZATION ) {
+    output->fatal( CALL_INFO, -1, "Incoming event type != %d; =%d\n", baseMordredEvent::INITIALIZATION, (int) init_ev->getType() );
   }
-  if ( init_ev->command != cmd ) {
-    output->fatal( CALL_INFO, -1, "Incoming init event command != %d; =%d\n", (int)cmd, (int)init_ev->command );
+  if( init_ev->command != cmd ) {
+    output->fatal( CALL_INFO, -1, "Incoming init event command != %d; =%d\n", (int) cmd, (int) init_ev->command );
   }
   return init_ev;
 }
@@ -432,50 +484,66 @@ void MordredNIC::handleIncomingPacket( SST::Event* ev ) {
   switch( bev->getType() ) {
   case baseMordredEvent::CREDIT: {
     auto credit = static_cast<MordredCreditEvent*>( bev );
-    if ( credit->vn >= numVns )
+    if( credit->vn >= numVns )
       output->fatal( CALL_INFO, -1, "Unsupported vn=%u\n", credit->vn );
-    rtrCredits.at(credit->vn) += credit->credits;
-    output->verbose( CALL_INFO, 7, 0, "Received %" PRId32 " credits to vn=%" PRIu32 ", cur_credits=%" PRIu32 "\n",
-      credit->credits, credit->vn, rtrCredits.at( credit->vn ) );
+    rtrCredits.at( credit->vn ) += credit->credits;
+    output->verbose(
+      CALL_INFO,
+      7,
+      0,
+      "Received %" PRId32 " credits to vn=%" PRIu32 ", cur_credits=%" PRIu32 "\n",
+      credit->credits,
+      credit->vn,
+      rtrCredits.at( credit->vn )
+    );
     delete bev;
     break;
-  } // end CREDIT
+  }  // end CREDIT
   case baseMordredEvent::FLIT: {
     auto flit = static_cast<MordredFlit*>( ev );
-    if ( flit == nullptr )
+    if( flit == nullptr )
       output->fatal( CALL_INFO, -1, "flit was nullptr!\n" );
     Request* req = flit->getRequest();
-    if ( req == nullptr )
+    if( req == nullptr )
       output->fatal( CALL_INFO, -1, "Request was nullptr!\n" );
-    if ( ( flit->ftype == MordredFlit::HEAD  ) && ( req->getTraceType() == Request::FULL ) ) {
-      output->output( "TRACE(%d): %" PRIu64 " ns received head flit from link %s\n", flit->req->getTraceID(),
-        getCurrentSimTimeNano(), getName().c_str() );
+    if( ( flit->ftype == MordredFlit::HEAD ) && ( req->getTraceType() == Request::FULL ) ) {
+      output->output(
+        "TRACE(%d): %" PRIu64 " ns received head flit from link %s\n",
+        flit->req->getTraceID(),
+        getCurrentSimTimeNano(),
+        getName().c_str()
+      );
     }
 
-    if ( flit->ftype == MordredFlit::TAIL) {
-      if ( flit->vn >= numVns )
+    if( flit->ftype == MordredFlit::TAIL ) {
+      if( flit->vn >= numVns )
         output->fatal( CALL_INFO, -1, "Unsupported vn=%u\n", flit->vn );
-      if ( req->getTraceType() == Request::FULL ) {
-        output->output( "TRACE(%d): %" PRIu64 " ns received tail flit from link %s\n", flit->req->getTraceID(),
-          getCurrentSimTimeNano(), getName().c_str() );
+      if( req->getTraceType() == Request::FULL ) {
+        output->output(
+          "TRACE(%d): %" PRIu64 " ns received tail flit from link %s\n",
+          flit->req->getTraceID(),
+          getCurrentSimTimeNano(),
+          getName().c_str()
+        );
       }
-      inBuf.at(flit->vn).push( req );
+      inBuf.at( flit->vn ).push( req );
       //inBuf.at(0).push( req ); // hackery for testing multiple VNs
       // Compute elapsed latency of the packet
       // TODO: Do this with the actual clock rate, etc...seems like some things may change in sst 16, so I'm not in a rush
       // to deal with it today
-      uint64_t noc_latency = getCurrentSimCycle() - flit->head_inject_cycle;
+      uint64_t noc_latency  = getCurrentSimCycle() - flit->head_inject_cycle;
       //uint64_t total_latency = getCurrentSimCycle() - flit->pkt_created_cycle;
       double noc_latency_ns = ceil( noc_latency / 1000 );
       // Time in ns == clock ticks with 1 GHz clock.
       //output->verbose( CALL_INFO, 7, 0, "Finished receiving %s; total latency=%" PRIu64 "; NoC latency=%" PRIu64 "= %f ns\n",
       //  flit->pktIdStr().c_str(), total_latency, noc_latency, noc_latency_ns );
-      totalNocLatency += (uint64_t)noc_latency_ns;
+      totalNocLatency += (uint64_t) noc_latency_ns;
       totalPackets++;
-      totalNumFlits += (flit->flit_id+1);
-      if ( receiveFunctor != NULL ) {
-        bool keep = (*receiveFunctor)((int)flit->vn);
-        if ( !keep) receiveFunctor = NULL;
+      totalNumFlits += ( flit->flit_id + 1 );
+      if( receiveFunctor != NULL ) {
+        bool keep = ( *receiveFunctor )( (int) flit->vn );
+        if( !keep )
+          receiveFunctor = NULL;
       }
     }
     //output->flush();
@@ -483,14 +551,7 @@ void MordredNIC::handleIncomingPacket( SST::Event* ev ) {
     inReturnCredits.at( flit->vn )++;
     delete flit;
     break;
-  } // end FLIT
-  default:
-    output->fatal( CALL_INFO, -1, "Unknown/unimplemented event type=%d\n", (int) bev->getType() );
+  }  // end FLIT
+  default: output->fatal( CALL_INFO, -1, "Unknown/unimplemented event type=%d\n", (int) bev->getType() );
   }  // end switch
-
 }
-
-
-
-
-

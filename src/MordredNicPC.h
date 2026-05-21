@@ -34,8 +34,8 @@
 
 // Standard headers
 #include <cinttypes>
-#include <vector>
 #include <queue>
+#include <vector>
 
 // Local SST config
 #include "sst_config.h"
@@ -61,53 +61,55 @@ public:
   )
 
   SST_ELI_DOCUMENT_PARAMS(
-    {"verbose",         "Sets the output verbosity", "5"},
-    {"clock",           "Clock frequency of this interface", "1GHz"},
-    {"input_buf_size",  "Size of input buffers specified in b or B (can include SI prefix).", "1kiB"},
-    {"output_buf_size", "Size of output buffers specified in b or B (can include SI prefix).", "1kiB"}
+    { "verbose", "Sets the output verbosity", "5" },
+    { "clock", "Clock frequency of this interface", "1GHz" },
+    { "input_buf_size", "Size of input buffers specified in b or B (can include SI prefix).", "1kiB" },
+    { "output_buf_size", "Size of output buffers specified in b or B (can include SI prefix).", "1kiB" }
   )
 
-  SST_ELI_DOCUMENT_PORTS(
-    {"port", "Port that connects to a Mordred router (via inner SimpleNetwork adapter).",
-     {"untimedMordredEvent", "basicMordredEvent"}}
-  )
+  SST_ELI_DOCUMENT_PORTS( {
+    "port",
+    "Port that connects to a Mordred router (via inner SimpleNetwork adapter).",
+    { "untimedMordredEvent", "basicMordredEvent" }
+  } )
 
   SST_ELI_DOCUMENT_SUBCOMPONENT_SLOTS(
-    {"port_iface",
-     "PhysChannelAPI subcomponent that manages the physical link to the router",
-     "SST::Mordred::PhysChannelAPI"}
+    { "port_iface", "PhysChannelAPI subcomponent that manages the physical link to the router", "SST::Mordred::PhysChannelAPI" }
   )
 
   SST_ELI_DOCUMENT_STATISTICS(
-    {"packets_recv",        "Number of packets received",                       "unitless", 3},
-    {"average_noc_latency", "Average latency (in clocks) of each packet",       "unitless", 3},
-    {"average_packet_size", "Average packet size in number of flits",           "unitless", 3}
+    { "packets_recv", "Number of packets received", "unitless", 3 },
+    { "average_noc_latency", "Average latency (in clocks) of each packet", "unitless", 3 },
+    { "average_packet_size", "Average packet size in number of flits", "unitless", 3 }
   )
 
   MordredNicPC( ComponentId_t cid, Params& params, int vns );
   ~MordredNicPC() override = default;
 
   // SST lifecycle
-  void init(     uint32_t phase ) override;
-  void setup()                    override;
+  void init( uint32_t phase ) override;
+  void setup() override;
   void complete( uint32_t phase ) override;
-  void finish()                   override;
+  void finish() override;
 
   // SimpleNetwork outer interface (used by merlin.test_nic etc.)
   void     sendUntimedData( Request* req ) override;
-  Request* recvUntimedData()               override;
+  Request* recvUntimedData() override;
 
-  bool     send( Request* req, int vn )    override;
-  Request* recv( int vn )                  override;
+  bool     send( Request* req, int vn ) override;
+  Request* recv( int vn ) override;
 
   bool spaceToSend( int vn, int num_bits ) override;
-  bool requestToReceive( int vn )          override;
+  bool requestToReceive( int vn ) override;
 
   void setNotifyOnReceive( HandlerBase* functor ) override { receiveFunctor = functor; }
-  void setNotifyOnSend( HandlerBase* functor )    override { sendFunctor    = functor; }
+
+  void setNotifyOnSend( HandlerBase* functor ) override { sendFunctor = functor; }
 
   bool isNetworkInitialized() const override { return initialized; }
-  nid_t getEndpointID()       const override { return netID; }
+
+  nid_t getEndpointID() const override { return netID; }
+
   const UnitAlgebra& getLinkBW() const override { return bw; }
 
   // Clock handler
@@ -150,30 +152,30 @@ public:
   ImplementSerializable( SST::Mordred::MordredNicPC );
 
 private:
-  void resizeVectors();
+  void              resizeVectors();
   MordredInitEvent* getInitEvent( MordredInitEvent::Commands cmd );
   int32_t           calcNumFlits( uint32_t num_bits );
 
   // Dispatch incoming event from inner SN
   void processIncoming( SST::Event* ev );
 
-  Output*          output{};
-  PhysChannelAPI*  physChannel{};
+  Output*         output{};
+  PhysChannelAPI* physChannel{};
 
-  nid_t    netID{-1};
-  uint32_t rtrId{UINT32_MAX};
-  uint32_t rtrPort{UINT32_MAX};
-  bool     initialized{false};
-  uint32_t numVns{0};
-  uint32_t numVcs{UINT32_MAX};
+  nid_t    netID{ -1 };
+  uint32_t rtrId{ UINT32_MAX };
+  uint32_t rtrPort{ UINT32_MAX };
+  bool     initialized{ false };
+  uint32_t numVns{ 0 };
+  uint32_t numVcs{ UINT32_MAX };
   uint32_t flitSize{};
   uint64_t packetId{};
-  uint64_t headInjectCycle{UINT64_MAX};
+  uint64_t headInjectCycle{ UINT64_MAX };
 
   UnitAlgebra bw;
 
-  HandlerBase* sendFunctor{nullptr};
-  HandlerBase* receiveFunctor{nullptr};
+  HandlerBase* sendFunctor{ nullptr };
+  HandlerBase* receiveFunctor{ nullptr };
 
   // in bits
   UnitAlgebra inbufSize;
@@ -191,13 +193,13 @@ private:
   std::vector<int32_t> inReturnCredits;  // credits to return to router
 
   // Statistics
-  uint64_t totalNocLatency{0};
-  uint64_t totalPackets{0};
-  uint64_t totalNumFlits{0};
+  uint64_t             totalNocLatency{ 0 };
+  uint64_t             totalPackets{ 0 };
+  uint64_t             totalNumFlits{ 0 };
   Statistic<uint64_t>* statPacketsRecv{};
   Statistic<double>*   statAvgNocLatency{};
   Statistic<double>*   statAvgFlitsPerPacket{};
 };
 
-} // namespace SST::Mordred
-#endif // MORDRED_MORDREDNICPC_H
+}  // namespace SST::Mordred
+#endif  // MORDRED_MORDREDNICPC_H
