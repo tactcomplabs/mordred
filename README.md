@@ -61,6 +61,9 @@ Here, most data structures are multi-dimensional arrays contained within a port 
 - Additional topologies and arbitration methods can be added
 - Router latency is fixed
 - No maximum packet length (number of flits) set; packet to flit translation is happening only in MordredNIC and there is a minimum of 2 flits per packet
+- When using `prydwen.uciePhysChannel` as the transport, `MordredNicPC::setup()` validates
+  that the router's `flit_size` parameter matches the UCIe channel's flit payload size
+  (via `PhysChannelAPI::getFlitPayloadBytes()`).  A mismatch aborts simulation at startup.
 - Continue to review timing of the router and its subcomponents
 - NetworkInspectors are not yet supported.
 - See comments towards top of MordredEvents.h for a description of the event types

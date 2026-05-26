@@ -168,6 +168,14 @@ void MordredNicPC::init( uint32_t phase ) {
 
 void MordredNicPC::setup() {
   physChannel->setup();
+
+  uint32_t phys_bytes = physChannel->getFlitPayloadBytes();
+  if( phys_bytes > 0 && phys_bytes * 8 != flitSize ) {
+    output->fatal( CALL_INFO, -1,
+      "Flit size mismatch: MordredRouter configured flitSize=%" PRIu32 "b but "
+      "UCIePhysChannel flit payload=%" PRIu32 "b — these must match\n",
+      flitSize, phys_bytes * 8 );
+  }
 }
 
 void MordredNicPC::complete( uint32_t phase ) {
