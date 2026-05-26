@@ -26,6 +26,20 @@ The `mordred.mordredNIC` subcomponent works in the subcomponent slots of `memHie
 
 The `mordred.mordredNIC` subcomponent also works in the `networkIF` subcomponent slot of the `merlin.Bridge` component; see `tests/mordred_testBridge.py`.
 
+### PhysChannel tests (require prydwen)
+When `MORDRED_ENABLE_PHYS_CHANNEL=ON` (the default), `make test` also registers a set of tests that exercise the `prydwen.uciePhysChannel` transport on every link:
+
+| Test script | Topology | Transport |
+|---|---|---|
+| `mesh2x1_rtrportcontrolpc.py` | 2×1 mesh | `prydwen.genericPhysChannel` |
+| `mesh2x1_uciePhysChannel.py` | 2×1 mesh | `prydwen.uciePhysChannel` |
+| `mesh3x3_uciePhysChannel.py` | 3×3 mesh | `prydwen.uciePhysChannel` |
+| `flatbutterfly_k2n4_uciePhysChannel.py` | k=2, n=4 butterfly | `prydwen.uciePhysChannel` |
+| `torus5x5_2vc_uciePhysChannel.py` | 5×5 2D torus | `prydwen.uciePhysChannel`, 2 VCs |
+| `torus3D_3x3x3_2vc_uciePhysChannel.py` | 3×3×3 3D torus | `prydwen.uciePhysChannel`, 2 VCs |
+
+These tests require prydwen to be built and registered first.  Build with `-DMORDRED_ENABLE_PHYS_CHANNEL=OFF` to skip them when prydwen is not available.
+
 ### Comments on the `repotest` folder
 This folder is a sandbox for scipts/tests under development, performance comparisons, etc.  Feel free to use anything in here, but no promises are made as to the completeness and correctness of any script.  Only a couple of unique scripts exist - most are copy/edit from one of the original ones.
 

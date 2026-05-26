@@ -8,7 +8,6 @@
 
 set(MORDRED_TEST_SRCS
   flatbutterfly_k2n4_testnic.py
-  mesh2x1_rtrportcontrolpc.py
   mesh3x3_testnic.py
   torus3D_3x3x3_2vc_testnic.py
   torus5x5_2vc_testnic.py
@@ -16,6 +15,17 @@ set(MORDRED_TEST_SRCS
   mordred_memNICFour.py
   mordred_testBridge.py
 )
+
+if(MORDRED_ENABLE_PHYS_CHANNEL)
+  list(APPEND MORDRED_TEST_SRCS
+    mesh2x1_rtrportcontrolpc.py
+    mesh2x1_uciePhysChannel.py
+    mesh3x3_uciePhysChannel.py
+    flatbutterfly_k2n4_uciePhysChannel.py
+    torus5x5_2vc_uciePhysChannel.py
+    torus3D_3x3x3_2vc_uciePhysChannel.py
+  )
+endif()
 
 set (passRegex "Simulation is complete")
 

@@ -239,16 +239,28 @@ ports of `mordred.mordred_router`.
 
 Tests live in `tests/` and are run via `make test` from the build directory.
 
-| Test script                         | Topology       | Notes                                    |
-|-------------------------------------|----------------|------------------------------------------|
-| `mesh3x3_testnic.py`                | 3×3 mesh       | 1 VC, 1 VN, 16-bit flits                |
-| `torus5x5_2vc_testnic.py`           | 5×5 2D torus   | 2 VCs for deadlock avoidance             |
-| `torus3D_3x3x3_2vc_testnic.py`      | 3×3×3 3D torus | 2 VCs                                    |
-| `flatbutterfly_k2n4_testnic.py`     | k=2, n=4 butterfly | —                                    |
-| `mesh2x1_rtrportcontrolsn.py`       | 2×1 mesh       | `RtrPortControlPC` + `prydwen.genericPhysChannel` |
-| `mordred_testBridge.py`             | Mesh           | Merlin Bridge integration                |
-| `ipdps25tutorial_demo7.py`          | Mesh           | MemHierarchy MemNIC integration          |
-| `mordred_memNICFour.py`             | Mesh           | MemHierarchy MemNICFour integration      |
+**Standard tests** (always registered):
+
+| Test script                         | Topology           | Notes                                    |
+|-------------------------------------|--------------------|------------------------------------------|
+| `mesh3x3_testnic.py`                | 3×3 mesh           | 1 VC, 1 VN, 16-bit flits                |
+| `torus5x5_2vc_testnic.py`           | 5×5 2D torus       | 2 VCs for deadlock avoidance             |
+| `torus3D_3x3x3_2vc_testnic.py`      | 3×3×3 3D torus     | 2 VCs                                    |
+| `flatbutterfly_k2n4_testnic.py`     | k=2, n=4 butterfly | —                                        |
+| `mordred_testBridge.py`             | Mesh               | Merlin Bridge integration                |
+| `ipdps25tutorial_demo7.py`          | Mesh               | MemHierarchy MemNIC integration          |
+| `mordred_memNICFour.py`             | Mesh               | MemHierarchy MemNICFour integration      |
+
+**PhysChannel tests** (registered only when `MORDRED_ENABLE_PHYS_CHANNEL=ON`; require prydwen):
+
+| Test script                              | Topology           | Transport                          |
+|------------------------------------------|--------------------|------------------------------------|
+| `mesh2x1_rtrportcontrolpc.py`            | 2×1 mesh           | `prydwen.genericPhysChannel`       |
+| `mesh2x1_uciePhysChannel.py`             | 2×1 mesh           | `prydwen.uciePhysChannel`          |
+| `mesh3x3_uciePhysChannel.py`             | 3×3 mesh           | `prydwen.uciePhysChannel`          |
+| `flatbutterfly_k2n4_uciePhysChannel.py`  | k=2, n=4 butterfly | `prydwen.uciePhysChannel`          |
+| `torus5x5_2vc_uciePhysChannel.py`        | 5×5 2D torus       | `prydwen.uciePhysChannel`, 2 VCs   |
+| `torus3D_3x3x3_2vc_uciePhysChannel.py`   | 3×3×3 3D torus     | `prydwen.uciePhysChannel`, 2 VCs   |
 
 ---
 
