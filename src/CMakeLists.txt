@@ -8,6 +8,8 @@
 
 set(MordredSrcs
         MordredEvents.h
+        MordredNicBase.h
+        MordredNicBase.cc
         MordredNIC.h
         MordredNIC.cc
         MordredRouter.h
@@ -16,6 +18,8 @@ set(MordredSrcs
         MeshTopology.h
         MeshTopology.cc
         RtrPortControlAPI.h
+        RtrPortControlBase.h
+        RtrPortControlBase.cc
         RtrPortControl.h
         RtrPortControl.cc
         XbarArbAPI.h
