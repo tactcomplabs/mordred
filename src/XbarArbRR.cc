@@ -62,7 +62,7 @@ void XbarArbRR::arbitrate( std::vector<RtrPortControlAPI*>& ports, std::vector<R
   recv_rr_port = ( recv_rr_port + 1 ) % numPorts;
   send_rr_port = ( send_rr_port + 1 ) % numPorts;
   send_rr_vn   = ( send_rr_vn + 1 ) % numVns;
-  send_rr_vc   = ( send_rr_vn + 1 ) % numVcs;
+  send_rr_vc   = ( send_rr_vc + 1 ) % numVcs;
 }
 
 bool XbarArbRR::findSendableFlit( uint32_t rcvportnum, RtrPortControlAPI*& sendport, RtrOwnedSharedObjs& shared_obj ) {
