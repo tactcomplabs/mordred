@@ -71,6 +71,18 @@ public:
   /// Get the output port for a packet
   uint32_t routePacket( uint32_t dest ) final;
 
+  /// Return true when this router's output_port crosses the torus wrap boundary.
+  /// Used by VcAllocRR to assign VC1 to wrap links, keeping VC0 deadlock-free.
+  bool isWrapAroundOutput( uint32_t output_port ) const override {
+    switch( output_port ) {
+    case EAST:  return xId == xDim - 1;
+    case WEST:  return xId == 0;
+    case NORTH: return yId == yDim - 1;
+    case SOUTH: return yId == 0;
+    default:    return false;  // local ports
+    }
+  }
+
   /// Do routing for untimed packets; this has to handle broadcast messages
   void routeUntimedBroadcastPacket( uint32_t receive_port_id, MordredInitEvent* init_ev, std::vector<Event*>& output_events ) final;
 

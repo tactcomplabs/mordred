@@ -158,6 +158,8 @@ public:
 
   uint32_t getConnectedRtrId() const override { return connectedRtrId; }
 
+  bool isWrapAroundOutputPort( uint32_t output_port ) const override;
+
   // Default constructor for serialization
   RtrPortControlBase() : RtrPortControlAPI() {}
 

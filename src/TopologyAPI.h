@@ -51,6 +51,11 @@ public:
   virtual void
     routeUntimedBroadcastPacket( uint32_t receive_port_id, MordredInitEvent* ev, std::vector<Event*>& output_events ) = 0;
 
+  /// Return true if the given output port uses a wrap-around link (i.e. crosses
+  /// the ring boundary in this router's torus dimension).  Default returns false
+  /// so non-torus topologies (mesh, butterfly, …) are unaffected.
+  virtual bool isWrapAroundOutput( uint32_t output_port ) const { return false; }
+
 };  // class TopologyAPI
 
 }  // namespace SST::Mordred

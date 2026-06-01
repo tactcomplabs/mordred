@@ -34,7 +34,7 @@ void VcAllocRR::arbitrate( std::vector<RtrPortControlAPI*>& ports, std::vector<R
         output->fatal(
           CALL_INFO, -1, "Invalid out_port=%" PRIu32 "; invalid packet dest=%" PRIu64 "?\n", dest_portnum, flit->req->dest
         );
-      auto dest_vc = findDestVc( ports.at( dest_portnum ) );
+      auto dest_vc = findDestVc( ports.at( dest_portnum ), portnum, dest_portnum );
       if( dest_vc != UINT32_MAX ) {
         input_port->inUnitSetDestVc( src_vn, src_vc, dest_vc );
         ports.at( dest_portnum )->outUnitSetSrc( portnum, src_vn, src_vc, dest_vc );
@@ -65,15 +65,41 @@ MordredFlit* VcAllocRR::findMappableFlit( RtrOwnedSharedObjs* obj ) {
   return nullptr;
 }
 
-// For this port and VN, see if there's an IDLE VC; if not, we can't map this packet
-uint32_t VcAllocRR::findDestVc( RtrPortControlAPI*& port ) const {
+// For this port and VN, see if there's an IDLE VC; if not, we can't map this packet.
+// in_port  = the input port number this flit arrived on (portnum in arbitrate loop).
+// out_port = the output port number this flit is being mapped to (dest_portnum).
+//
+// Port numbering for both 2D and 3D torus: NORTH=0, EAST=1, SOUTH=2, WEST=3.
+// X-direction ports: EAST(1) and WEST(3) — flit is routing in the X dimension.
+// Y-direction ports: NORTH(0) and SOUTH(2) — flit is routing in the Y dimension.
+//
+// Deadlock prevention uses three mechanisms:
+//   1. VC monotonicity: never assign an output VC index less than the input VC index.
+//   2. Y-port promotion: any output to a Y-direction port (NORTH/SOUTH) is forced to
+//      the highest VC.  All Y-dimension traffic uses VC(N-1).
+//   3. Wrap-around link promotion: any torus wrap-around output (topology-queried) is
+//      forced to the highest VC.  This makes the VC-0 X-ring dependency graph acyclic
+//      (a DAG), satisfying the Dally-Seitz deadlock-freedom condition.
+uint32_t VcAllocRR::findDestVc( RtrPortControlAPI*& port, uint32_t in_port, uint32_t out_port ) const {
   if( port->getConnectionType() == RtrPortControlAPI::ENDPOINT ) {
     if( port->getOutputState( src_vn, 0 ) == OUT_IDLE )
       return 0;
   } else {
-    for( uint32_t i = 0, cur_vc = rr_dest_vc; i < numVcs; i++, cur_vc = ( cur_vc + 1 ) % numVcs ) {
-      if( port->getOutputState( src_vn, cur_vc ) == OUT_IDLE )
-        return cur_vc;
+    // Mechanisms 2 & 3: force highest VC for Y-port outputs and torus wrap outputs.
+    const bool dst_is_yport = ( out_port == 0 || out_port == 2 );
+    const bool is_wrap      = port->isWrapAroundOutputPort( out_port );
+    if( numVcs > 1 && ( dst_is_yport || is_wrap ) ) {
+      const uint32_t top_vc = numVcs - 1;
+      if( port->getOutputState( src_vn, top_vc ) == OUT_IDLE )
+        return top_vc;
+      // top_vc busy — stall this packet
+    } else {
+      // Normal allocation: round-robin among VCs ≥ src_vc (mechanism 1: monotonicity).
+      for( uint32_t i = 0, cur_vc = rr_dest_vc; i < numVcs; i++, cur_vc = ( cur_vc + 1 ) % numVcs ) {
+        if( cur_vc < src_vc ) continue;  // never downgrade VC index
+        if( port->getOutputState( src_vn, cur_vc ) == OUT_IDLE )
+          return cur_vc;
+      }
     }
   }
   return UINT32_MAX;

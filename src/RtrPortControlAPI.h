@@ -142,6 +142,10 @@ public:
 
   virtual uint32_t getConnectedRtrId() const                                                           = 0;
 
+  /// True when this port's outgoing link is a wrap-around link in the torus.
+  /// Delegates to the topology; default-returns false for non-torus topologies.
+  virtual bool isWrapAroundOutputPort( uint32_t output_port ) const { return false; }
+
   virtual uint32_t getSendingPort()                                                                    = 0;
 
   virtual std::pair<uint32_t, uint32_t> getSwitchSendVnVc()                                            = 0;

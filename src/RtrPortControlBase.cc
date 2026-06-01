@@ -343,8 +343,11 @@ void RtrPortControlBase::ClockTick( Cycle_t cycle ) {
   flit_vc_rr = ( flit_vc_rr + 1 ) % numVcs;
   flit_vn_rr = ( flit_vn_rr + 1 ) % numVns;
 
-  if( !sent )
-    returnCredit();
+  // Return accumulated inBuf credits unconditionally every tick.
+  // With transports where spaceToSend always returns true (e.g. UCIe),
+  // the original !sent guard suppressed credit return whenever the output
+  // was active, causing credit starvation under load.
+  returnCredit();
 }
 
 void RtrPortControlBase::processIncomingEvent( SST::Event* ev ) {
@@ -415,6 +418,10 @@ MordredInitEvent* RtrPortControlBase::getInitEvent( MordredInitEvent::Commands c
   if( ev->command != cmd )
     output->fatal( CALL_INFO, -1, "getInitEvent: unexpected command %d, expected %d\n", (int) ev->command, (int) cmd );
   return ev;
+}
+
+bool RtrPortControlBase::isWrapAroundOutputPort( uint32_t output_port ) const {
+  return topo->isWrapAroundOutput( output_port );
 }
 
 void RtrPortControlBase::returnCredit() {

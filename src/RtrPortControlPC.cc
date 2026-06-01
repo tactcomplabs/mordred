@@ -36,7 +36,12 @@ RtrPortControlPC::RtrPortControlPC(
 
 bool RtrPortControlPC::onReceive( int sn_vn ) {
   SST::Event* ev = nullptr;
-  while( ( ev = physChannel->recv( sn_vn ) ) != nullptr )
+  while( ( ev = physChannel->recv( sn_vn ) ) != nullptr ) {
     processIncomingEvent( ev );
+  }
   return true;
+}
+
+void RtrPortControlPC::ClockTick( Cycle_t cycle ) {
+  RtrPortControlBase::ClockTick( cycle );
 }

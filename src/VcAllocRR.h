@@ -102,7 +102,7 @@ private:
   }
 
   MordredFlit* findMappableFlit( RtrOwnedSharedObjs* obj );
-  uint32_t     findDestVc( RtrPortControlAPI*& port ) const;
+  uint32_t     findDestVc( RtrPortControlAPI*& port, uint32_t in_port, uint32_t out_port ) const;
 };
 
 }  // namespace SST::Mordred

@@ -281,6 +281,11 @@ bool MordredNicBase::clockTick( Cycle_t cycle ) {
         }
       }
 
+      // Capture debug info before transportSendFlit() — the physical layer
+      // takes ownership of the flit and may delete it immediately (e.g. UCIe
+      // serializes and discards BODY/TAIL flits on-the-spot).
+      std::string flit_dbg = flit->pktIdStr();
+
       transportSendFlit( flit, vn );
       sent = true;
       rtrCredits.at( vn )--;
@@ -288,7 +293,7 @@ bool MordredNicBase::clockTick( Cycle_t cycle ) {
 
       output->verbose(
         CALL_INFO, 7, 0, "Sent flit %s at cycle=%" PRIu64 "; rtrCredits=%" PRId32 "\n",
-        flit->pktIdStr().c_str(), cycle, rtrCredits.at( vn )
+        flit_dbg.c_str(), cycle, rtrCredits.at( vn )
       );
       output->flush();
     }
