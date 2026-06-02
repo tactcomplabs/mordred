@@ -9,8 +9,15 @@
 set(MORDRED_TEST_SRCS
   flatbutterfly_k2n4_testnic.py
   mesh3x3_testnic.py
+  mesh3x3_untimed_broadcast.py
+  mesh3x3_2local_testnic.py
+  mesh3x3_single_flit.py
+  mesh3x3_large_message.py
   torus3D_3x3x3_2vc_testnic.py
+  torus3D_3x3x3_2vc_untimed_broadcast.py
   torus5x5_2vc_testnic.py
+  torus5x5_2vc_untimed_broadcast.py
+  torus5x5_3vc_testnic.py
   ipdps25tutorial_demo7.py
   mordred_memNICFour.py
   mordred_testBridge.py
@@ -23,6 +30,8 @@ if(MORDRED_ENABLE_PHYS_CHANNEL)
     mesh3x3_uciePhysChannel.py
     flatbutterfly_k2n4_uciePhysChannel.py
     torus5x5_2vc_uciePhysChannel.py
+    torus5x5_3vc_uciePhysChannel.py
+    torus5x5_4vc_uciePhysChannel.py
     torus3D_3x3x3_2vc_uciePhysChannel.py
   )
 endif()

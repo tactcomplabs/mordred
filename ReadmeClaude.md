@@ -241,26 +241,35 @@ Tests live in `tests/` and are run via `make test` from the build directory.
 
 **Standard tests** (always registered):
 
-| Test script                         | Topology           | Notes                                    |
-|-------------------------------------|--------------------|------------------------------------------|
-| `mesh3x3_testnic.py`                | 3×3 mesh           | 1 VC, 1 VN, 16-bit flits                |
-| `torus5x5_2vc_testnic.py`           | 5×5 2D torus       | 2 VCs for deadlock avoidance             |
-| `torus3D_3x3x3_2vc_testnic.py`      | 3×3×3 3D torus     | 2 VCs                                    |
-| `flatbutterfly_k2n4_testnic.py`     | k=2, n=4 butterfly | —                                        |
-| `mordred_testBridge.py`             | Mesh               | Merlin Bridge integration                |
-| `ipdps25tutorial_demo7.py`          | Mesh               | MemHierarchy MemNIC integration          |
-| `mordred_memNICFour.py`             | Mesh               | MemHierarchy MemNICFour integration      |
+| Test script                                  | Topology           | Notes                                                                  |
+|----------------------------------------------|--------------------|------------------------------------------------------------------------|
+| `mesh3x3_testnic.py`                         | 3×3 mesh           | Baseline: 1 VC, 1 VN, 16-bit flits, 1 local port per router           |
+| `mesh3x3_untimed_broadcast.py`               | 3×3 mesh           | `send_untimed_broadcast=true`; exercises `MeshTopology::routeUntimedBroadcastPacket` |
+| `mesh3x3_2local_testnic.py`                  | 3×3 mesh           | Concentration=2 (2 local ports per router); exercises non-zero `dest - endptZeroId` final-hop offset |
+| `mesh3x3_single_flit.py`                     | 3×3 mesh           | 1-flit request → 2-flit minimum packet; HEAD immediately followed by TAIL, empty body loop |
+| `mesh3x3_large_message.py`                   | 3×3 mesh           | 16-flit packets; stresses body-flit send loop and output-buffer backpressure |
+| `torus5x5_2vc_testnic.py`                    | 5×5 2D torus       | 2 VCs required for deadlock avoidance on 5×5                           |
+| `torus5x5_2vc_untimed_broadcast.py`          | 5×5 2D torus       | `send_untimed_broadcast=true`; exercises `TorusTopo::sendBroadcast` wrap-aware flood logic |
+| `torus5x5_3vc_testnic.py`                    | 5×5 2D torus       | 3 VCs; exercises `VcAllocRR` beyond the minimum deadlock-free VC count |
+| `torus3D_3x3x3_2vc_testnic.py`              | 3×3×3 3D torus     | 2 VCs                                                                  |
+| `torus3D_3x3x3_2vc_untimed_broadcast.py`    | 3×3×3 3D torus     | `send_untimed_broadcast=true`; exercises `Torus3DTopo::sendBroadcast` across 6 directions |
+| `flatbutterfly_k2n4_testnic.py`             | k=2, n=4 butterfly | —                                                                      |
+| `ipdps25tutorial_demo7.py`                  | Mesh               | `memHierarchy.MemNIC` integration                                      |
+| `mordred_memNICFour.py`                     | Mesh               | `memHierarchy.MemNICFour` integration                                  |
+| `mordred_testBridge.py`                     | Mesh               | `merlin.Bridge` integration                                            |
 
 **PhysChannel tests** (registered only when `MORDRED_ENABLE_PHYS_CHANNEL=ON`; require prydwen):
 
-| Test script                              | Topology           | Transport                          |
-|------------------------------------------|--------------------|------------------------------------|
-| `mesh2x1_rtrportcontrolpc.py`            | 2×1 mesh           | `prydwen.genericPhysChannel`       |
-| `mesh2x1_uciePhysChannel.py`             | 2×1 mesh           | `prydwen.uciePhysChannel`          |
-| `mesh3x3_uciePhysChannel.py`             | 3×3 mesh           | `prydwen.uciePhysChannel`          |
-| `flatbutterfly_k2n4_uciePhysChannel.py`  | k=2, n=4 butterfly | `prydwen.uciePhysChannel`          |
-| `torus5x5_2vc_uciePhysChannel.py`        | 5×5 2D torus       | `prydwen.uciePhysChannel`, 2 VCs   |
-| `torus3D_3x3x3_2vc_uciePhysChannel.py`   | 3×3×3 3D torus     | `prydwen.uciePhysChannel`, 2 VCs   |
+| Test script                                  | Topology           | Transport                               |
+|----------------------------------------------|--------------------|-----------------------------------------|
+| `mesh2x1_rtrportcontrolpc.py`                | 2×1 mesh           | `prydwen.genericPhysChannel`            |
+| `mesh2x1_uciePhysChannel.py`                 | 2×1 mesh           | `prydwen.uciePhysChannel`               |
+| `mesh3x3_uciePhysChannel.py`                 | 3×3 mesh           | `prydwen.uciePhysChannel`               |
+| `flatbutterfly_k2n4_uciePhysChannel.py`      | k=2, n=4 butterfly | `prydwen.uciePhysChannel`               |
+| `torus5x5_2vc_uciePhysChannel.py`            | 5×5 2D torus       | `prydwen.uciePhysChannel`, 2 VCs        |
+| `torus5x5_3vc_uciePhysChannel.py`            | 5×5 2D torus       | `prydwen.uciePhysChannel`, 3 VCs        |
+| `torus5x5_4vc_uciePhysChannel.py`            | 5×5 2D torus       | `prydwen.uciePhysChannel`, 4 VCs        |
+| `torus3D_3x3x3_2vc_uciePhysChannel.py`      | 3×3×3 3D torus     | `prydwen.uciePhysChannel`, 2 VCs        |
 
 ---
 
@@ -274,7 +283,7 @@ Tests live in `tests/` and are run via `make test` from the build directory.
 - **Buffer allocation:** Buffers are fully segregated per (VN, VC) pair; no shared pool.
 - **Arbitration:** Round-robin only for both VC allocation and crossbar arbitration.
 - **Routing:** Each topology implements its own routing; no general-purpose routing algorithm API.
-- **Broadcast/Multicast:** Not supported at simulation time; initialization uses untimed broadcast only.
+- **Broadcast/Multicast:** Not supported at simulation time. Untimed broadcast (SST init/complete phases) is supported and tested via the `*_untimed_broadcast` test scripts — each topology implements `routeUntimedBroadcastPacket` with its own flood logic.
 
 ---
 

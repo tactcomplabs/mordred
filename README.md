@@ -17,10 +17,29 @@ make test
 ```
 
 ## Tests/Tested Compatibility
-The tests run by `make test` are in the `tests/` folder. 
+The tests run by `make test` are in the `tests/` folder.
+
+### Standard tests
+
+| Test script | Topology | Notes |
+|---|---|---|
+| `mesh3x3_testnic.py` | 3×3 mesh | Baseline mesh test |
+| `mesh3x3_untimed_broadcast.py` | 3×3 mesh | `send_untimed_broadcast=true`; exercises `MeshTopology::routeUntimedBroadcastPacket` |
+| `mesh3x3_2local_testnic.py` | 3×3 mesh | 2 local ports per router (concentration=2) |
+| `mesh3x3_single_flit.py` | 3×3 mesh | 1-flit request → 2-flit minimum packet (HEAD+TAIL, no body flits) |
+| `mesh3x3_large_message.py` | 3×3 mesh | 16-flit packets; exercises body-flit loop and output-buffer backpressure |
+| `torus5x5_2vc_testnic.py` | 5×5 2D torus | 2 VCs for deadlock avoidance |
+| `torus5x5_2vc_untimed_broadcast.py` | 5×5 2D torus | `send_untimed_broadcast=true`; exercises `TorusTopo::sendBroadcast` wrap logic |
+| `torus5x5_3vc_testnic.py` | 5×5 2D torus | 3 VCs; exercises `VcAllocRR` beyond the minimum deadlock-free configuration |
+| `torus3D_3x3x3_2vc_testnic.py` | 3×3×3 3D torus | 2 VCs |
+| `torus3D_3x3x3_2vc_untimed_broadcast.py` | 3×3×3 3D torus | `send_untimed_broadcast=true`; exercises `Torus3DTopo::sendBroadcast` |
+| `flatbutterfly_k2n4_testnic.py` | k=2, n=4 butterfly | — |
+| `ipdps25tutorial_demo7.py` | Mesh | `memHierarchy.MemNIC` integration |
+| `mordred_memNICFour.py` | Mesh | `memHierarchy.MemNICFour` integration |
+| `mordred_testBridge.py` | Mesh | `merlin.Bridge` integration |
 
 ### Tested compatibility
-To replace a `merlin.hr_router` using a singlerouter topology, a single `mordred.mordred_router` can be used with a 1x1 mesh topology.  The links between the endpoints and the `merlin.hr_router` then become links between the endpoints and the local ports of `mordred.mordred_router`
+To replace a `merlin.hr_router` using a single-router topology, a single `mordred.mordred_router` can be used with a 1x1 mesh topology.  The links between the endpoints and the `merlin.hr_router` then become links between the endpoints and the local ports of `mordred.mordred_router`.
 
 The `mordred.mordredNIC` subcomponent works in the subcomponent slots of `memHierarchy.MemNIC` and `memHierarchy.MemNICFour`.  See `tests/ipdps25tutorial_demo7.py` and `tests/mordred_memNICFour.py` respectively.
 
@@ -36,6 +55,8 @@ When `MORDRED_ENABLE_PHYS_CHANNEL=ON` (the default), `make test` also registers 
 | `mesh3x3_uciePhysChannel.py` | 3×3 mesh | `prydwen.uciePhysChannel` |
 | `flatbutterfly_k2n4_uciePhysChannel.py` | k=2, n=4 butterfly | `prydwen.uciePhysChannel` |
 | `torus5x5_2vc_uciePhysChannel.py` | 5×5 2D torus | `prydwen.uciePhysChannel`, 2 VCs |
+| `torus5x5_3vc_uciePhysChannel.py` | 5×5 2D torus | `prydwen.uciePhysChannel`, 3 VCs |
+| `torus5x5_4vc_uciePhysChannel.py` | 5×5 2D torus | `prydwen.uciePhysChannel`, 4 VCs |
 | `torus3D_3x3x3_2vc_uciePhysChannel.py` | 3×3×3 3D torus | `prydwen.uciePhysChannel`, 2 VCs |
 
 These tests require prydwen to be built and registered first.  Build with `-DMORDRED_ENABLE_PHYS_CHANNEL=OFF` to skip them when prydwen is not available.
