@@ -33,6 +33,8 @@ if(MORDRED_ENABLE_PHYS_CHANNEL)
     torus5x5_3vc_uciePhysChannel.py
     torus5x5_4vc_uciePhysChannel.py
     torus3D_3x3x3_2vc_uciePhysChannel.py
+    mesh2x1_uciePhysChannel_flit_format2.py
+    mesh3x3_uciePhysChannel_2module.py
   )
 endif()
 

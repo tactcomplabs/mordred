@@ -270,6 +270,8 @@ Tests live in `tests/` and are run via `make test` from the build directory.
 | `torus5x5_3vc_uciePhysChannel.py`            | 5×5 2D torus       | `prydwen.uciePhysChannel`, 3 VCs        |
 | `torus5x5_4vc_uciePhysChannel.py`            | 5×5 2D torus       | `prydwen.uciePhysChannel`, 4 VCs        |
 | `torus3D_3x3x3_2vc_uciePhysChannel.py`      | 3×3×3 3D torus     | `prydwen.uciePhysChannel`, 2 VCs        |
+| `mesh2x1_uciePhysChannel_flit_format2.py`   | 2×1 mesh           | `prydwen.uciePhysChannel`, FLIT format 2 (68B/64B payload, 16 GT/s) |
+| `mesh3x3_uciePhysChannel_2module.py`        | 3×3 mesh           | `prydwen.uciePhysChannel`, 2 bonded modules |
 
 ---
 
@@ -284,6 +286,7 @@ Tests live in `tests/` and are run via `make test` from the build directory.
 - **Arbitration:** Round-robin only for both VC allocation and crossbar arbitration.
 - **Routing:** Each topology implements its own routing; no general-purpose routing algorithm API.
 - **Broadcast/Multicast:** Not supported at simulation time. Untimed broadcast (SST init/complete phases) is supported and tested via the `*_untimed_broadcast` test scripts — each topology implements `routeUntimedBroadcastPacket` with its own flood logic.
+- **UCIe multi-stack (`num_stacks=2`):** Not currently testable through mordred. `merlin.test_nic` requests exactly 1 VN when loading its `networkIF` subcomponent; `mordredNicPC` and `rtrPortControlPC` forward that count to `uciePhysChannel`, which then rejects `num_vns_per_stack="1,1"` (total=2) as a mismatch. Supporting multi-stack requires either a test endpoint that requests multiple VNs or a mordred component variant that can remap VNs. See `prydwen/tests/test_ucie_physch_multistack.py` for documentation of this gap.
 
 ---
 
