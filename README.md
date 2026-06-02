@@ -98,7 +98,7 @@ Here, most data structures are multi-dimensional arrays contained within a port 
 - Priority is completely unimplemented (may need to use VNs since SST::SimpleNetwork::Request does not have a priority field)
 - Additional topologies and arbitration methods can be added
 - Router latency is fixed
-- No maximum packet length (number of flits) set; packet to flit translation is happening only in MordredNIC and there is a minimum of 2 flits per packet
+- No maximum packet length (number of flits) set; packet to flit translation is handled in MordredNicBase (shared by MordredNIC and MordredNicPC) and there is a minimum of 2 flits per packet
 - When using `prydwen.uciePhysChannel` as the transport, `MordredNicPC::setup()` validates
   that the router's `flit_size` parameter matches the UCIe channel's flit payload size
   (via `PhysChannelAPI::getFlitPayloadBytes()`).  A mismatch aborts simulation at startup.
@@ -128,10 +128,10 @@ on a per clock tick basis (this should be tested).
 ## Notes on the initialization process
 
 Currently, the initialization procedure does not send any information "globally" to all routers/endpoints; the
-initialization is strictly done between the endpoint NIC (MordredNIC) and the port control of the router (RtrPortControl
-is the only one implemented).
+initialization is strictly done between the endpoint NIC (MordredNIC or MordredNicPC) and the port control of the
+router (RtrPortControl or RtrPortControlPC).
 
-Note to self: If there are no messages during a phase of init(), the init() process ends.
+Note: If there are no messages during a phase of init(), the init() process ends.
 
 The table below outlines the current initialization process. The (s) notes a send, (r) notes a receive.
 

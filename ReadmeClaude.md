@@ -184,7 +184,7 @@ connected to **local ports only** — do not connect endpoints to routing ports.
 All routers in a simulation should have the same number of local ports. Unconnected
 local ports are permitted.
 
-### 2D Mesh — `mordred.meshTopology`
+### 2D Mesh — `mordred.MeshTopology`
 
 Rectangular grid without wrap-around.
 
@@ -201,7 +201,7 @@ Router ID = `(y × xDim) + x`
 
 **Parameters:** `xDim`, `yDim`, `num_local_ports`, `num_vns`, `num_vcs`
 
-### 3D Torus — `mordred.torus3dTopo`
+### 3D Torus — `mordred.torus3DTopo`
 
 Extension of the 2D torus with a Z dimension.
 
@@ -209,7 +209,7 @@ Router ID = `(z × (xDim × yDim)) + (y × xDim) + x`
 
 **Parameters:** `xDim`, `yDim`, `zDim`, `num_local_ports`, `num_vns`, `num_vcs`
 
-### Flattened Butterfly — `mordred.flatButterflyTopo`
+### Flattened Butterfly — `mordred.flattenedButterfly`
 
 K-ary N-fly topology. A helper class in `tests/flatbutterfly_k2n4_testnic.py` handles
 router and endpoint naming/numbering.
