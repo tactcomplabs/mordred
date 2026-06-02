@@ -119,6 +119,32 @@ for a full UCIe adapter-layer transport.
 
 ---
 
+### Test Endpoint: `mordred.mordredTestEP`
+
+A configurable traffic-generator component for mordred test scenarios that require
+`num_vns > 1`. `merlin.test_nic` and `merlin.trafficgen` both hardcode `num_vns=1`
+when loading their `networkIF` subcomponent, making them incompatible with
+`prydwen.uciePhysChannel` in `num_stacks=2` configuration. `mordredTestEP` accepts
+`num_vns` as an explicit parameter and correctly propagates it to the networkIF loader.
+
+Each endpoint sends `num_messages` messages, rotating through VNs 0..`num_vns-1` and
+cycling through destinations, then calls `primaryComponentOKToEndSim()`.
+
+**Parameters**
+
+| Parameter       | Description                                              | Default |
+|-----------------|----------------------------------------------------------|---------|
+| `id`            | Endpoint ID                                              | `0`     |
+| `num_peers`     | Total endpoints in the network                           | `1`     |
+| `num_vns`       | VNs to request from the `networkIF` subcomponent         | `1`     |
+| `num_messages`  | Total messages to send                                   | `10`    |
+| `message_size`  | Message size (UnitAlgebra; bits or bytes)                | `64b`   |
+| `clock`         | Clock frequency                                          | `1GHz`  |
+
+**Subcomponent slot:** `networkIF` — accepts any `SST::Interfaces::SimpleNetwork` implementation.
+
+---
+
 ### Port Control: `mordred.rtrPortControl`
 
 Per-port subcomponent of `mordred_router`. Manages the raw SST link to the attached
@@ -272,6 +298,7 @@ Tests live in `tests/` and are run via `make test` from the build directory.
 | `torus3D_3x3x3_2vc_uciePhysChannel.py`      | 3×3×3 3D torus     | `prydwen.uciePhysChannel`, 2 VCs        |
 | `mesh2x1_uciePhysChannel_flit_format2.py`   | 2×1 mesh           | `prydwen.uciePhysChannel`, FLIT format 2 (68B/64B payload, 16 GT/s) |
 | `mesh3x3_uciePhysChannel_2module.py`        | 3×3 mesh           | `prydwen.uciePhysChannel`, 2 bonded modules |
+| `mesh3x3_uciePhysChannel_2stack.py`         | 3×3 mesh           | `prydwen.uciePhysChannel`, 2 UCIe stacks; uses `mordred.mordredTestEP` for multi-VN traffic |
 
 ---
 
@@ -286,7 +313,7 @@ Tests live in `tests/` and are run via `make test` from the build directory.
 - **Arbitration:** Round-robin only for both VC allocation and crossbar arbitration.
 - **Routing:** Each topology implements its own routing; no general-purpose routing algorithm API.
 - **Broadcast/Multicast:** Not supported at simulation time. Untimed broadcast (SST init/complete phases) is supported and tested via the `*_untimed_broadcast` test scripts — each topology implements `routeUntimedBroadcastPacket` with its own flood logic.
-- **UCIe multi-stack (`num_stacks=2`):** Not currently testable through mordred. `merlin.test_nic` requests exactly 1 VN when loading its `networkIF` subcomponent; `mordredNicPC` and `rtrPortControlPC` forward that count to `uciePhysChannel`, which then rejects `num_vns_per_stack="1,1"` (total=2) as a mismatch. Supporting multi-stack requires either a test endpoint that requests multiple VNs or a mordred component variant that can remap VNs. See `prydwen/tests/test_ucie_physch_multistack.py` for documentation of this gap.
+- **UCIe multi-stack (`num_stacks=2`):** Tested via `mesh3x3_uciePhysChannel_2stack.py` using `mordred.mordredTestEP` with `num_vns=2`. `merlin.test_nic` and `merlin.trafficgen` cannot be used here: both hardcode `num_vns=1` when loading their `networkIF` subcomponent (trafficgen's `num_vns` parameter is documented but its value is ignored in the implementation), so `uciePhysChannel` always receives a VN count of 1 and rejects `num_vns_per_stack="1,1"` (total=2) as a mismatch. `mordredTestEP` was added to mordred specifically to support configurable `num_vns`.
 
 ---
 

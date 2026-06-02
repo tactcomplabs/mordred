@@ -60,6 +60,7 @@ When `MORDRED_ENABLE_PHYS_CHANNEL=ON` (the default), `make test` also registers 
 | `torus3D_3x3x3_2vc_uciePhysChannel.py` | 3×3×3 3D torus | `prydwen.uciePhysChannel`, 2 VCs |
 | `mesh2x1_uciePhysChannel_flit_format2.py` | 2×1 mesh | `prydwen.uciePhysChannel`, FLIT format 2 (68B wire, 64B payload) |
 | `mesh3x3_uciePhysChannel_2module.py` | 3×3 mesh | `prydwen.uciePhysChannel`, 2 bonded modules |
+| `mesh3x3_uciePhysChannel_2stack.py` | 3×3 mesh | `prydwen.uciePhysChannel`, 2 UCIe stacks; uses `mordred.mordredTestEP` |
 
 These tests require prydwen to be built and registered first.  Build with `-DMORDRED_ENABLE_PHYS_CHANNEL=OFF` to skip them when prydwen is not available.
 

@@ -34,6 +34,8 @@ set(MordredSrcs
         Torus2dTopo.cc
         Torus3dTopo.h
         Torus3dTopo.cc
+        MordredTestEP.h
+        MordredTestEP.cc
 )
 
 if(MORDRED_ENABLE_PHYS_CHANNEL)
