@@ -69,26 +69,21 @@ MordredFlit* VcAllocRR::findMappableFlit( RtrOwnedSharedObjs* obj ) {
 // in_port  = the input port number this flit arrived on (portnum in arbitrate loop).
 // out_port = the output port number this flit is being mapped to (dest_portnum).
 //
-// Port numbering for both 2D and 3D torus: NORTH=0, EAST=1, SOUTH=2, WEST=3.
-// X-direction ports: EAST(1) and WEST(3) — flit is routing in the X dimension.
-// Y-direction ports: NORTH(0) and SOUTH(2) — flit is routing in the Y dimension.
-//
-// Deadlock prevention uses three mechanisms:
+// Deadlock prevention uses two mechanisms:
 //   1. VC monotonicity: never assign an output VC index less than the input VC index.
-//   2. Y-port promotion: any output to a Y-direction port (NORTH/SOUTH) is forced to
-//      the highest VC.  All Y-dimension traffic uses VC(N-1).
-//   3. Wrap-around link promotion: any torus wrap-around output (topology-queried) is
-//      forced to the highest VC.  This makes the VC-0 X-ring dependency graph acyclic
-//      (a DAG), satisfying the Dally-Seitz deadlock-freedom condition.
+//   2. Wrap-around link promotion: any torus wrap-around output (topology-queried) is
+//      forced to the highest VC.  Combined with XY dimension-order routing, this makes
+//      the VC dependency graph acyclic (a DAG) in both X and Y rings, satisfying the
+//      Dally-Seitz deadlock-freedom condition.  Topologies that report no wrap-around
+//      ports (e.g. flat butterfly) simply never trigger this path.
 uint32_t VcAllocRR::findDestVc( RtrPortControlAPI*& port, uint32_t in_port, uint32_t out_port ) const {
   if( port->getConnectionType() == RtrPortControlAPI::ENDPOINT ) {
     if( port->getOutputState( src_vn, 0 ) == OUT_IDLE )
       return 0;
   } else {
-    // Mechanisms 2 & 3: force highest VC for Y-port outputs and torus wrap outputs.
-    const bool dst_is_yport = ( out_port == 0 || out_port == 2 );
-    const bool is_wrap      = port->isWrapAroundOutputPort( out_port );
-    if( numVcs > 1 && ( dst_is_yport || is_wrap ) ) {
+    // Mechanism 2: force highest VC for torus wrap-around outputs.
+    const bool is_wrap = port->isWrapAroundOutputPort( out_port );
+    if( numVcs > 1 && is_wrap ) {
       const uint32_t top_vc = numVcs - 1;
       if( port->getOutputState( src_vn, top_vc ) == OUT_IDLE )
         return top_vc;
