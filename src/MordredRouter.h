@@ -28,7 +28,9 @@
 
 // Local SST headers
 #include "RtrPortControlAPI.h"
+#ifdef MORDRED_ENABLE_PHYS_CHANNEL
 #include "RtrPortControlPC.h"
+#endif
 #include "TopologyAPI.h"
 #include "VcAllocAPI.h"
 #include "XbarArbAPI.h"

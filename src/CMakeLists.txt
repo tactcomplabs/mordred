@@ -63,6 +63,7 @@ add_library(mordred SHARED ${MordredSrcs})
 target_include_directories(mordred PUBLIC ${SST_INSTALL_DIR}/include)
 if(MORDRED_ENABLE_PHYS_CHANNEL)
     target_include_directories(mordred PUBLIC ${PRYDWEN_SRC_DIR})
+    target_compile_definitions(mordred PUBLIC MORDRED_ENABLE_PHYS_CHANNEL)
 endif()
 
 install(TARGETS mordred DESTINATION ${CMAKE_CURRENT_SOURCE_DIR})
