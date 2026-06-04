@@ -1,5 +1,7 @@
 # Mordred - SST Network-on-Chip Library
 
+An introductory presentation from the 2025 SST User's Group meeting is available [here](SST-UG2025-Mordred.pdf).
+
 Mordred is a modular, packet-switched Network-on-Chip (NoC) simulation library for the
 [Structural Simulation Toolkit (SST)](http://sst-simulator.org/). It provides a router,
 endpoint NIC, and topology implementations as drop-in alternatives to Merlin, with a
@@ -227,6 +229,24 @@ router and endpoint naming/numbering.
 
 ---
 
+## Notes on VN and VC
+
+The topology defines the number of VCs per VN, so VC count is a topology-level property, not a router-level one. Inside the router, the total VC count (`num_vcs`) is the sum across all VNs. Most data structures are multi-dimensional arrays contained within a port (or a per-port object) where one dimension is the number of VNs and another is the number of VCs.
+
+---
+
+## Basic Software Architecture / Router Behavior
+
+The router owns a vector `perPortSharedObjs` (one element per port), where each element is a `RtrOwnedSharedObjs` (defined in `MordredEvents`). `RtrOwnedSharedObjs` contains a pair of 2D vectors: `needVcAlloc` and `needSwitchAlloc`.
+
+On each clock tick, `RtrPortControl` inspects the state of each (VN, VC) pair it owns. If the flit in a pair needs an output VC, `needVcAlloc` for that pair is marked. The VC allocator can then operate on any/all pairs that need allocation. When it grants an output VC, it clears `needVcAlloc` for that pair. This allows requests to persist across clock cycles, and lets the VC allocator reason about all pending requests simultaneously (across ports, VNs, and VCs).
+
+The same pattern applies for switch allocation via `needSwitchAlloc`.
+
+Currently `MordredRouter` performs switch allocation on a per-packet basis, but the design should support per-clock-tick allocation (this should be tested).
+
+---
+
 ## Flow Control and Initialization
 
 Credits are exchanged during SST's `init()` phases before simulation begins. One credit
@@ -300,6 +320,18 @@ Tests live in `tests/` and are run via `make test` from the build directory.
 | `mesh3x3_uciePhysChannel_2module.py`        | 3×3 mesh           | `prydwen.uciePhysChannel`, 2 bonded modules |
 | `mesh3x3_uciePhysChannel_2stack.py`         | 3×3 mesh           | `prydwen.uciePhysChannel`, 2 UCIe stacks; uses `mordred.mordredTestEP` for multi-VN traffic |
 
+### `repotest/` folder
+
+This folder is a sandbox for scripts and tests under development, performance comparisons, etc. No promises are made as to completeness or correctness. Most scripts are copy/edit variants of scripts from `tests/`.
+
+Two historical notes:
+- An early component `mordred.test_ep` served as a stand-in for `merlin.test_nic`. It has since been removed/replaced, so some older scripts in this folder may fail.
+- Several scripts reference `merlin.clocked_offered_load`, a local (non-upstreamed) component based on `merlin.offered_load` that generated traffic using a clock rate rather than a bandwidth parameter. Its behavior was equivalent to `merlin.offered_load` when `link_bw` was set to match the Mordred network's link bandwidth.
+
+### `sst_test_framework/` folder
+
+Contains files for executing the tests via the standard SST elements test framework.
+
 ---
 
 ## Notes and Limitations
@@ -307,10 +339,11 @@ Tests live in `tests/` and are run via `make test` from the build directory.
 - **Priority:** Not implemented. Use VNs for traffic class separation (SST `SimpleNetwork::Request` has no priority field).
 - **Router latency:** Fixed; no configurable pipeline depth.
 - **Packet size:** No maximum enforced. Minimum is 2 flits (one HEAD + one TAIL), enforced at the NIC.
-- **Channel width:** Only one flit traverses a link per clock cycle.
+- **Channel width:** Only one flit traverses a link per clock cycle. The `channel_width` branch has initial support for modifying this but is likely out of date.
 - **NetworkInspectors:** Not yet supported.
-- **Buffer allocation:** Buffers are fully segregated per (VN, VC) pair; no shared pool.
+- **Buffer allocation:** Buffers are fully segregated per (VN, VC) pair; no shared pool. The output buffer currently has a small buffer per (VN, VC). A configurable arbitration policy for which (VN, VC) gets access is not yet implemented; the current design is round-robin. See also the `OutputArbitration` API class in `RtrPortControlAPI.h`.
 - **Arbitration:** Round-robin only for both VC allocation and crossbar arbitration.
+- **Timing:** Router and subcomponent timing should continue to be reviewed.
 - **Routing:** Each topology implements its own routing; no general-purpose routing algorithm API.
 - **Broadcast/Multicast:** Not supported at simulation time. Untimed broadcast (SST init/complete phases) is supported and tested via the `*_untimed_broadcast` test scripts — each topology implements `routeUntimedBroadcastPacket` with its own flood logic.
 - **UCIe multi-stack (`num_stacks=2`):** Tested via `mesh3x3_uciePhysChannel_2stack.py` using `mordred.mordredTestEP` with `num_vns=2`. `merlin.test_nic` and `merlin.trafficgen` cannot be used here: both hardcode `num_vns=1` when loading their `networkIF` subcomponent (trafficgen's `num_vns` parameter is documented but its value is ignored in the implementation), so `uciePhysChannel` always receives a VN count of 1 and rejects `num_vns_per_stack="1,1"` (total=2) as a mismatch. `mordredTestEP` was added to mordred specifically to support configurable `num_vns`.
