@@ -1,12 +1,12 @@
 # Mordred - SST Network-on-Chip Library
 
-An introductory presentation from the 2025 SST User's Group meeting is available [here](SST-UG2025-Mordred.pdf).
-
 Mordred is a modular, packet-switched Network-on-Chip (NoC) simulation library for the
 [Structural Simulation Toolkit (SST)](http://sst-simulator.org/). It provides a router,
 endpoint NIC, and topology implementations as drop-in alternatives to Merlin, with a
 pluggable physical-channel layer that allows the transport between routers and endpoints
 to be swapped independently of the routing and flow-control machinery.
+
+An introductory presentation from the 2025 SST User's Group meeting is available [here](SST-UG2025-Mordred.pdf).
 
 ## Requirements
 
@@ -16,6 +16,8 @@ to be swapped independently of the routing and flow-control machinery.
 - `sst` and `sst-config` must be on `PATH`
 - **Prydwen** must be built and registered before building Mordred (Mordred's build
   system references `prydwen/src/` for the `PhysChannelAPI` header)
+  - Mordred can be built without Prydwen; add the `-DMORDRED_ENABLE_PHYS_CHANNEL=OFF` to your cmake command
+    line when building mordred.
 
 ## Building
 
@@ -47,6 +49,19 @@ repotest/        Sandbox scripts for experiments and performance comparisons
 merlin_testing/  Scripts comparing Mordred and Merlin behavior
 sst_test_framework/  Files for running tests via the standard SST test framework
 ```
+
+### `repotest/` folder
+
+This folder is a sandbox for scripts and tests under development, performance comparisons, etc. No promises are made as to completeness or correctness. Most scripts are copy/edit variants of scripts from `tests/`.
+
+Two historical notes:
+- An early component `mordred.test_ep` served as a stand-in for `merlin.test_nic`. It has since been removed/replaced, so some older scripts in this folder may fail.
+- Several scripts reference `merlin.clocked_offered_load`, a local (non-upstreamed) component based on `merlin.offered_load` that generated traffic using a clock rate rather than a bandwidth parameter. Its behavior was equivalent to `merlin.offered_load` when `link_bw` was set to match the Mordred network's link bandwidth.
+
+### `sst_test_framework/` folder
+
+Contains files for executing the tests via the standard SST elements test framework.  Most of the documentation for this
+approach can be found [here](https://sst-simulator.org/sst-docs/docs/guides/dev/testframework).
 
 ---
 
@@ -320,18 +335,6 @@ Tests live in `tests/` and are run via `make test` from the build directory.
 | `mesh3x3_uciePhysChannel_2module.py`        | 3×3 mesh           | `prydwen.uciePhysChannel`, 2 bonded modules |
 | `mesh3x3_uciePhysChannel_2stack.py`         | 3×3 mesh           | `prydwen.uciePhysChannel`, 2 UCIe stacks; uses `mordred.mordredTestEP` for multi-VN traffic |
 
-### `repotest/` folder
-
-This folder is a sandbox for scripts and tests under development, performance comparisons, etc. No promises are made as to completeness or correctness. Most scripts are copy/edit variants of scripts from `tests/`.
-
-Two historical notes:
-- An early component `mordred.test_ep` served as a stand-in for `merlin.test_nic`. It has since been removed/replaced, so some older scripts in this folder may fail.
-- Several scripts reference `merlin.clocked_offered_load`, a local (non-upstreamed) component based on `merlin.offered_load` that generated traffic using a clock rate rather than a bandwidth parameter. Its behavior was equivalent to `merlin.offered_load` when `link_bw` was set to match the Mordred network's link bandwidth.
-
-### `sst_test_framework/` folder
-
-Contains files for executing the tests via the standard SST elements test framework.
-
 ---
 
 ## Notes and Limitations
@@ -346,7 +349,7 @@ Contains files for executing the tests via the standard SST elements test framew
 - **Timing:** Router and subcomponent timing should continue to be reviewed.
 - **Routing:** Each topology implements its own routing; no general-purpose routing algorithm API.
 - **Broadcast/Multicast:** Not supported at simulation time. Untimed broadcast (SST init/complete phases) is supported and tested via the `*_untimed_broadcast` test scripts — each topology implements `routeUntimedBroadcastPacket` with its own flood logic.
-- **UCIe multi-stack (`num_stacks=2`):** Tested via `mesh3x3_uciePhysChannel_2stack.py` using `mordred.mordredTestEP` with `num_vns=2`. `merlin.test_nic` and `merlin.trafficgen` cannot be used here: both hardcode `num_vns=1` when loading their `networkIF` subcomponent (trafficgen's `num_vns` parameter is documented but its value is ignored in the implementation), so `uciePhysChannel` always receives a VN count of 1 and rejects `num_vns_per_stack="1,1"` (total=2) as a mismatch. `mordredTestEP` was added to mordred specifically to support configurable `num_vns`.
+- **UCIe multi-stack (requires Prydwen) (`num_stacks=2`):** Tested via `mesh3x3_uciePhysChannel_2stack.py` using `mordred.mordredTestEP` with `num_vns=2`. `merlin.test_nic` and `merlin.trafficgen` cannot be used here: both hardcode `num_vns=1` when loading their `networkIF` subcomponent (trafficgen's `num_vns` parameter is documented but its value is ignored in the implementation), so `uciePhysChannel` always receives a VN count of 1 and rejects `num_vns_per_stack="1,1"` (total=2) as a mismatch. `mordredTestEP` was added to mordred specifically to support configurable `num_vns`.
 
 ---
 
