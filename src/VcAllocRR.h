@@ -48,7 +48,7 @@ public:
 
   VcAllocRR( ComponentId_t id, Params& params, uint32_t rtr_id, uint32_t num_ports, uint32_t num_vns, uint32_t num_vcs );
 
-  ~VcAllocRR() final = default;
+  ~VcAllocRR() override { delete output; }
 
   // Lifecycle functions
   void init( unsigned int phase ) final { /* empty */ }

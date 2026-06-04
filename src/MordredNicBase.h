@@ -32,7 +32,7 @@ class MordredNicBase : public Interfaces::SimpleNetwork {
 
 public:
   MordredNicBase( ComponentId_t cid, Params& params, int vns, const char* class_name );
-  ~MordredNicBase() override = default;
+  ~MordredNicBase() override { delete output; }
 
   // SST lifecycle
   void init( uint32_t phase ) override;

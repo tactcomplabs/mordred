@@ -49,7 +49,7 @@ public:
     uint32_t            port_num
   );
 
-  ~RtrPortControl() final = default;
+  ~RtrPortControl() override = default;
 
   RtrPortControl() : RtrPortControlBase() {}
 

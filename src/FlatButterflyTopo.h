@@ -61,7 +61,7 @@ public:
   );
 
   /// FlatButterflyTopo: destructor
-  ~FlatButterflyTopo() override = default;
+  ~FlatButterflyTopo() override { delete output; }
 
   /// FlatButterflyTopo: necessary lifecycle functions
   void init( uint32_t phase ) final;

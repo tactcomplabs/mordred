@@ -165,6 +165,8 @@ public:
   // This is what the endpoint passes into the MordredNIC; within
   // this request is the data packet (SST::Event) that one endpoint
   // wants to pass to another endpoint
+  // Not owned by the flit. All flits in a packet share the same req*. Ownership
+  // transfers to inBuf on TAIL receipt; the caller of NicBase::recv() must delete.
   Interfaces::SimpleNetwork::Request* req;
 
   uint32_t vn{ 0 };

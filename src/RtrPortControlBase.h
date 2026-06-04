@@ -38,7 +38,7 @@ public:
     const char*         class_name
   );
 
-  ~RtrPortControlBase() override = default;
+  ~RtrPortControlBase() override { delete output; }
 
   // SST lifecycle
   void init( unsigned int phase ) override;

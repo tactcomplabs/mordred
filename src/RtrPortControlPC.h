@@ -60,7 +60,7 @@ public:
     uint32_t            port_num
   );
 
-  ~RtrPortControlPC() final = default;
+  ~RtrPortControlPC() override = default;
 
   // Inner-channel receive notification callback
   bool onReceive( int sn_vn );

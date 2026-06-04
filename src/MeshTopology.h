@@ -60,7 +60,7 @@ public:
   );
 
   /// MeshTopology: destructor
-  ~MeshTopology() override = default;
+  ~MeshTopology() override { delete output; }
 
   // Lifecycle functions
   void setup() final;

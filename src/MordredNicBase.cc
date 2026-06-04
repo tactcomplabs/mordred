@@ -199,6 +199,9 @@ bool MordredNicBase::send( Request* req, int vn ) {
   outbufCredits.at( u_vn ) -= num_flits;
 
   const auto u_num_flits = static_cast<uint32_t>( num_flits );
+  // req* is borrowed by all flits — it is not owned by any flit. Ownership
+  // transfers to the receiver: on TAIL arrival processIncomingEvent() moves req
+  // into inBuf, and recv() returns it to the caller who is responsible for deletion.
   outBuf.at( u_vn ).push( new MordredFlit( req, MordredFlit::HEAD, packetId, 0 ) );
   for( uint32_t i = 1; i < u_num_flits - 1; i++ )
     outBuf.at( u_vn ).push( new MordredFlit( req, MordredFlit::BODY, packetId, i ) );
@@ -349,7 +352,7 @@ void MordredNicBase::processIncomingEvent( SST::Event* ev ) {
           "TRACE(%d): %" PRIu64 " ns received tail flit from link %s\n",
           flit->req->getTraceID(), getCurrentSimTimeNano(), getName().c_str()
         );
-      inBuf.at( flit->vn ).push( req );
+      inBuf.at( flit->vn ).push( req );  // ownership of req transfers to inBuf; caller of recv() must delete
       const uint64_t noc_latency = getCurrentSimCycle() - flit->head_inject_cycle;
       totalNocLatency += static_cast<uint64_t>( std::ceil( noc_latency / 1000.0 ) );
       totalPackets++;

@@ -46,7 +46,7 @@ public:
 
   XbarArbRR( ComponentId_t id, Params& params, uint32_t rtr_id, uint32_t num_ports, uint32_t num_vns, uint32_t num_vcs );
 
-  ~XbarArbRR() final = default;
+  ~XbarArbRR() override { delete output; }
 
   void arbitrate( std::vector<RtrPortControlAPI*>& ports, std::vector<RtrOwnedSharedObjs>& rtr_shared_objs ) final;
 

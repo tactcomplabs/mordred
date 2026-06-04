@@ -60,7 +60,7 @@ public:
   );
 
   /// TORUS2DTOPO: destructor
-  ~TorusTopo() override = default;
+  ~TorusTopo() override { delete output; }
 
   // Lifecycle functions
   void init( uint32_t phase ) final;
