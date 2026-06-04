@@ -74,6 +74,7 @@ protected:
   virtual void transportInit( uint32_t phase ) {}
   virtual void transportSetup() {}
   virtual void transportComplete( uint32_t phase ) {}
+  virtual void transportFinish() {}
 
   // Shared incoming-packet dispatch; call from derived event handler / functor
   void processIncomingEvent( SST::Event* ev );

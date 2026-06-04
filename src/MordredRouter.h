@@ -75,7 +75,6 @@ public:
     // {"network_inspectors", "Comma separated list of network inspectors to put on output ports.", ""},
   )
 
-  // Create a topology subcomponent
   SST_ELI_DOCUMENT_SUBCOMPONENT_SLOTS(
     { "topology", "Topology and routing subcomponent", "SST::Mordred::TopologyAPI" },
     { "portcontrol",

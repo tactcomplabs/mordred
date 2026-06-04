@@ -141,6 +141,7 @@ protected:
     physChannel->setup();
   }
   void transportComplete( uint32_t phase ) override { physChannel->complete( phase ); }
+  void transportFinish() override { physChannel->finish(); }
 
 private:
   Prydwen::PhysChannelAPI* physChannel{};

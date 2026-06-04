@@ -15,7 +15,7 @@
 using namespace SST::Mordred;
 
 MordredNicBase::MordredNicBase( ComponentId_t cid, Params& params, int vns, const char* class_name )
-    : SimpleNetwork( cid ), netID( -1 ) {
+    : SimpleNetwork( cid ) {
   const auto verbosity = params.find<uint32_t>( "verbose", 5 );
   output = new SST::Output( std::string( class_name ) + "[" + getName() + ":@p:@t]: ", verbosity, 0, Output::STDOUT );
 
