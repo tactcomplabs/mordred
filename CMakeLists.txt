@@ -92,6 +92,9 @@ if(NOT "${SST_MAJOR_VERSION}" STREQUAL "DEV")
     message(FATAL_ERROR "Mordred requires SST 15.0.0+")
   endif()
   add_compile_definitions(SST_MAJOR_VERSION=${SST_MAJOR_VERSION})
+else()
+  # DEV builds track main and are assumed to be SST 16+
+  add_compile_definitions(SST_MAJOR_VERSION=16)
 endif()
 
 # Compiler Options
