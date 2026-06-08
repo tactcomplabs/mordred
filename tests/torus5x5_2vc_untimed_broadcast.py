@@ -31,7 +31,7 @@ FixedRtrParams = {
     "num_vns"         : "1",
     "flit_size"       : flit_size,
     "input_buf_size"  : UnitAlgebra(16) * flit_size,
-    "output_buf_size" : UnitAlgebra(1)  * flit_size,
+    "output_buf_size" : UnitAlgebra(4)  * flit_size,
 }
 
 FixedTestNicParams = {

@@ -199,11 +199,24 @@ void Torus3DTopo::routeUntimedBroadcastPacket(
     return;
   }
 
-  // Received from another router
+  // Received from another router.
+  //
+  // Dimension-ordered flood (mirrors the 2D torus scheme, extended to 3D):
+  //   X (EAST/WEST) is the outermost dimension: spreads into opposite-X + Y + Z.
+  //   Y (NORTH/SOUTH) is the middle dimension:  spreads into opposite-Y + Z, but NOT X.
+  //   Z (PLUSZ/MINUSZ) is the innermost:        spreads into opposite-Z only.
+  //
+  // This ordering guarantees the flood forms a DAG (no cycles): Z cannot propagate
+  // back into Y or X, and Y cannot propagate back into X.  Every router is still
+  // reachable because the initial endpoint injection sends in all six directions.
   if( receive_port_id == NORTH ) {
     sendBroadcast( SOUTH, init_ev, output_events );
+    sendBroadcast( PLUSZ, init_ev, output_events );
+    sendBroadcast( MINUSZ, init_ev, output_events );
   } else if( receive_port_id == SOUTH ) {
     sendBroadcast( NORTH, init_ev, output_events );
+    sendBroadcast( PLUSZ, init_ev, output_events );
+    sendBroadcast( MINUSZ, init_ev, output_events );
   } else if( receive_port_id == PLUSZ ) {
     sendBroadcast( MINUSZ, init_ev, output_events );
   } else if( receive_port_id == MINUSZ ) {
