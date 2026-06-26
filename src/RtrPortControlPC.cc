@@ -37,11 +37,24 @@ RtrPortControlPC::RtrPortControlPC(
 bool RtrPortControlPC::onReceive( int sn_vn ) {
   SST::Event* ev = nullptr;
   while( ( ev = physChannel->recv( sn_vn ) ) != nullptr ) {
-    processIncomingEvent( ev );
+    // Credits are control events that must be processed immediately so that
+    // upstream credit counts stay accurate regardless of flit draining pace.
+    auto* base = dynamic_cast<baseMordredEvent*>( ev );
+    if( base && base->getType() == baseMordredEvent::CREDIT ) {
+      processIncomingEvent( ev );
+    } else {
+      pendingFlits_.push_back( ev );
+    }
   }
   return true;
 }
 
 void RtrPortControlPC::ClockTick( Cycle_t cycle ) {
+  // Drip one pending flit per tick to match native link timing (one flit/cycle).
+  if( !pendingFlits_.empty() ) {
+    SST::Event* ev = pendingFlits_.front();
+    pendingFlits_.pop_front();
+    processIncomingEvent( ev );
+  }
   RtrPortControlBase::ClockTick( cycle );
 }
