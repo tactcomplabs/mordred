@@ -20,8 +20,8 @@ namespace SST::Mordred {
  * MordredNicPC — SST SimpleNetwork NIC backed by a PhysChannelAPI subcomponent.
  *
  * The inner PhysChannelAPI can be any matching implementation:
- *   mordred.genericPhysChannel — for tests (generic raw-link wrapper)
- *   ucie.ucieInterfaceSN      — for production UCIe physical links
+ *   prydwen.genericPhysChannel — for tests (generic raw-link wrapper)
+ *   prydwen.uciePhysChannel    — for production UCIe physical links
  *
  * Mordred's own credit protocol is unchanged.  The inner channel's flow
  * control and Mordred's MordredCreditEvent are complementary: the inner
@@ -55,7 +55,7 @@ public:
 
   SST_ELI_DOCUMENT_SUBCOMPONENT_SLOTS(
     { "port_iface", "PhysChannelAPI subcomponent that manages the physical link to the router",
-      "SST::Mordred::PhysChannelAPI" }
+      "SST::Prydwen::PhysChannelAPI" }
   )
 
   SST_ELI_DOCUMENT_STATISTICS(

@@ -21,8 +21,8 @@ namespace SST::Mordred {
  * RtrPortControlPC — router port controller backed by a PhysChannelAPI subcomponent.
  *
  * The inner PhysChannelAPI can be any matching implementation:
- *   mordred.genericPhysChannel — for tests
- *   ucie.ucieInterfaceSN      — for production UCIe physical links
+ *   prydwen.genericPhysChannel — for tests
+ *   prydwen.uciePhysChannel    — for production UCIe physical links
  */
 class RtrPortControlPC : public RtrPortControlBase {
 public:
@@ -41,7 +41,7 @@ public:
 
   SST_ELI_DOCUMENT_SUBCOMPONENT_SLOTS(
     { "port_iface", "PhysChannelAPI subcomponent that manages the physical port link",
-      "SST::Mordred::PhysChannelAPI" }
+      "SST::Prydwen::PhysChannelAPI" }
   )
 
   SST_ELI_DOCUMENT_STATISTICS(
