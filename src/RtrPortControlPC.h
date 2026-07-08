@@ -70,6 +70,7 @@ public:
   // (this is not FlitFactory reassembly — transportSendFlit() always uses
   // packet_size_bits=0, so the factory is never invoked); without this queue those
   // flits would all be processed in the tick they arrive, saturating inBuf.
+  // TODO (tdysart): Look at the function and make sense of this comment
   void ClockTick( Cycle_t cycle ) override;
 
 
@@ -92,6 +93,7 @@ protected:
     // as its own atomic message. UCIe's transfer timing can still land more than
     // one such flit in the same tick; the pendingFlits_/ClockTick drip queue below
     // is what re-serializes those to one-per-tick, native-link-equivalent timing.
+    // TODO (tdysart): Look at the function and make sense of this comment
     Prydwen::PhysChannelFlitDescriptor desc;
     desc.flit             = flit;
     desc.req              = nullptr;   // not used when packet_size_bits=0

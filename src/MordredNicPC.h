@@ -17,6 +17,25 @@
 namespace SST::Mordred {
 
 /**
+ * Note (tdysart, 8-jul-2026):
+ * Most of this code was developed by Claude with guidance (and having the SimpleNetwork model
+ * completed) from me.  One of the things that has to happen when using the physical channel
+ * is that we have to convert mordred network flits into physical channel flits (e.g, ucie),
+ * especially if they are different sizes.  This is required since the mordred_router expects
+ * to handle mordred flits and the ucie flits may or may not match that size).
+ *
+ * Because I've been in and out of this code so much of late I'm not familiar enough with this
+ * translation process (particularly on the transmit side) to be comfortable with it.  On the
+ * receive side, we basically recreate the mordred flits (every mordred flit has the underlying
+ * SST::Request and thus the packet size)
+ *
+ * I've had claude generate a simple timing diagram (see docs/1024b-packet-walkthrough.html) and
+ * it highlights my concern with the transmit side in that we aren't coalescing mordred flits to
+ * fill a ucie flit. Definitely have to resolve this.
+ *
+ */
+
+/**
  * MordredNicPC — SST SimpleNetwork NIC backed by a PhysChannelAPI subcomponent.
  *
  * The inner PhysChannelAPI can be any matching implementation:
@@ -28,6 +47,8 @@ namespace SST::Mordred {
  * channel protects the local TX buffer; Mordred credits protect the remote
  * router's input buffer.
  */
+
+
 class MordredNicPC : public MordredNicBase {
 
 public:

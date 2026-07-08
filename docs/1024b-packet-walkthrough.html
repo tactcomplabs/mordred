@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>1024 B Packet Walkthrough — UCIe-Bridged Mordred Router</title>
+<style>
+  :root{
+    --bg:#eef1f0;
+    --panel:#ffffff;
+    --panel-2:#f4f6f5;
+    --line:#d7dfdd;
+    --ink:#141b1d;
+    --ink-dim:#5c6c6f;
+    --ink-faint:#8a9a9c;
+    --copper:#c1631e;
+    --copper-soft:#e9c4a3;
+    --teal:#177f76;
+    --teal-soft:#bfe3de;
+    --alert:#b23a2c;
+    --alert-soft:#f0d2cc;
+    --font-mono: ui-monospace, "SF Mono", "Cascadia Mono", "Roboto Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#0f1416;
+      --panel:#161d20;
+      --panel-2:#131a1c;
+      --line:#2b363a;
+      --ink:#e8eeef;
+      --ink-dim:#93a3a6;
+      --ink-faint:#5f7275;
+      --copper:#f0954a;
+      --copper-soft:#4a3323;
+      --teal:#5fd0c0;
+      --teal-soft:#173634;
+      --alert:#e4614f;
+      --alert-soft:#3a211d;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0f1416; --panel:#161d20; --panel-2:#131a1c; --line:#2b363a;
+    --ink:#e8eeef; --ink-dim:#93a3a6; --ink-faint:#5f7275;
+    --copper:#f0954a; --copper-soft:#4a3323; --teal:#5fd0c0; --teal-soft:#173634;
+    --alert:#e4614f; --alert-soft:#3a211d;
+  }
+  :root[data-theme="light"]{
+    --bg:#eef1f0; --panel:#ffffff; --panel-2:#f4f6f5; --line:#d7dfdd;
+    --ink:#141b1d; --ink-dim:#5c6c6f; --ink-faint:#8a9a9c;
+    --copper:#c1631e; --copper-soft:#e9c4a3; --teal:#177f76; --teal-soft:#bfe3de;
+    --alert:#b23a2c; --alert-soft:#f0d2cc;
+  }
+
+  *{ box-sizing:border-box; }
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:var(--font-sans);
+    -webkit-font-smoothing:antialiased;
+  }
+  ::selection{ background:var(--copper-soft); }
+
+  .page{
+    max-width:980px;
+    margin:0 auto;
+    padding:56px 24px 96px;
+    display:flex;
+    flex-direction:column;
+    gap:52px;
+  }
+
+  /* ---------- Header ---------- */
+  .masthead{
+    display:flex;
+    flex-direction:column;
+    gap:18px;
+    border-bottom:1px solid var(--line);
+    padding-bottom:28px;
+  }
+  .kicker{
+    font-family:var(--font-mono);
+    font-size:12.5px;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    color:var(--copper);
+  }
+  h1{
+    margin:0;
+    font-size:34px;
+    line-height:1.15;
+    font-weight:700;
+    letter-spacing:-0.01em;
+    text-wrap:balance;
+  }
+  .dek{
+    margin:0;
+    max-width:62ch;
+    color:var(--ink-dim);
+    font-size:16px;
+    line-height:1.55;
+  }
+  .dek code{ font-family:var(--font-mono); font-size:0.92em; }
+
+  .spec-strip{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    margin-top:4px;
+  }
+  .chip{
+    font-family:var(--font-mono);
+    font-size:12px;
+    color:var(--ink-dim);
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    border-radius:4px;
+    padding:5px 9px;
+    white-space:nowrap;
+  }
+  .chip b{ color:var(--ink); font-weight:600; }
+
+  /* ---------- Section scaffolding ---------- */
+  section{ display:flex; flex-direction:column; gap:16px; }
+  .section-head{ display:flex; flex-direction:column; gap:6px; }
+  .section-num{
+    font-family:var(--font-mono);
+    font-size:12px;
+    color:var(--ink-faint);
+    letter-spacing:.06em;
+  }
+  h2{
+    margin:0;
+    font-size:21px;
+    font-weight:700;
+    letter-spacing:-0.005em;
+  }
+  .section-note{
+    margin:0;
+    color:var(--ink-dim);
+    font-size:14.5px;
+    line-height:1.6;
+    max-width:68ch;
+  }
+
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:22px;
+  }
+  .diagram-scroll{
+    overflow-x:auto;
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:8px;
+  }
+  .diagram-scroll svg{ display:block; min-width:640px; }
+
+  svg text{ font-family:var(--font-mono); fill:var(--ink); }
+  .lbl-title{ font-size:13px; font-weight:700; }
+  .lbl-sub{ font-size:10.5px; fill:var(--ink-dim); }
+  .lbl-param{ font-size:10px; fill:var(--ink-dim); }
+  .lbl-tiny{ font-size:9.5px; fill:var(--ink-faint); }
+  .lbl-time{ font-size:10.5px; fill:var(--teal); font-weight:600; }
+  .lbl-accent{ fill:var(--copper); font-weight:700; }
+
+  .block-fill{ fill:var(--panel-2); stroke:var(--line); stroke-width:1.3; }
+  .block-fill-strong{ fill:var(--panel-2); stroke:var(--ink-faint); stroke-width:1.3; }
+  .lane-line{ stroke:var(--ink-faint); stroke-width:1.4; }
+  .phy-pill{ fill:var(--copper-soft); stroke:var(--copper); stroke-width:1.2; }
+  .flow-line{ stroke:var(--copper); stroke-width:1.6; fill:none; }
+  .flow-arrow{ fill:var(--copper); }
+  .lifeline{ stroke:var(--line); stroke-width:1.3; stroke-dasharray:3 3; }
+  .event-head{ fill:var(--copper-soft); stroke:var(--copper); stroke-width:1.3; }
+  .event-tail{ fill:var(--teal-soft); stroke:var(--teal); stroke-width:1.3; }
+  .router-band{ fill:var(--teal-soft); opacity:0.35; }
+
+  /* ---------- Packet anatomy ---------- */
+  .anatomy-row{ display:flex; flex-direction:column; gap:10px; }
+  .flitbar{
+    display:flex;
+    width:100%;
+    height:34px;
+    border-radius:5px;
+    overflow:hidden;
+    border:1px solid var(--line);
+    font-family:var(--font-mono);
+  }
+  .flitbar .seg{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:10.5px;
+    color:var(--ink);
+    border-right:1px solid var(--panel);
+    white-space:nowrap;
+    overflow:hidden;
+  }
+  .seg.head{ background:var(--copper-soft); flex:0 0 6px; }
+  .seg.body{ background:var(--panel-2); flex:1; }
+  .seg.tail{ background:var(--teal-soft); flex:0 0 6px; }
+
+  .wire-compare{
+    display:grid;
+    grid-template-columns:120px 1fr;
+    gap:10px 16px;
+    align-items:center;
+    font-family:var(--font-mono);
+    font-size:12px;
+  }
+  .wire-compare .rowlabel{ color:var(--ink-dim); text-align:right; }
+  .wire-track{
+    position:relative;
+    height:22px;
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    border-radius:4px;
+  }
+  .wire-fill{
+    position:absolute; top:0; left:0; bottom:0;
+    border-radius:3px 0 0 3px;
+  }
+  .wire-fill.payload{ background:var(--copper); }
+  .wire-fill.full{ background:var(--ink-faint); opacity:.55; }
+
+  /* ---------- Callout ---------- */
+  .callout{
+    background:var(--alert-soft);
+    border:1px solid color-mix(in srgb, var(--alert) 55%, var(--line));
+    border-radius:8px;
+    padding:20px 22px;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+  }
+  .callout .callout-kicker{
+    font-family:var(--font-mono);
+    font-size:11.5px;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    color:var(--alert);
+    font-weight:700;
+  }
+  .callout p{ margin:0; font-size:14.5px; line-height:1.6; color:var(--ink); }
+  .callout code{ font-family:var(--font-mono); font-size:0.9em; background:var(--panel); border:1px solid var(--line); padding:1px 5px; border-radius:3px; }
+
+  .formula{
+    font-family:var(--font-mono);
+    font-size:13px;
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:6px;
+    padding:12px 14px;
+    color:var(--ink);
+    overflow-x:auto;
+    line-height:1.7;
+  }
+  .formula .res{ color:var(--copper); font-weight:700; }
+
+  table.result{
+    width:100%;
+    border-collapse:collapse;
+    font-size:13.5px;
+  }
+  table.result th, table.result td{
+    text-align:left;
+    padding:9px 12px;
+    border-bottom:1px solid var(--line);
+  }
+  table.result th{
+    font-family:var(--font-mono);
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:.05em;
+    color:var(--ink-faint);
+    font-weight:600;
+  }
+  table.result td.num{ font-family:var(--font-mono); font-variant-numeric:tabular-nums; color:var(--ink); }
+  table.result tr:last-child td{ border-bottom:none; }
+
+  /* ---------- Footnotes ---------- */
+  .footnotes{
+    border-top:1px solid var(--line);
+    padding-top:20px;
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+  }
+  .footnotes h3{
+    margin:0 0 4px;
+    font-family:var(--font-mono);
+    font-size:11.5px;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    color:var(--ink-faint);
+    font-weight:600;
+  }
+  .footnotes ol{
+    margin:0;
+    padding-left:18px;
+    display:flex;
+    flex-direction:column;
+    gap:5px;
+  }
+  .footnotes li{
+    font-family:var(--font-mono);
+    font-size:11.5px;
+    color:var(--ink-dim);
+    line-height:1.5;
+  }
+  .footnotes li b{ color:var(--ink); font-weight:600; }
+
+  @media (max-width:640px){
+    h1{ font-size:27px; }
+    .page{ padding:36px 16px 72px; gap:40px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <header class="masthead">
+    <div class="kicker">noc-redo · mordred + prydwen · default parameters</div>
+    <h1>How a 1024&nbsp;B packet crosses two endpoints through a Mordred router over UCIe</h1>
+    <p class="dek">
+      Endpoint&nbsp;A and Endpoint&nbsp;B each run <code>mordred.mordredNicPC</code>; a single
+      <code>mordred.mordred_router</code> sits between them; every hop is a
+      <code>prydwen.uciePhysChannel</code> die-to-die link. Every number below comes from the
+      <code>SST_ELI_DOCUMENT_PARAMS</code> defaults and the serialization math in
+      <code>ucieAdapterBase.h</code> — nothing here is tuned.
+    </p>
+    <div class="spec-strip">
+      <span class="chip">router clock <b>1&nbsp;GHz</b></span>
+      <span class="chip">mordred flit_size <b>32&nbsp;b</b> (4&nbsp;B)</span>
+      <span class="chip">UCIe flit_format <b>5</b> (256&nbsp;B wire / 240&nbsp;B payload)</span>
+      <span class="chip">1&nbsp;module × <b>16 lanes</b> × <b>32&nbsp;GT/s</b></span>
+      <span class="chip">link_latency <b>2&nbsp;ns</b></span>
+      <span class="chip">credits_per_vn <b>32</b></span>
+    </div>
+  </header>
+
+  <!-- ============ SECTION 1: TOPOLOGY ============ -->
+  <section>
+    <div class="section-head">
+      <span class="section-num">01 — TOPOLOGY</span>
+      <h2>The physical path</h2>
+      <p class="section-note">
+        Each UCIe link is its own <code>uciePhysChannel</code> instance loaded as the
+        <code>port_iface</code> of a <code>mordredNicPC</code> (endpoints) or
+        <code>rtrPortControlPC</code> (router). The router needs one more port than it has local
+        endpoints, so a 2-endpoint router is configured with <code>num_local_ports=2</code>,
+        <code>num_ports=3</code> — the third port stays unconnected.
+      </p>
+    </div>
+    <div class="diagram-scroll">
+      <svg viewBox="0 0 1160 300" xmlns="http://www.w3.org/2000/svg">
+        <!-- EP A -->
+        <rect x="24" y="70" width="176" height="150" rx="6" class="block-fill-strong"/>
+        <text x="112" y="96" text-anchor="middle" class="lbl-title">Endpoint A</text>
+        <text x="112" y="111" text-anchor="middle" class="lbl-sub">mordred.mordredNicPC</text>
+        <line x1="42" y1="120" x2="182" y2="120" class="lane-line" opacity="0.4"/>
+        <text x="42" y="138" class="lbl-param">clock: 1 GHz</text>
+        <text x="42" y="153" class="lbl-param">flit_size: 32 b (default)</text>
+        <text x="42" y="168" class="lbl-param">buf: 1 KiB → 256 credits</text>
+        <text x="42" y="188" class="lbl-param" opacity="0.8">calcNumFlits(8192b)</text>
+        <text x="42" y="202" class="lbl-accent" font-size="11">= 256 flits</text>
+
+        <!-- Link A: EP_A -> Router -->
+        <g>
+          <line x1="200" y1="112" x2="330" y2="112" class="lane-line"/>
+          <line x1="200" y1="118" x2="330" y2="118" class="lane-line"/>
+          <line x1="200" y1="124" x2="330" y2="124" class="lane-line"/>
+          <line x1="200" y1="130" x2="330" y2="130" class="lane-line" opacity="0.4"/>
+          <text x="265" y="100" text-anchor="middle" class="lbl-tiny">16 lanes</text>
+          <rect x="212" y="150" width="106" height="60" rx="5" class="phy-pill"/>
+          <text x="265" y="167" text-anchor="middle" class="lbl-sub" font-weight="700" fill="var(--ink)">uciePhysChannel</text>
+          <text x="265" y="181" text-anchor="middle" class="lbl-tiny">format 5 · 256B/240B</text>
+          <text x="265" y="193" text-anchor="middle" class="lbl-tiny">ser 4 ns/flit</text>
+          <text x="265" y="205" text-anchor="middle" class="lbl-tiny">link_latency 2 ns</text>
+        </g>
+
+        <!-- Router -->
+        <rect x="330" y="46" width="220" height="198" rx="6" class="block-fill-strong"/>
+        <text x="440" y="70" text-anchor="middle" class="lbl-title">Mordred Router</text>
+        <text x="440" y="85" text-anchor="middle" class="lbl-sub">mordred.mordred_router (id 0)</text>
+        <line x1="348" y1="95" x2="532" y2="95" class="lane-line" opacity="0.4"/>
+        <text x="348" y="113" class="lbl-param">clock: 1 GHz (1 ns/cycle)</text>
+        <text x="348" y="128" class="lbl-param">wormhole crossbar:</text>
+        <text x="348" y="142" class="lbl-param">1 flit / port / cycle</text>
+        <text x="348" y="160" class="lbl-param">VC alloc: num_vns=1, num_vcs=1</text>
+        <text x="348" y="178" class="lbl-param">num_local_ports: 2</text>
+        <text x="348" y="192" class="lbl-param">num_ports: 3 (3rd unused)</text>
+        <text x="348" y="212" class="lbl-param" opacity="0.8">port0/port1: rtrPortControlPC</text>
+        <text x="348" y="226" class="lbl-param" opacity="0.8">→ each owns a uciePhysChannel</text>
+
+        <!-- Link B: Router -> EP_B (mirror) -->
+        <g>
+          <line x1="562" y1="112" x2="692" y2="112" class="lane-line"/>
+          <line x1="562" y1="118" x2="692" y2="118" class="lane-line"/>
+          <line x1="562" y1="124" x2="692" y2="124" class="lane-line"/>
+          <line x1="562" y1="130" x2="692" y2="130" class="lane-line" opacity="0.4"/>
+          <text x="627" y="100" text-anchor="middle" class="lbl-tiny">16 lanes</text>
+          <rect x="574" y="150" width="106" height="60" rx="5" class="phy-pill"/>
+          <text x="627" y="167" text-anchor="middle" class="lbl-sub" font-weight="700" fill="var(--ink)">uciePhysChannel</text>
+          <text x="627" y="181" text-anchor="middle" class="lbl-tiny">format 5 · 256B/240B</text>
+          <text x="627" y="193" text-anchor="middle" class="lbl-tiny">ser 4 ns/flit</text>
+          <text x="627" y="205" text-anchor="middle" class="lbl-tiny">link_latency 2 ns</text>
+        </g>
+
+        <!-- EP B -->
+        <rect x="692" y="70" width="176" height="150" rx="6" class="block-fill-strong"/>
+        <text x="780" y="96" text-anchor="middle" class="lbl-title">Endpoint B</text>
+        <text x="780" y="111" text-anchor="middle" class="lbl-sub">mordred.mordredNicPC</text>
+        <line x1="710" y1="120" x2="850" y2="120" class="lane-line" opacity="0.4"/>
+        <text x="710" y="138" class="lbl-param">clock: 1 GHz</text>
+        <text x="710" y="153" class="lbl-param">flit_size: 32 b (default)</text>
+        <text x="710" y="168" class="lbl-param">buf: 1 KiB → 256 credits</text>
+        <text x="710" y="188" class="lbl-param" opacity="0.8">TAIL arrival</text>
+        <text x="710" y="202" class="lbl-accent" font-size="11">reassembles Request</text>
+
+        <!-- overall latency banner -->
+        <rect x="892" y="70" width="244" height="150" rx="6" class="block-fill" stroke-dasharray="4 3"/>
+        <text x="1014" y="96" text-anchor="middle" class="lbl-sub" font-weight="700" fill="var(--ink)">End-to-end result</text>
+        <text x="1014" y="130" text-anchor="middle" font-size="26" font-weight="700" fill="var(--copper)">≈ 1.03 µs</text>
+        <text x="1014" y="150" text-anchor="middle" class="lbl-tiny">HEAD lands ~14 ns</text>
+        <text x="1014" y="164" text-anchor="middle" class="lbl-tiny">TAIL lands ~1035 ns</text>
+        <text x="1014" y="184" text-anchor="middle" class="lbl-tiny">bound by 256 × 4 ns</text>
+        <text x="1014" y="198" text-anchor="middle" class="lbl-tiny">UCIe serialization, not</text>
+        <text x="1014" y="212" text-anchor="middle" class="lbl-tiny">the 1 ns router clock</text>
+      </svg>
+    </div>
+  </section>
+
+  <!-- ============ SECTION 2: PACKET ANATOMY ============ -->
+  <section>
+    <div class="section-head">
+      <span class="section-num">02 — PACKET ANATOMY</span>
+      <h2>What "1024 bytes" turns into on the wire</h2>
+      <p class="section-note">
+        <code>mordredNicPC::transportSendFlit()</code> hands every Mordred flit to the UCIe channel
+        with <code>packet_size_bits=0</code> — each one travels as its own atomic, single-fragment
+        UCIe message (<code>uciePhysChannel.cc:47</code>). So the packet's fate is decided entirely
+        by Mordred's own flit width, not UCIe's fragmentation logic.
+      </p>
+    </div>
+
+    <div class="panel anatomy-row">
+      <div class="wire-compare" style="grid-template-columns:1fr;">
+        <div>
+          <div style="font-family:var(--font-mono); font-size:12px; color:var(--ink-dim); margin-bottom:6px;">
+            1024 B request → <b style="color:var(--ink)">calcNumFlits(8192 b ÷ 32 b) = 256 Mordred flits</b>
+          </div>
+          <div class="flitbar">
+            <div class="seg head">H</div>
+            <div class="seg body">254 × BODY (4 B payload each)</div>
+            <div class="seg tail">T</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="wire-compare">
+        <div class="rowlabel">1 Mordred flit</div>
+        <div class="wire-track"><div class="wire-fill payload" style="width:1.6%"></div></div>
+
+        <div class="rowlabel">UCIe wire flit</div>
+        <div class="wire-track"><div class="wire-fill full" style="width:100%"></div></div>
+      </div>
+      <p class="section-note" style="margin-top:-2px;">
+        4 bytes of real payload riding inside a 256-byte UCIe format-5 flit — because every one of
+        the 256 Mordred flits consumes its own full wire slot (see callout below).
+      </p>
+    </div>
+  </section>
+
+  <!-- ============ SECTION 3: TIMING DIAGRAM ============ -->
+  <section>
+    <div class="section-head">
+      <span class="section-num">03 — TIMING</span>
+      <h2>Sequence diagram: HEAD → 254 × BODY → TAIL</h2>
+      <p class="section-note">
+        Five lifelines: the two NICs, the two UCIe links, and the router's crossbar. Every flit
+        pays <b style="color:var(--ink)">4 ns to serialize</b> (<code>ser_delay_ps</code>, 256 B ÷
+        512 Gb/s) plus <b style="color:var(--ink)">2 ns to propagate</b> (<code>link_latency</code>)
+        on each of the two hops. The router adds a few extra nanoseconds once, for VC/switch
+        allocation on the HEAD flit — <code>mordred/README.md</code> lists router pipeline depth as
+        fixed and not yet configurable, so this is an emergent cost of the state machine, not a
+        documented constant. After HEAD wins its VC and crossbar slot, the router holds that path
+        for the rest of the packet (§&nbsp;"packet-based switching"), so BODY/TAIL just ride the
+        link's own 4&nbsp;ns cadence.
+      </p>
+    </div>
+    <div class="diagram-scroll">
+      <svg viewBox="0 0 1160 620" xmlns="http://www.w3.org/2000/svg">
+        <!-- column headers -->
+        <!-- x positions: EPA=90, LinkA=330, Router=580, LinkB=830, EPB=1070 -->
+        <g font-family="var(--font-mono)">
+          <text x="90"  y="26" text-anchor="middle" class="lbl-title">EP A NIC</text>
+          <text x="330" y="26" text-anchor="middle" class="lbl-title">UCIe link A</text>
+          <text x="580" y="26" text-anchor="middle" class="lbl-title">Mordred router</text>
+          <text x="830" y="26" text-anchor="middle" class="lbl-title">UCIe link B</text>
+          <text x="1070" y="26" text-anchor="middle" class="lbl-title">EP B NIC</text>
+        </g>
+        <line x1="90" y1="38" x2="90" y2="600" class="lifeline"/>
+        <line x1="330" y1="38" x2="330" y2="600" class="lifeline"/>
+        <line x1="580" y1="38" x2="580" y2="600" class="lifeline"/>
+        <line x1="830" y1="38" x2="830" y2="600" class="lifeline"/>
+        <line x1="1070" y1="38" x2="1070" y2="600" class="lifeline"/>
+
+        <!-- ===== HEAD flit, t=0..13ns ===== -->
+        <text x="14" y="60" class="lbl-time">t=0ns</text>
+        <rect x="66" y="52" width="48" height="16" rx="3" class="event-head"/>
+        <text x="90" y="63" text-anchor="middle" class="lbl-tiny" font-weight="700">HEAD</text>
+
+        <line x1="90" y1="60" x2="330" y2="88" class="flow-line"/>
+        <text x="205" y="78" text-anchor="middle" class="lbl-tiny">serialize 4 ns</text>
+
+        <line x1="330" y1="88" x2="580" y2="108" class="flow-line"/>
+        <text x="14" y="106" class="lbl-time">t=6ns</text>
+        <text x="455" y="98" text-anchor="middle" class="lbl-tiny">propagate 2 ns</text>
+
+        <rect x="556" y="112" width="48" height="16" rx="3" class="event-head"/>
+        <text x="580" y="123" text-anchor="middle" class="lbl-tiny">alloc</text>
+        <line x1="580" y1="128" x2="580" y2="142" class="flow-line"/>
+        <text x="612" y="136" class="lbl-tiny">VC + switch alloc, HEAD only —</text>
+        <text x="612" y="148" class="lbl-tiny">multi-cycle state machine, no fixed constant (≈ a few ns)</text>
+
+        <line x1="580" y1="142" x2="830" y2="162" class="flow-line"/>
+        <text x="14" y="154" class="lbl-time">t≈9ns</text>
+        <text x="705" y="152" text-anchor="middle" class="lbl-tiny">serialize 4 ns</text>
+
+        <line x1="830" y1="162" x2="1070" y2="184" class="flow-line"/>
+        <text x="14" y="176" class="lbl-time">t≈13ns</text>
+        <text x="950" y="172" text-anchor="middle" class="lbl-tiny">propagate 2 ns</text>
+
+        <rect x="1046" y="188" width="48" height="16" rx="3" class="event-head"/>
+        <text x="1070" y="199" text-anchor="middle" class="lbl-tiny" font-weight="700">HEAD</text>
+        <text x="1105" y="199" class="lbl-time">t≈14ns</text>
+
+        <!-- ===== compressed steady state ===== -->
+        <rect x="24" y="222" width="1112" height="150" rx="6" class="router-band"/>
+        <text x="580" y="248" text-anchor="middle" class="lbl-sub" font-weight="700" fill="var(--ink)">
+          254 × BODY flits, pipelined back-to-back
+        </text>
+        <text x="580" y="264" text-anchor="middle" class="lbl-tiny">
+          each hop's serializer paces the next departure by ser_delay_ps — 4 ns/flit end to end
+        </text>
+
+        <g stroke="var(--ink-faint)" stroke-width="1.4">
+          <line x1="90"   y1="290" x2="90"   y2="350"/>
+          <line x1="330"  y1="290" x2="330"  y2="350"/>
+          <line x1="580"  y1="290" x2="580"  y2="350"/>
+          <line x1="830"  y1="290" x2="830"  y2="350"/>
+          <line x1="1070" y1="290" x2="1070" y2="350"/>
+        </g>
+        <g class="lbl-tiny" text-anchor="middle">
+          <text x="90" y="300">⋮</text><text x="90" y="316">⋮</text><text x="90" y="332">⋮</text>
+          <text x="330" y="300">⋮</text><text x="330" y="316">⋮</text><text x="330" y="332">⋮</text>
+          <text x="580" y="300">⋮</text><text x="580" y="316">⋮</text><text x="580" y="332">⋮</text>
+          <text x="830" y="300">⋮</text><text x="830" y="316">⋮</text><text x="830" y="332">⋮</text>
+          <text x="1070" y="300">⋮</text><text x="1070" y="316">⋮</text><text x="1070" y="332">⋮</text>
+        </g>
+        <text x="580" y="362" text-anchor="middle" class="lbl-tiny" font-style="italic">
+          cadence set by UCIe (4 ns/flit) — slower than the router's 1 ns cycle, so the crossbar never becomes the bottleneck
+        </text>
+
+        <!-- ===== TAIL flit, flit #256 ===== -->
+        <text x="14" y="404" class="lbl-time">t=1020ns</text>
+        <rect x="66" y="396" width="48" height="16" rx="3" class="event-tail"/>
+        <text x="90" y="407" text-anchor="middle" class="lbl-tiny" font-weight="700">TAIL</text>
+        <text x="140" y="407" class="lbl-tiny">flit #256 of 256</text>
+
+        <line x1="90" y1="404" x2="330" y2="428" class="flow-line" stroke="var(--teal)"/>
+        <text x="205" y="420" text-anchor="middle" class="lbl-tiny">serialize 4 ns</text>
+
+        <line x1="330" y1="428" x2="580" y2="448" class="flow-line" stroke="var(--teal)"/>
+        <text x="14" y="446" class="lbl-time">t=1026ns</text>
+        <text x="455" y="440" text-anchor="middle" class="lbl-tiny">propagate 2 ns</text>
+
+        <rect x="556" y="452" width="48" height="16" rx="3" class="event-tail"/>
+        <text x="580" y="463" text-anchor="middle" class="lbl-tiny">xbar</text>
+
+        <line x1="580" y1="468" x2="830" y2="488" class="flow-line" stroke="var(--teal)"/>
+        <text x="14" y="486" class="lbl-time">t=1027ns</text>
+        <text x="705" y="480" text-anchor="middle" class="lbl-tiny">serialize 4 ns</text>
+
+        <line x1="830" y1="488" x2="1070" y2="510" class="flow-line" stroke="var(--teal)"/>
+        <text x="14" y="508" class="lbl-time">t=1031ns</text>
+        <text x="950" y="502" text-anchor="middle" class="lbl-tiny">propagate 2 ns</text>
+
+        <rect x="1046" y="514" width="48" height="16" rx="3" class="event-tail"/>
+        <text x="1070" y="525" text-anchor="middle" class="lbl-tiny" font-weight="700">TAIL</text>
+
+        <line x1="1070" y1="530" x2="1070" y2="552" class="flow-line" stroke="var(--teal)"/>
+        <rect x="984" y="556" width="172" height="34" rx="5" fill="var(--teal-soft)" stroke="var(--teal)" stroke-width="1.2"/>
+        <text x="1070" y="570" text-anchor="middle" class="lbl-sub" font-weight="700" fill="var(--ink)">Request reassembled</text>
+        <text x="1070" y="583" text-anchor="middle" class="lbl-time">t ≈ 1035 ns</text>
+      </svg>
+    </div>
+  </section>
+
+  <!-- ============ SECTION 4: FINDING ============ -->
+  <section>
+    <div class="section-head">
+      <span class="section-num">04 — WHAT THE DEFAULTS ACTUALLY DO</span>
+      <h2>The flit-size mismatch is the whole story</h2>
+    </div>
+
+    <div class="callout">
+      <span class="callout-kicker">Efficiency at default settings ≈ 1.6%</span>
+      <p>
+        Mordred's default <code>flit_size</code> is <b>32 bits (4 B)</b>. UCIe's default
+        <code>flit_format 5</code> wire flit is <b>256 B</b>. Because
+        <code>RtrPortControlPC</code>/<code>MordredNicPC</code> send every Mordred flit as its own
+        independent UCIe message (<code>packet_size_bits=0</code>), each 4-byte flit burns an
+        entire 256-byte physical slot. That ratio, not the router's clock or the link's propagation
+        delay, is what turns a 1024 B packet into a ~1&nbsp;µs transit.
+      </p>
+      <div class="formula">
+        num_flits  = ceil(1024 B×8 / 32 b)              = <span class="res">256</span>  flits<br/>
+        ser_delay  = ceil(256 B×8 / (1×16×32 Gb/s)×1000) = <span class="res">4 ns</span>/flit<br/>
+        efficiency = 4 B ÷ 256 B                          = <span class="res">1.56%</span> payload/wire<br/>
+        latency    ≈ 256 × 4 ns  +  2×(4 ns + 2 ns)  +  router alloc  ≈ <span class="res">~1.03 µs</span>
+      </div>
+      <p>
+        This isn't a bug — it's the documented default pairing. Raising
+        <code>flit_size</code> to match UCIe's payload width (e.g. matching the 240 B usable
+        payload of format 5), or dropping to <code>flit_format 2</code> (68 B wire), collapses this
+        overhead; the test configs under <code>mordred/tests/*_uciePhysChannel*.py</code> already do
+        this (e.g. <code>flit_size="16b"</code> paired with a real router-to-router link). The
+        numbers above are what you get if you change nothing.
+      </p>
+    </div>
+
+    <div class="panel">
+      <table class="result">
+        <thead>
+          <tr><th>Quantity</th><th>Value</th><th>Source</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Mordred flits per 1024 B packet</td><td class="num">256 (1 HEAD, 254 BODY, 1 TAIL)</td><td>MordredNicBase::calcNumFlits</td></tr>
+          <tr><td>UCIe wire flits actually sent</td><td class="num">256 (one per Mordred flit)</td><td>RtrPortControlPC::transportSendFlit</td></tr>
+          <tr><td>Bytes moved on the wire</td><td class="num">65,536 B for a 1,024 B packet</td><td>256 × 256 B format-5 flits</td></tr>
+          <tr><td>Per-flit serialize + propagate</td><td class="num">4 ns + 2 ns</td><td>ucieAdapterBase.h ser_delay_ps_ / link_latency</td></tr>
+          <tr><td>HEAD flit end-to-end</td><td class="num">~14 ns</td><td>2 hops × (4+2 ns) + a few ns router VC/switch alloc</td></tr>
+          <tr><td>Full packet (TAIL) end-to-end</td><td class="num">~1.03 µs</td><td>256 × 4 ns pipeline fill + fixed hop overhead</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <div class="footnotes">
+    <h3>Sources</h3>
+    <ol>
+      <li><b>UCIe flit formats</b> — prydwen/src/ucie/ucieFlit.h:20–42 (format 5 default = 256 B total / 240 B payload)</li>
+      <li><b>UCIe default params</b> — prydwen/src/ucie/uciePhysChannel.h:69–99 (link_latency 2ns, num_lanes 16, lane_speed_gts 32, num_modules 1)</li>
+      <li><b>Serialization delay formula</b> — prydwen/src/ucie/ucieAdapterBase.h:454–459 (ser_delay_ps_ = ceil(flit_total_bytes×8 / bw_gbps × 1000))</li>
+      <li><b>Per-Mordred-flit atomic send (packet_size_bits=0)</b> — mordred/src/RtrPortControlPC.h:88–105, mordred/src/MordredNicPC.h:100–110</li>
+      <li><b>Mordred flit count formula</b> — mordred/src/MordredNicBase.cc:403–408 (calcNumFlits, min 2)</li>
+      <li><b>Router defaults</b> — mordred/src/MordredRouter.h:60–76 (clock 1GHz, flit_size 32b, num_vns 1, num_vcs 1)</li>
+      <li><b>Wormhole crossbar, 1 flit/port/cycle</b> — mordred/src/MordredRouter.cc:249–325 (clockTick)</li>
+      <li><b>Per-port input state machine (IN_IDLE→ROUTING→WAIT_VC→IN_ACTIVE)</b> — mordred/src/RtrPortControlBase.cc:282–351; no fixed pipeline-depth constant is documented — mordred/README.md "Notes and Limitations"</li>
+      <li><b>Packet-based switching (VC/crossbar held until packet fully transferred)</b> — mordred/README.md; SST-UG2025-Mordred.pdf</li>
+      <li><b>Reference 2-endpoint UCIe topology</b> — mordred/tests/mesh2x1_uciePhysChannel.py</li>
+    </ol>
+  </div>
+
+</div>
+</body>
+</html>
