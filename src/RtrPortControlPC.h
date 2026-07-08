@@ -65,8 +65,11 @@ public:
   // Inner-channel receive notification callback
   bool onReceive( int sn_vn );
 
-  // Override ClockTick to drip one pending flit per tick (prevents inBuf saturation
-  // from UCIe's batch delivery of M flits that would otherwise arrive all at once)
+  // Override ClockTick to drip one pending flit per tick. UCIe's link-timing model
+  // can complete several independent single-flit sends within the same SST cycle
+  // (this is not FlitFactory reassembly — transportSendFlit() always uses
+  // packet_size_bits=0, so the factory is never invoked); without this queue those
+  // flits would all be processed in the tick they arrive, saturating inBuf.
   void ClockTick( Cycle_t cycle ) override;
 
 
@@ -84,9 +87,11 @@ protected:
   void transportSendFlit( MordredFlit* flit, uint32_t vn ) override {
     // Send every Mordred flit (HEAD, BODY, TAIL) individually as a single-flit
     // UCIe message (packet_size_bits=0 → m_count=0 → direct delivery, no
-    // FlitFactory).  This matches the original per-flit send behaviour that was
+    // FlitFactory). This matches the original per-flit send behaviour that was
     // present at commit 713ea49, where each flit traverses UCIe independently
-    // and arrives at the receiver one-per-tick, identical to native link timing.
+    // as its own atomic message. UCIe's transfer timing can still land more than
+    // one such flit in the same tick; the pendingFlits_/ClockTick drip queue below
+    // is what re-serializes those to one-per-tick, native-link-equivalent timing.
     Prydwen::PhysChannelFlitDescriptor desc;
     desc.flit             = flit;
     desc.req              = nullptr;   // not used when packet_size_bits=0
@@ -154,10 +159,13 @@ protected:
 private:
   Prydwen::PhysChannelAPI* physChannel{};
 
-  // Pending flit queue: UCIe delivers M Mordred flits at once (batch), but the router's
-  // input state machine expects flits to arrive one per clock tick (matching the native
-  // link timing). We queue incoming events here and inject one per ClockTick to match
-  // native link behaviour and avoid inBuf saturation leading to deadlock.
+  // Pending flit queue: UCIe's link-timing model can deliver more than one
+  // independent single-flit message within the same SST cycle (each still sent
+  // via transportSendFlit() with packet_size_bits=0 — this is not FlitFactory
+  // reassembly), but the router's input state machine expects flits to arrive
+  // one per clock tick (matching native link timing). We queue incoming events
+  // here and inject one per ClockTick to match native link behaviour and avoid
+  // inBuf saturation leading to deadlock.
   // Credit events bypass this queue and are processed immediately.
   std::deque<SST::Event*> pendingFlits_;
 };
