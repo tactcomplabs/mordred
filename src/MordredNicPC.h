@@ -11,6 +11,8 @@
 #ifndef MORDRED_MORDREDNICPC_H
 #define MORDRED_MORDREDNICPC_H
 
+#include <cinttypes>
+
 #include "MordredNicBase.h"
 #include "PhysChannelAPI.h"
 
@@ -65,7 +67,15 @@ public:
     { "verbose", "Sets the output verbosity", "5" },
     { "clock", "Clock frequency of this interface", "1GHz" },
     { "input_buf_size", "Size of input buffers specified in b or B (can include SI prefix).", "1kiB" },
-    { "output_buf_size", "Size of output buffers specified in b or B (can include SI prefix).", "1kiB" }
+    { "output_buf_size", "Size of output buffers specified in b or B (can include SI prefix).", "1kiB" },
+    { "num_vcs",
+      "Number of VCs used by the connected router network. This endpoint has no VC of its "
+      "own (VC assignment happens inside the router fabric) — it exists only so this "
+      "endpoint's UCIe address-space widening (see RtrPortControlPC::extVn()) matches its "
+      "connected router's local port symmetrically. Must equal the router network's actual "
+      "num_vcs, or the link will silently fail to widen (default \"1\" == no widening, "
+      "matches today's behavior).",
+      "1" }
   )
 
   SST_ELI_DOCUMENT_PORTS( {
@@ -101,16 +111,31 @@ public:
   ImplementSerializable( SST::Mordred::MordredNicPC );
 
 protected:
+  // Mirrors RtrPortControlPC::extVn() — an endpoint never has a real VC of its
+  // own (vc is always 0 here), but must widen its own UCIe address space by the
+  // same factor as its connected router's local port, or the two ends negotiate
+  // down to the unwidened count during UCIe's INIT/AGREE handshake (silently
+  // undoing the fix on this link — see transportValidateVcWidth() below).
+  uint32_t extVn( uint32_t vn ) const { return vn * numVcsForAddressing_; }
+
   void transportSendFlit( MordredFlit* flit, uint32_t vn ) override {
-    // Same per-flit individual delivery as RtrPortControlPC — see that file.
+    // Same whole-packet coalescing as RtrPortControlPC — see that file for the
+    // full rationale. HEAD carries the true packet size and triggers UCIe
+    // fragmentation + FlitFactory registration; BODY/TAIL are free no-ops.
     Prydwen::PhysChannelFlitDescriptor desc;
-    desc.flit             = flit;
-    desc.req              = nullptr;
-    desc.packet_id        = 0;
-    desc.packet_size_bits = 0;
-    desc.is_first         = true;
-    desc.is_last          = true;
-    physChannel->send( desc, static_cast<int>( vn ) );
+    desc.flit      = flit;
+    desc.req       = flit->req;
+    desc.packet_id = flit->packet_id;
+    if( flit->ftype == MordredFlit::HEAD ) {
+      desc.packet_size_bits = static_cast<uint32_t>( flit->req->size_in_bits );
+      desc.is_first         = true;
+      desc.is_last          = false;
+    } else {
+      desc.packet_size_bits = 0;
+      desc.is_first         = false;
+      desc.is_last          = ( flit->ftype == MordredFlit::TAIL );
+    }
+    physChannel->send( desc, static_cast<int>( extVn( vn ) ) );
   }
   void transportSendCredit( MordredCreditEvent* credit, uint32_t vn ) override {
     Prydwen::PhysChannelFlitDescriptor desc;
@@ -120,10 +145,23 @@ protected:
     desc.packet_size_bits = 0;
     desc.is_first         = true;
     desc.is_last          = true;
-    physChannel->send( desc, static_cast<int>( vn ) );
+    physChannel->send( desc, static_cast<int>( extVn( vn ) ) );
   }
   void        transportSendUntimedData( SST::Event* ev ) override { physChannel->sendUntimedData( ev ); }
   SST::Event* transportRecvUntimedData() override { return physChannel->recvUntimedData(); }
+
+  // Fail loudly, not silently, on a misconfigured num_vcs (see the param doc above).
+  void transportValidateVcWidth( uint32_t router_num_vcs ) override {
+    if( router_num_vcs != numVcsForAddressing_ )
+      output->fatal(
+        CALL_INFO, -1,
+        "MordredNicPC: connected router uses num_vcs=%" PRIu32 " but this endpoint was "
+        "configured with num_vcs=%" PRIu32 " — they must match so both ends of the link "
+        "widen their UCIe address space identically. Set this endpoint's 'num_vcs' param "
+        "to the router network's actual num_vcs.\n",
+        router_num_vcs, numVcsForAddressing_
+      );
+  }
 
   void transportInit( uint32_t phase ) override { physChannel->init( phase ); }
   void transportSetup() override {
@@ -166,6 +204,7 @@ protected:
 
 private:
   Prydwen::PhysChannelAPI* physChannel{};
+  uint32_t                 numVcsForAddressing_{ 1 };
 };
 
 }  // namespace SST::Mordred

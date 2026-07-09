@@ -15,8 +15,12 @@ using namespace SST::Mordred;
 
 MordredNicPC::MordredNicPC( ComponentId_t cid, Params& params, int vns )
     : MordredNicBase( cid, params, vns, "MordredNicPC" ) {
+  numVcsForAddressing_ = params.find<uint32_t>( "num_vcs", 1 );
+
+  // numVcsForAddressing_ widening: see the "num_vcs" param doc and extVn() above.
   physChannel = loadUserSubComponent<Prydwen::PhysChannelAPI>(
-    "port_iface", ComponentInfo::SHARE_PORTS | ComponentInfo::INSERT_STATS, vns
+    "port_iface", ComponentInfo::SHARE_PORTS | ComponentInfo::INSERT_STATS,
+    static_cast<int>( static_cast<uint32_t>( vns ) * numVcsForAddressing_ )
   );
   if( !physChannel )
     output->fatal( CALL_INFO, -1, "MordredNicPC: no PhysChannelAPI subcomponent found in slot 'port_iface'\n" );

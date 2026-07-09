@@ -310,7 +310,13 @@ void RtrPortControlBase::ClockTick( Cycle_t cycle ) {
   for( uint32_t i = 0, vn = flit_vn_rr; i < numVns && !sent; i++, vn = ( vn != ( numVns - 1 ) ) ? vn + 1 : 0 ) {
     for( uint32_t j = 0, vc = flit_vc_rr; j < numVcs; j++, vc = ( vc != ( numVcs - 1 ) ) ? vc + 1 : 0 ) {
       auto& out = outStateVec.at( vn ).at( vc );
-      if( !out.outBuf.empty() && out.destCredits > 0 && transportSpaceToSend( vn ) ) {
+      // Under flit coalescing, only the HEAD actually starts a new physical-channel
+      // transfer (and so is the only one that needs to wait for wire-level space);
+      // BODY/TAIL are free no-ops on the wire (see transportSendFlit()) and must not
+      // be gated behind a check they don't need — doing so would spuriously stall
+      // them behind an unrelated, already-in-flight transfer's credit usage.
+      if( !out.outBuf.empty() && out.destCredits > 0 &&
+          ( out.outBuf.front()->ftype != MordredFlit::HEAD || transportSpaceToSend( vn, vc ) ) ) {
         auto* flit = out.outBuf.front();
         out.outBuf.pop();
         out.outBufCredits++;

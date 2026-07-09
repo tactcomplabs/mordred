@@ -82,6 +82,7 @@ void MordredNicBase::init( uint32_t phase ) {
     init_ev = getInitEvent( MordredInitEvent::NUM_VCS );
     numVcs  = init_ev->value;
     delete init_ev;
+    transportValidateVcWidth( numVcs );
 
     init_ev  = getInitEvent( MordredInitEvent::FLIT_WIDTH );
     flitSize = init_ev->value;
@@ -202,11 +203,14 @@ bool MordredNicBase::send( Request* req, int vn ) {
   // req* is borrowed by all flits — it is not owned by any flit. Ownership
   // transfers to the receiver: on TAIL arrival processIncomingEvent() moves req
   // into inBuf, and recv() returns it to the caller who is responsible for deletion.
-  outBuf.at( u_vn ).push( new MordredFlit( req, MordredFlit::HEAD, packetId, 0 ) );
+  const uint64_t created_cycle = getCurrentSimCycle();
+  auto*          head          = new MordredFlit( req, MordredFlit::HEAD, packetId, 0 );
+  head->pkt_created_cycle      = created_cycle;
+  outBuf.at( u_vn ).push( head );
   for( uint32_t i = 1; i < u_num_flits - 1; i++ )
     outBuf.at( u_vn ).push( new MordredFlit( req, MordredFlit::BODY, packetId, i ) );
   auto* tail              = new MordredFlit( req, MordredFlit::TAIL, packetId++, u_num_flits - 1 );
-  tail->pkt_created_cycle = getCurrentSimCycle();
+  tail->pkt_created_cycle = created_cycle;
   outBuf.at( u_vn ).push( tail );
 
   if( req->getTraceType() != Request::NONE )
@@ -263,7 +267,13 @@ bool MordredNicBase::clockTick( Cycle_t cycle ) {
       outBuf.at( vn ).pop();
 
       if( flit->ftype == MordredFlit::HEAD ) {
-        headInjectCycle = getCurrentSimCycle();
+        headInjectCycle         = getCurrentSimCycle();
+        // Also stamp the HEAD object itself (not just the local scalar): when a
+        // physical channel coalesces a whole packet into one wire transfer, the
+        // receive-side FlitFactory reuses this exact HEAD object and derives
+        // synthesized BODY/TAIL timestamps from its fields (see
+        // RtrPortControlPC::transportSetup() / MordredNicPC::transportSetup()).
+        flit->head_inject_cycle = headInjectCycle;
         if( flit->req->getTraceType() == Request::FULL )
           output->output(
             "TRACE(%d): %" PRIu64 " ns put head flit on link %s\n",

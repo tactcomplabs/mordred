@@ -65,12 +65,14 @@ public:
   // Inner-channel receive notification callback
   bool onReceive( int sn_vn );
 
-  // Override ClockTick to drip one pending flit per tick. UCIe's link-timing model
-  // can complete several independent single-flit sends within the same SST cycle
-  // (this is not FlitFactory reassembly — transportSendFlit() always uses
-  // packet_size_bits=0, so the factory is never invoked); without this queue those
-  // flits would all be processed in the tick they arrive, saturating inBuf.
-  // TODO (tdysart): Look at the function and make sense of this comment
+  // Override ClockTick to drip one pending flit per tick. The HEAD of a packet
+  // triggers a coalesced UCIe transfer (see transportSendFlit() below); once all
+  // physical fragments are reassembled on the far side, the FlitFactory
+  // synthesizes every Mordred flit of that packet at once ("bulk delivery" —
+  // see UCIePhysChannel's class doc). Without this queue, all of those flits
+  // would land in the same tick and be processed immediately, saturating inBuf
+  // and violating the router's one-flit-per-cycle input assumption; this drains
+  // them at native link-equivalent timing instead.
   void ClockTick( Cycle_t cycle ) override;
 
 
@@ -85,23 +87,44 @@ public:
   ImplementSerializable( SST::Mordred::RtrPortControlPC );
 
 protected:
+  // Maps a Mordred (vn, vc) pair onto a single UCIe ext_vn. UCIePhysChannel's
+  // wire-level VN space is otherwise addressed by vn alone (transportSendFlit()
+  // et al. only carry vn), so every VC sharing a VN would share one physical
+  // send queue and one credit pool — harmless when each flit was its own atomic
+  // wire message, but a deadlock hazard once whole packets are coalesced into
+  // one uninterruptible burst (a VC-dependent deadlock-avoidance scheme, e.g. an
+  // escape VC on a wraparound torus, needs its VCs to have independent forward
+  // progress on the wire). Widening the address space here — and symmetrically
+  // in MordredNicPC, see its transportValidateVcWidth() — restores that
+  // independence: each (vn,vc) pair gets its own UCIePhysChannel queue/credits.
+  uint32_t extVn( uint32_t vn, uint32_t vc ) const { return vn * numVcs + vc; }
+
   void transportSendFlit( MordredFlit* flit, uint32_t vn ) override {
-    // Send every Mordred flit (HEAD, BODY, TAIL) individually as a single-flit
-    // UCIe message (packet_size_bits=0 → m_count=0 → direct delivery, no
-    // FlitFactory). This matches the original per-flit send behaviour that was
-    // present at commit 713ea49, where each flit traverses UCIe independently
-    // as its own atomic message. UCIe's transfer timing can still land more than
-    // one such flit in the same tick; the pendingFlits_/ClockTick drip queue below
-    // is what re-serializes those to one-per-tick, native-link-equivalent timing.
-    // TODO (tdysart): Look at the function and make sense of this comment
+    // Coalesce a whole packet into one UCIe wire transfer instead of sending
+    // every Mordred flit as its own atomic physical message. The HEAD carries
+    // the true packet size (all flits of a packet share the same req*, so
+    // size_in_bits is available from any of them); UCIePhysChannel::send()
+    // fragments it into ceil(bytes/flit_payload_bytes) physical FLITs and
+    // registers m_count = ceil(packet_size_bits/network_flit_size) for the
+    // FlitFactory (below, in transportSetup()) to resynthesize on the far side.
+    // BODY/TAIL are then free no-ops on the wire — desc.is_first=false makes
+    // UCIePhysChannel::send() discard them immediately (see its doc comment) —
+    // since the far side already reconstructs the full flit sequence from the
+    // HEAD's fragments.
     Prydwen::PhysChannelFlitDescriptor desc;
-    desc.flit             = flit;
-    desc.req              = nullptr;   // not used when packet_size_bits=0
-    desc.packet_id        = 0;
-    desc.packet_size_bits = 0;         // → m_count=0 → direct delivery
-    desc.is_first         = true;      // each flit is its own self-contained event
-    desc.is_last          = true;
-    physChannel->send( desc, static_cast<int>( vn ) );
+    desc.flit      = flit;
+    desc.req       = flit->req;
+    desc.packet_id = flit->packet_id;
+    if( flit->ftype == MordredFlit::HEAD ) {
+      desc.packet_size_bits = static_cast<uint32_t>( flit->req->size_in_bits );
+      desc.is_first         = true;
+      desc.is_last          = false;
+    } else {
+      desc.packet_size_bits = 0;
+      desc.is_first         = false;
+      desc.is_last          = ( flit->ftype == MordredFlit::TAIL );
+    }
+    physChannel->send( desc, static_cast<int>( extVn( vn, flit->cur_vc ) ) );
   }
   void transportSendCredit( MordredCreditEvent* credit, uint32_t vn ) override {
     Prydwen::PhysChannelFlitDescriptor desc;
@@ -111,13 +134,13 @@ protected:
     desc.packet_size_bits = 0;
     desc.is_first         = true;
     desc.is_last          = true;
-    physChannel->send( desc, static_cast<int>( vn ) );
+    physChannel->send( desc, static_cast<int>( extVn( vn, credit->vc ) ) );
   }
   void        transportSendUntimedData( SST::Event* ev ) override { physChannel->sendUntimedData( ev ); }
   SST::Event* transportRecvUntimedData() override { return physChannel->recvUntimedData(); }
 
-  bool transportSpaceToSend( uint32_t vn ) override {
-    return physChannel->spaceToSend( static_cast<int>( vn ), static_cast<int>( flitSize ) );
+  bool transportSpaceToSend( uint32_t vn, uint32_t vc ) override {
+    return physChannel->spaceToSend( static_cast<int>( extVn( vn, vc ) ), static_cast<int>( flitSize ) );
   }
 
   void transportInit( uint32_t phase ) override { physChannel->init( phase ); }
@@ -161,14 +184,41 @@ protected:
 private:
   Prydwen::PhysChannelAPI* physChannel{};
 
-  // Pending flit queue: UCIe's link-timing model can deliver more than one
-  // independent single-flit message within the same SST cycle (each still sent
-  // via transportSendFlit() with packet_size_bits=0 — this is not FlitFactory
-  // reassembly), but the router's input state machine expects flits to arrive
-  // one per clock tick (matching native link timing). We queue incoming events
-  // here and inject one per ClockTick to match native link behaviour and avoid
-  // inBuf saturation leading to deadlock.
+  // Pending flit queue: a coalesced packet's Mordred flits are all synthesized by
+  // the FlitFactory at once, the instant the last physical fragment is reassembled
+  // ("bulk delivery" — see UCIePhysChannel's class doc), but the router's input
+  // state machine expects flits to arrive one per clock tick (matching native
+  // link timing). We queue incoming events here and inject one per ClockTick to
+  // match native link behaviour and avoid inBuf saturation leading to deadlock.
   // Credit events bypass this queue and are processed immediately.
+  //
+  // IMPORTANT — this queue adds real, packet-size-dependent latency to every
+  // Mordred-level credit round trip, and `output_buf_size` must be sized with
+  // that in mind:
+  //
+  // Before coalescing, each Mordred flit crossed the wire as its own message, so
+  // arrivals were already paced by wire transit — this queue was rarely more
+  // than empty. Under coalescing, all M flits of one packet are bulk-delivered
+  // here simultaneously the moment the (now single, efficient) physical transfer
+  // completes, but they still drain at one per router cycle: flit k of that
+  // packet now waits k-1 extra cycles just to be dripped, before the input state
+  // machine can even see it, let alone service it and return the credit that
+  // lets the sender dequeue its next flit. So coalescing trades wire efficiency
+  // for O(M) extra cycles of credit-return latency at every hop.
+  //
+  // A sender with only enough `output_buf_size` for the old per-flit-atomic
+  // model (as little as one credit — sufficient before, because wire transit was
+  // the rate limiter and always outpaced this queue) has no slack to absorb that
+  // added latency and can stall completely under load; this was observed as a
+  // real, reproducible deadlock on a 5x5 torus (`torus5x5_2vc_uciePhysChannel`)
+  // that only cleared once `output_buf_size` was given real headroom (confirmed
+  // by bisection: bumping the *Mordred* buffer alone fixed it; bumping the UCIe
+  // wire-level `credits_per_vn` alone did not — the bottleneck is this queue,
+  // not physical-channel credit availability). Give `output_buf_size` — and
+  // therefore destCredits — enough headroom to cover several packets' worth of
+  // Mordred flits in flight, not just one, whenever this port's uciePhysChannel
+  // has num_vns_per_stack (or num_vcs) that make coalescing this port's traffic
+  // likely.
   std::deque<SST::Event*> pendingFlits_;
 };
 

@@ -76,6 +76,14 @@ protected:
   virtual void transportComplete( uint32_t phase ) {}
   virtual void transportFinish() {}
 
+  // Called once init() phase 2 learns the router's authoritative num_vcs (see
+  // below). Default no-op; MordredNicPC overrides it to fail loudly if its own
+  // (config-time, construction-fixed) VC-address widening factor doesn't match
+  // what the router actually uses — a mismatch there would otherwise silently
+  // collapse to an unwidened link and reintroduce the deadlock this exists to
+  // prevent (see RtrPortControlPC::extVn()).
+  virtual void transportValidateVcWidth( uint32_t /*router_num_vcs*/ ) {}
+
   // Shared incoming-packet dispatch; call from derived event handler / functor
   void processIncomingEvent( SST::Event* ev );
 

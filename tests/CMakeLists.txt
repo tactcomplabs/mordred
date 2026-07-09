@@ -36,6 +36,8 @@ if(MORDRED_ENABLE_PHYS_CHANNEL)
     mesh2x1_uciePhysChannel_flit_format2.py
     mesh3x3_uciePhysChannel_2module.py
     mesh3x3_uciePhysChannel_2stack.py
+    mesh3x3_uciePhysChannel_large_message.py
+    mesh3x3_uciePhysChannel_large_message_lowcredits.py
   )
 endif()
 

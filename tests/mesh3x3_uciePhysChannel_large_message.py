@@ -1,36 +1,48 @@
-# torus5x5_4vc_uciePhysChannel.py
+# mesh3x3_uciePhysChannel_large_message.py
 #
 # Copyright (C) 2025-2026 Tactical Computing Laboratories, LLC
 # All Rights Reserved
 # contact@tactcomplabs.com
 # See LICENSE in the top level directory for licensing details
 #
-# 4-VC uciePhysChannel variant of torus5x5_2vc_uciePhysChannel.py.
+# Large-message variant of mesh3x3_uciePhysChannel.py — the first test in
+# either repo to actually exercise UCIePhysChannel's multi-fragment path.
 #
-# Every link in the 5x5 torus uses prydwen.uciePhysChannel as the physical
-# transport.  VCs (num_vcs=4) are managed above the port-control layer, so
-# the UCIe channel uses a single VN (num_vns_per_stack="1").  Topology and
-# traffic parameters are identical to the 2vc original.
+# Every other *_uciePhysChannel*.py test uses an 8-byte message (4 flits at
+# flit_size=16b), which always fits in a single physical UCIe flit regardless
+# of format — so p_count is always 1 and the FlitFactory's m_count>1
+# reassembly branch never runs. This test uses flit_size=32b (Mordred's
+# documented router default) and a 1024-byte message — exactly the scenario
+# from docs/1024b-packet-walkthrough.html:
 #
-# NOTE: num_vcs >= 2 is required on a 5x5 (or larger) torus to avoid deadlock.
-# This test exercises VcAllocRR with 4 VCs, the highest VC count in the
-# test suite, stressing the VC round-robin and wrap-aware assignment logic.
+#   calcNumFlits(1024B*8 / 32b)        = 256 Mordred flits (1 HEAD, 254 BODY, 1 TAIL)
+#   ceil(1024B / 240B flit_format-5 payload) = 5 physical UCIe FLITs
 #
+# i.e. coalescing should turn 256 naive per-flit sends into 5 physical wire
+# transfers. Check stats.mesh3x3_uciePhysChannel_large_message.csv afterward:
+# prydwen's `flits_sent` should be on the order of 5 per message (not 256),
+# and mordred's `average_noc_latency` should be a small, sane number (not
+# UINT64_MAX-scale garbage — this also validates the head_inject_cycle fix).
+#
+# input_buf_size/output_buf_size are sized well above the 1x-flit_size
+# minimum used elsewhere: coalescing adds real per-hop credit-turnaround
+# latency (see RtrPortControlPC.h's pendingFlits_ doc), so a message this
+# large needs headroom to avoid stalling — same lesson as the torus tests.
 
 import sst
 from sst import UnitAlgebra
 
-testname = "torus5x5_4vc_uciePhysChannel"
+testname = "mesh3x3_uciePhysChannel_large_message"
 
 clk          = UnitAlgebra("1GHz")
 clk_pd       = clk.invert()
 link_latency = UnitAlgebra(0.8) * clk_pd
-flit_size    = UnitAlgebra("16b")
+flit_size    = UnitAlgebra("32b")
 
 UCIeParams = {
     "link_latency"      : "2ns",
     "num_stacks"        : 1,
-    "num_vns_per_stack" : "4",  # numVns(1) * numVcs(4) — see RtrPortControlPC::extVn()
+    "num_vns_per_stack" : "1",
     "credits_per_vn"    : "32",
     "flit_format"       : 5,
     "num_modules"       : 1,
@@ -41,42 +53,31 @@ UCIeParams = {
 
 PortControlPCParams = {
     "flit_size"       : flit_size,
-    "input_buf_size"  : UnitAlgebra(16) * flit_size,
-    # 16x, not 1x: coalescing needs real output-credit headroom to absorb the
-    # per-packet drip-queue latency at the receiver — see RtrPortControlPC.h's
-    # pendingFlits_ doc. 1x was fine for the old per-flit-atomic model, where
-    # wire transit (not the drip queue) was the rate limiter; under coalescing
-    # it deadlocks a torus at this scale.
-    "output_buf_size" : UnitAlgebra(16) * flit_size,
+    "input_buf_size"  : UnitAlgebra(64)  * flit_size,
+    "output_buf_size" : UnitAlgebra(32)  * flit_size,
     "verbose"         : 0,
 }
 
 FixedRtrParams = {
     "verbose"         : 0,
     "clock"           : clk,
-    "num_vcs"         : "4",
+    "num_vcs"         : "1",
     "num_vns"         : "1",
     "flit_size"       : flit_size,
-    "input_buf_size"  : UnitAlgebra(16) * flit_size,
-    # 16x, not 1x: coalescing needs real output-credit headroom to absorb the
-    # per-packet drip-queue latency at the receiver — see RtrPortControlPC.h's
-    # pendingFlits_ doc. 1x was fine for the old per-flit-atomic model, where
-    # wire transit (not the drip queue) was the rate limiter; under coalescing
-    # it deadlocks a torus at this scale.
-    "output_buf_size" : UnitAlgebra(16) * flit_size,
+    "input_buf_size"  : UnitAlgebra(64)  * flit_size,
+    "output_buf_size" : UnitAlgebra(32)  * flit_size,
 }
 
 FixedTestNicParams = {
-    "num_messages"           : 10,
-    "message_size"           : UnitAlgebra(4) * flit_size,
+    "num_messages"           : 4,
+    "message_size"           : "1024B",
     "send_untimed_broadcast" : "false",
 }
 
 MordredNicPCParams = {
     "verbose"         : 0,
-    "input_buf_size"  : "1kiB",
-    "output_buf_size" : "1kiB",
-    "num_vcs"         : "4",  # must match FixedRtrParams["num_vcs"] — see MordredNicPC's num_vcs param doc
+    "input_buf_size"  : "4kiB",
+    "output_buf_size" : "4kiB",
 }
 
 links = dict()
@@ -95,7 +96,7 @@ def wire_rtr_port(rtr, port_idx, port_name, link, ucie_ep_id):
     ucie.addParams({"port_name": port_name, "endpoint_id": ucie_ep_id})
     rtr.addLink(link, port_name, link_latency)
 
-def createTorus(x_size, y_size, local_ports):
+def createMesh(x_size, y_size, local_ports):
     nports = 4 + local_ports
     rtr_params = {
         "num_ports"       : nports,
@@ -110,36 +111,28 @@ def createTorus(x_size, y_size, local_ports):
             rtr.addParam("id", rtr_id)
             rtr.addParams(FixedRtrParams)
             rtr.addParams(rtr_params)
-            rtr_topo = rtr.setSubComponent("topology", "mordred.torusTopo")
+            rtr_topo = rtr.setSubComponent("topology", "mordred.MeshTopology")
             rtr_topo.addParams({"verbose": 0, "xDim": x_size, "yDim": y_size})
 
-            # North (port0)
+            # North (port0): (x,y) → (x,y+1)
             if y != y_size - 1:
                 lnk = getLink("rtr_%d_%d" % (x, y), "rtr_%d_%d" % (x, y + 1))
-            else:
-                lnk = getLink("rtr_%d_%d" % (x, y), "rtr_%d_%d" % (x, 0))
-            wire_rtr_port(rtr, 0, "port0", lnk, 2000 + rtr_id * 10 + 0)
+                wire_rtr_port(rtr, 0, "port0", lnk, 2000 + rtr_id * 10 + 0)
 
-            # East (port1)
+            # East (port1): (x,y) → (x+1,y)
             if x != x_size - 1:
                 lnk = getLink("rtr_%d_%d" % (x, y), "rtr_%d_%d" % (x + 1, y))
-            else:
-                lnk = getLink("rtr_%d_%d" % (x, y), "rtr_%d_%d" % (0, y))
-            wire_rtr_port(rtr, 1, "port1", lnk, 2000 + rtr_id * 10 + 1)
+                wire_rtr_port(rtr, 1, "port1", lnk, 2000 + rtr_id * 10 + 1)
 
-            # South (port2) — reverse of north
+            # South (port2): reverse of north — connect to the link created by (x,y-1)
             if y != 0:
                 lnk = getLink("rtr_%d_%d" % (x, y - 1), "rtr_%d_%d" % (x, y))
-            else:
-                lnk = getLink("rtr_%d_%d" % (x, y_size - 1), "rtr_%d_%d" % (x, 0))
-            wire_rtr_port(rtr, 2, "port2", lnk, 2000 + rtr_id * 10 + 2)
+                wire_rtr_port(rtr, 2, "port2", lnk, 2000 + rtr_id * 10 + 2)
 
-            # West (port3) — reverse of east
+            # West (port3): reverse of east — connect to the link created by (x-1,y)
             if x != 0:
                 lnk = getLink("rtr_%d_%d" % (x - 1, y), "rtr_%d_%d" % (x, y))
-            else:
-                lnk = getLink("rtr_%d_%d" % (x_size - 1, y), "rtr_%d_%d" % (0, y))
-            wire_rtr_port(rtr, 3, "port3", lnk, 2000 + rtr_id * 10 + 3)
+                wire_rtr_port(rtr, 3, "port3", lnk, 2000 + rtr_id * 10 + 3)
 
             # Local ports (port4+)
             for k in range(local_ports):
@@ -166,14 +159,15 @@ def createTorus(x_size, y_size, local_ports):
                 ep_iface.addLink(lnk, "port", link_latency)
 
 local_ports = 1
-x_size      = 5
-y_size      = 5
+x_size      = 3
+y_size      = 3
 
-createTorus(x_size, y_size, local_ports)
+createMesh(x_size, y_size, local_ports)
 
 sst.setStatisticLoadLevel(7)
 sst.setStatisticOutput("sst.statOutputCSV",
     {"filepath": "./stats.%s.csv" % testname, "separator": ", "})
 sst.enableAllStatisticsForComponentType("prydwen.uciePhysChannel")
+sst.enableAllStatisticsForComponentType("mordred.mordredNicPC")
 
 # EOF

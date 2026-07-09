@@ -33,7 +33,7 @@ num_vns      = "1"
 UCIeParams = {
     "link_latency"      : "2ns",
     "num_stacks"        : 1,
-    "num_vns_per_stack" : "1",
+    "num_vns_per_stack" : "2",  # numVns(1) * numVcs(2) — see RtrPortControlPC::extVn()
     "credits_per_vn"    : "32",
     "flit_format"       : 5,
     "num_modules"       : 1,
@@ -45,7 +45,12 @@ UCIeParams = {
 PortControlPCParams = {
     "flit_size"       : flit_size,
     "input_buf_size"  : UnitAlgebra(16) * flit_size,
-    "output_buf_size" : UnitAlgebra(1)  * flit_size,
+    # 16x, not 1x: coalescing needs real output-credit headroom to absorb the
+    # per-packet drip-queue latency at the receiver — see RtrPortControlPC.h's
+    # pendingFlits_ doc. 1x was fine for the old per-flit-atomic model, where
+    # wire transit (not the drip queue) was the rate limiter; under coalescing
+    # it deadlocks a torus at this scale.
+    "output_buf_size" : UnitAlgebra(16) * flit_size,
     "verbose"         : 0,
 }
 
@@ -56,7 +61,12 @@ FixedRtrParams = {
     "num_vns"         : num_vns,
     "flit_size"       : flit_size,
     "input_buf_size"  : UnitAlgebra(16) * flit_size,
-    "output_buf_size" : UnitAlgebra(1)  * flit_size,
+    # 16x, not 1x: coalescing needs real output-credit headroom to absorb the
+    # per-packet drip-queue latency at the receiver — see RtrPortControlPC.h's
+    # pendingFlits_ doc. 1x was fine for the old per-flit-atomic model, where
+    # wire transit (not the drip queue) was the rate limiter; under coalescing
+    # it deadlocks a torus at this scale.
+    "output_buf_size" : UnitAlgebra(16) * flit_size,
 }
 
 FixedTestNicParams = {
@@ -69,6 +79,7 @@ MordredNicPCParams = {
     "verbose"         : "0",
     "input_buf_size"  : "1kiB",
     "output_buf_size" : "1kiB",
+    "num_vcs"         : "2",  # must match FixedRtrParams["num_vcs"] — see MordredNicPC's num_vcs param doc
 }
 
 links = dict()

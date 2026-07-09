@@ -17,8 +17,10 @@ RtrPortControlPC::RtrPortControlPC(
   ComponentId_t id, Params& params, TopologyAPI* topology,
   RtrOwnedSharedObjs* rtr_shared_objs, uint32_t rtr_num, uint32_t port_num
 ) : RtrPortControlBase( id, params, topology, rtr_shared_objs, rtr_num, port_num, "RtrPortControlPC" ) {
+  // numVns * numVcs: give every (vn,vc) pair its own independent UCIe queue and
+  // credit pool (see extVn() in RtrPortControlPC.h) instead of sharing one per vn.
   physChannel = loadUserSubComponent<Prydwen::PhysChannelAPI>(
-    "port_iface", ComponentInfo::SHARE_PORTS | ComponentInfo::INSERT_STATS, static_cast<int>( numVns )
+    "port_iface", ComponentInfo::SHARE_PORTS | ComponentInfo::INSERT_STATS, static_cast<int>( numVns * numVcs )
   );
   if( !physChannel )
     output->fatal( CALL_INFO, -1, "RtrPortControlPC: no PhysChannelAPI subcomponent in slot 'port_iface'\n" );

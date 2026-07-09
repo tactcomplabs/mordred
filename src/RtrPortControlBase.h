@@ -173,8 +173,10 @@ protected:
   virtual void        transportSendUntimedData( SST::Event* ev )                     = 0;
   virtual SST::Event* transportRecvUntimedData()                                     = 0;
 
-  // Returns false to gate output sends; default true (raw link has no inner flow control)
-  virtual bool transportSpaceToSend( uint32_t vn ) { return true; }
+  // Returns false to gate output sends; default true (raw link has no inner flow control).
+  // Takes vc as well as vn so transports that address (vn,vc) pairs independently on the
+  // wire (see RtrPortControlPC) can check space for the right underlying channel.
+  virtual bool transportSpaceToSend( uint32_t vn, uint32_t vc ) { return true; }
 
   // Lifecycle hooks — default no-ops; RtrPortControlPC overrides to forward to physChannel
   virtual void transportInit( uint32_t phase ) {}

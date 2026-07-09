@@ -121,6 +121,13 @@
   }
   .chip b{ color:var(--ink); font-weight:600; }
 
+  .compare-strip{ display:flex; flex-wrap:wrap; gap:10px; margin-top:2px; }
+  .compare-chip{ font-family:var(--font-mono); font-size:12px; border-radius:5px; padding:7px 11px; border:1px solid; display:flex; gap:8px; align-items:baseline; }
+  .compare-chip.bad{ background:var(--alert-soft); border-color:color-mix(in srgb, var(--alert) 55%, var(--line)); color:var(--ink); }
+  .compare-chip.ok{ background:var(--teal-soft); border-color:color-mix(in srgb, var(--teal) 55%, var(--line)); color:var(--ink); }
+  .compare-chip b{ font-weight:700; }
+  .compare-chip .tag{ font-size:10px; text-transform:uppercase; letter-spacing:.06em; opacity:.75; }
+
   /* ---------- Section scaffolding ---------- */
   section{ display:flex; flex-direction:column; gap:16px; }
   .section-head{ display:flex; flex-direction:column; gap:6px; }
@@ -323,14 +330,16 @@
 <div class="page">
 
   <header class="masthead">
-    <div class="kicker">noc-redo · mordred + prydwen · default parameters</div>
+    <div class="kicker">noc-redo · mordred + prydwen · updated after the coalescing fix</div>
     <h1>How a 1024&nbsp;B packet crosses two endpoints through a Mordred router over UCIe</h1>
     <p class="dek">
       Endpoint&nbsp;A and Endpoint&nbsp;B each run <code>mordred.mordredNicPC</code>; a single
       <code>mordred.mordred_router</code> sits between them; every hop is a
-      <code>prydwen.uciePhysChannel</code> die-to-die link. Every number below comes from the
-      <code>SST_ELI_DOCUMENT_PARAMS</code> defaults and the serialization math in
-      <code>ucieAdapterBase.h</code> — nothing here is tuned.
+      <code>prydwen.uciePhysChannel</code> die-to-die link. The first version of this doc found
+      that Mordred flits weren't being coalesced into UCIe wire flits at all — every number below
+      is now measured <b>after</b> that fix (<code>RtrPortControlPC::transportSendFlit()</code>,
+      the <code>ucieAdapterBase.h</code> drain-loop fix, and the VC-addressing widening), on a
+      real simulation run, not hand-calculated.
     </p>
     <div class="spec-strip">
       <span class="chip">router clock <b>1&nbsp;GHz</b></span>
@@ -339,6 +348,11 @@
       <span class="chip">1&nbsp;module × <b>16 lanes</b> × <b>32&nbsp;GT/s</b></span>
       <span class="chip">link_latency <b>2&nbsp;ns</b></span>
       <span class="chip">credits_per_vn <b>32</b></span>
+    </div>
+    <div class="compare-strip">
+      <div class="compare-chip bad"><span class="tag">before fix, measured</span> <b>2427&nbsp;ns</b> one-way latency</div>
+      <div class="compare-chip ok"><span class="tag">after fix, measured</span> <b>219&nbsp;ns</b> one-way latency</div>
+      <div class="compare-chip ok"><span class="tag">11.1×</span> faster, same packet, same defaults</div>
     </div>
   </header>
 
@@ -352,7 +366,9 @@
         <code>port_iface</code> of a <code>mordredNicPC</code> (endpoints) or
         <code>rtrPortControlPC</code> (router). The router needs one more port than it has local
         endpoints, so a 2-endpoint router is configured with <code>num_local_ports=2</code>,
-        <code>num_ports=3</code> — the third port stays unconnected.
+        <code>num_ports=3</code> — the third port stays unconnected. Numbers below are measured
+        from a real run of this exact topology (<code>message_size=1024B</code>,
+        <code>flit_size=32b</code>), not hand-calculated.
       </p>
     </div>
     <div class="diagram-scroll">
@@ -378,7 +394,7 @@
           <rect x="212" y="150" width="106" height="60" rx="5" class="phy-pill"/>
           <text x="265" y="167" text-anchor="middle" class="lbl-sub" font-weight="700" fill="var(--ink)">uciePhysChannel</text>
           <text x="265" y="181" text-anchor="middle" class="lbl-tiny">format 5 · 256B/240B</text>
-          <text x="265" y="193" text-anchor="middle" class="lbl-tiny">ser 4 ns/flit</text>
+          <text x="265" y="193" text-anchor="middle" class="lbl-tiny">5 fragments, back-to-back</text>
           <text x="265" y="205" text-anchor="middle" class="lbl-tiny">link_latency 2 ns</text>
         </g>
 
@@ -406,7 +422,7 @@
           <rect x="574" y="150" width="106" height="60" rx="5" class="phy-pill"/>
           <text x="627" y="167" text-anchor="middle" class="lbl-sub" font-weight="700" fill="var(--ink)">uciePhysChannel</text>
           <text x="627" y="181" text-anchor="middle" class="lbl-tiny">format 5 · 256B/240B</text>
-          <text x="627" y="193" text-anchor="middle" class="lbl-tiny">ser 4 ns/flit</text>
+          <text x="627" y="193" text-anchor="middle" class="lbl-tiny">5 fragments, back-to-back</text>
           <text x="627" y="205" text-anchor="middle" class="lbl-tiny">link_latency 2 ns</text>
         </g>
 
@@ -423,13 +439,14 @@
 
         <!-- overall latency banner -->
         <rect x="892" y="70" width="244" height="150" rx="6" class="block-fill" stroke-dasharray="4 3"/>
-        <text x="1014" y="96" text-anchor="middle" class="lbl-sub" font-weight="700" fill="var(--ink)">End-to-end result</text>
-        <text x="1014" y="130" text-anchor="middle" font-size="26" font-weight="700" fill="var(--copper)">≈ 1.03 µs</text>
-        <text x="1014" y="150" text-anchor="middle" class="lbl-tiny">HEAD lands ~14 ns</text>
-        <text x="1014" y="164" text-anchor="middle" class="lbl-tiny">TAIL lands ~1035 ns</text>
-        <text x="1014" y="184" text-anchor="middle" class="lbl-tiny">bound by 256 × 4 ns</text>
-        <text x="1014" y="198" text-anchor="middle" class="lbl-tiny">UCIe serialization, not</text>
-        <text x="1014" y="212" text-anchor="middle" class="lbl-tiny">the 1 ns router clock</text>
+        <text x="1014" y="92" text-anchor="middle" class="lbl-sub" font-weight="700" fill="var(--ink)">Measured, one-way</text>
+        <text x="1014" y="122" text-anchor="middle" font-size="22" font-weight="700" fill="var(--teal)">219 ns</text>
+        <text x="1014" y="138" text-anchor="middle" class="lbl-tiny">was 2427 ns before the fix</text>
+        <line x1="932" y1="148" x2="1096" y2="148" class="lane-line" opacity="0.3"/>
+        <text x="1014" y="166" text-anchor="middle" class="lbl-accent" font-size="13">11.1× faster</text>
+        <text x="1014" y="184" text-anchor="middle" class="lbl-tiny">2 wire hops × 5 fragments,</text>
+        <text x="1014" y="198" text-anchor="middle" class="lbl-tiny">not 256 individual sends —</text>
+        <text x="1014" y="212" text-anchor="middle" class="lbl-tiny">see §04 for the full run</text>
       </svg>
     </div>
   </section>
@@ -438,12 +455,12 @@
   <section>
     <div class="section-head">
       <span class="section-num">02 — PACKET ANATOMY</span>
-      <h2>What "1024 bytes" turns into on the wire</h2>
+      <h2>What "1024 bytes" turns into on the wire, before and after</h2>
       <p class="section-note">
-        <code>mordredNicPC::transportSendFlit()</code> hands every Mordred flit to the UCIe channel
-        with <code>packet_size_bits=0</code> — each one travels as its own atomic, single-fragment
-        UCIe message (<code>uciePhysChannel.cc:47</code>). So the packet's fate is decided entirely
-        by Mordred's own flit width, not UCIe's fragmentation logic.
+        <code>calcNumFlits(8192 b ÷ 32 b) = 256 Mordred flits</code> is unchanged by the fix — the
+        packet is still logically 256 flits (confirmed by the real run's
+        <code>average_packet_size = 256.000000</code>). What changed is how many of those flits
+        each cost their own physical UCIe wire transfer.
       </p>
     </div>
 
@@ -451,7 +468,7 @@
       <div class="wire-compare" style="grid-template-columns:1fr;">
         <div>
           <div style="font-family:var(--font-mono); font-size:12px; color:var(--ink-dim); margin-bottom:6px;">
-            1024 B request → <b style="color:var(--ink)">calcNumFlits(8192 b ÷ 32 b) = 256 Mordred flits</b>
+            256 Mordred flits (1 HEAD, 254 BODY, 1 TAIL) — same before and after
           </div>
           <div class="flitbar">
             <div class="seg head">H</div>
@@ -462,15 +479,32 @@
       </div>
 
       <div class="wire-compare">
-        <div class="rowlabel">1 Mordred flit</div>
+        <div class="rowlabel">Before: every flit</div>
         <div class="wire-track"><div class="wire-fill payload" style="width:1.6%"></div></div>
 
-        <div class="rowlabel">UCIe wire flit</div>
+        <div class="rowlabel">→ UCIe wire flit</div>
+        <div class="wire-track"><div class="wire-fill full" style="width:100%"></div></div>
+      </div>
+      <p class="section-note" style="margin-top:-2px; margin-bottom:8px;">
+        <code>transportSendFlit()</code> used to hand <b style="color:var(--ink)">every</b> Mordred
+        flit to the UCIe channel with <code>packet_size_bits=0</code>, so each one — including all
+        254 BODY flits — became its own atomic, single-fragment wire message: <b>256</b> physical
+        UCIe flits for one packet, 4 bytes of real payload in each 256-byte wire slot.
+      </p>
+
+      <div class="wire-compare">
+        <div class="rowlabel">After: HEAD only</div>
+        <div class="wire-track"><div class="wire-fill payload" style="width:100%"></div></div>
+
+        <div class="rowlabel">→ 5 wire flits</div>
         <div class="wire-track"><div class="wire-fill full" style="width:100%"></div></div>
       </div>
       <p class="section-note" style="margin-top:-2px;">
-        4 bytes of real payload riding inside a 256-byte UCIe format-5 flit — because every one of
-        the 256 Mordred flits consumes its own full wire slot (see callout below).
+        Now only the HEAD triggers a real wire transfer — carrying the true packet size, it
+        fragments into <code>ceil(1024 B ÷ 240 B) = 5</code> physical UCIe flits, each one packed
+        with real payload (240 of 256 bytes). BODY/TAIL become free no-ops on the wire; the far
+        side's <code>FlitFactory</code> resynthesizes all 256 Mordred flits from those 5 fragments.
+        <b>256 → 5</b> physical wire flits for the same packet.
       </p>
     </div>
   </section>
@@ -479,23 +513,17 @@
   <section>
     <div class="section-head">
       <span class="section-num">03 — TIMING</span>
-      <h2>Sequence diagram: HEAD → 254 × BODY → TAIL</h2>
+      <h2>The pipeline, and the real measured result</h2>
       <p class="section-note">
-        Five lifelines: the two NICs, the two UCIe links, and the router's crossbar. Every flit
-        pays <b style="color:var(--ink)">4 ns to serialize</b> (<code>ser_delay_ps</code>, 256 B ÷
-        512 Gb/s) plus <b style="color:var(--ink)">2 ns to propagate</b> (<code>link_latency</code>)
-        on each of the two hops. The router adds a few extra nanoseconds once, for VC/switch
-        allocation on the HEAD flit — <code>mordred/README.md</code> lists router pipeline depth as
-        fixed and not yet configurable, so this is an emergent cost of the state machine, not a
-        documented constant. After HEAD wins its VC and crossbar slot, the router holds that path
-        for the rest of the packet (§&nbsp;"packet-based switching"), so BODY/TAIL just ride the
-        link's own 4&nbsp;ns cadence.
+        This section used to show a hand-calculated, nanosecond-by-nanosecond sequence — that
+        precision wasn't earned, since the router's per-flit pipeline depth isn't a documented
+        constant (<code>mordred/README.md</code>). Below is what actually changed structurally,
+        plus the one number that matters: measured end-to-end latency from a real run of this
+        exact topology.
       </p>
     </div>
     <div class="diagram-scroll">
-      <svg viewBox="0 0 1160 620" xmlns="http://www.w3.org/2000/svg">
-        <!-- column headers -->
-        <!-- x positions: EPA=90, LinkA=330, Router=580, LinkB=830, EPB=1070 -->
+      <svg viewBox="0 0 1160 340" xmlns="http://www.w3.org/2000/svg">
         <g font-family="var(--font-mono)">
           <text x="90"  y="26" text-anchor="middle" class="lbl-title">EP A NIC</text>
           <text x="330" y="26" text-anchor="middle" class="lbl-title">UCIe link A</text>
@@ -503,100 +531,79 @@
           <text x="830" y="26" text-anchor="middle" class="lbl-title">UCIe link B</text>
           <text x="1070" y="26" text-anchor="middle" class="lbl-title">EP B NIC</text>
         </g>
-        <line x1="90" y1="38" x2="90" y2="600" class="lifeline"/>
-        <line x1="330" y1="38" x2="330" y2="600" class="lifeline"/>
-        <line x1="580" y1="38" x2="580" y2="600" class="lifeline"/>
-        <line x1="830" y1="38" x2="830" y2="600" class="lifeline"/>
-        <line x1="1070" y1="38" x2="1070" y2="600" class="lifeline"/>
+        <line x1="90" y1="38" x2="90" y2="300" class="lifeline"/>
+        <line x1="330" y1="38" x2="330" y2="300" class="lifeline"/>
+        <line x1="580" y1="38" x2="580" y2="300" class="lifeline"/>
+        <line x1="830" y1="38" x2="830" y2="300" class="lifeline"/>
+        <line x1="1070" y1="38" x2="1070" y2="300" class="lifeline"/>
 
-        <!-- ===== HEAD flit, t=0..13ns ===== -->
-        <text x="14" y="60" class="lbl-time">t=0ns</text>
+        <!-- HEAD triggers burst A -->
         <rect x="66" y="52" width="48" height="16" rx="3" class="event-head"/>
         <text x="90" y="63" text-anchor="middle" class="lbl-tiny" font-weight="700">HEAD</text>
+        <text x="90" y="80" text-anchor="middle" class="lbl-tiny">triggers full-packet</text>
+        <text x="90" y="91" text-anchor="middle" class="lbl-tiny">transfer (size known</text>
+        <text x="90" y="102" text-anchor="middle" class="lbl-tiny">from req*)</text>
 
-        <line x1="90" y1="60" x2="330" y2="88" class="flow-line"/>
-        <text x="205" y="78" text-anchor="middle" class="lbl-tiny">serialize 4 ns</text>
-
-        <line x1="330" y1="88" x2="580" y2="108" class="flow-line"/>
-        <text x="14" y="106" class="lbl-time">t=6ns</text>
-        <text x="455" y="98" text-anchor="middle" class="lbl-tiny">propagate 2 ns</text>
-
-        <rect x="556" y="112" width="48" height="16" rx="3" class="event-head"/>
-        <text x="580" y="123" text-anchor="middle" class="lbl-tiny">alloc</text>
-        <line x1="580" y1="128" x2="580" y2="142" class="flow-line"/>
-        <text x="612" y="136" class="lbl-tiny">VC + switch alloc, HEAD only —</text>
-        <text x="612" y="148" class="lbl-tiny">multi-cycle state machine, no fixed constant (≈ a few ns)</text>
-
-        <line x1="580" y1="142" x2="830" y2="162" class="flow-line"/>
-        <text x="14" y="154" class="lbl-time">t≈9ns</text>
-        <text x="705" y="152" text-anchor="middle" class="lbl-tiny">serialize 4 ns</text>
-
-        <line x1="830" y1="162" x2="1070" y2="184" class="flow-line"/>
-        <text x="14" y="176" class="lbl-time">t≈13ns</text>
-        <text x="950" y="172" text-anchor="middle" class="lbl-tiny">propagate 2 ns</text>
-
-        <rect x="1046" y="188" width="48" height="16" rx="3" class="event-head"/>
-        <text x="1070" y="199" text-anchor="middle" class="lbl-tiny" font-weight="700">HEAD</text>
-        <text x="1105" y="199" class="lbl-time">t≈14ns</text>
-
-        <!-- ===== compressed steady state ===== -->
-        <rect x="24" y="222" width="1112" height="150" rx="6" class="router-band"/>
-        <text x="580" y="248" text-anchor="middle" class="lbl-sub" font-weight="700" fill="var(--ink)">
-          254 × BODY flits, pipelined back-to-back
-        </text>
-        <text x="580" y="264" text-anchor="middle" class="lbl-tiny">
-          each hop's serializer paces the next departure by ser_delay_ps — 4 ns/flit end to end
-        </text>
-
-        <g stroke="var(--ink-faint)" stroke-width="1.4">
-          <line x1="90"   y1="290" x2="90"   y2="350"/>
-          <line x1="330"  y1="290" x2="330"  y2="350"/>
-          <line x1="580"  y1="290" x2="580"  y2="350"/>
-          <line x1="830"  y1="290" x2="830"  y2="350"/>
-          <line x1="1070" y1="290" x2="1070" y2="350"/>
+        <path d="M 108 60 L 320 60" class="flow-line" marker-end="url(#arrowT)"/>
+        <g transform="translate(200,68)">
+          <rect x="-42" y="0" width="16" height="14" rx="2" fill="var(--copper-soft)" stroke="var(--copper)"/>
+          <rect x="-24" y="0" width="16" height="14" rx="2" fill="var(--copper-soft)" stroke="var(--copper)"/>
+          <rect x="-6"  y="0" width="16" height="14" rx="2" fill="var(--copper-soft)" stroke="var(--copper)"/>
+          <rect x="12"  y="0" width="16" height="14" rx="2" fill="var(--copper-soft)" stroke="var(--copper)"/>
+          <rect x="30"  y="0" width="16" height="14" rx="2" fill="var(--copper-soft)" stroke="var(--copper)"/>
         </g>
-        <g class="lbl-tiny" text-anchor="middle">
-          <text x="90" y="300">⋮</text><text x="90" y="316">⋮</text><text x="90" y="332">⋮</text>
-          <text x="330" y="300">⋮</text><text x="330" y="316">⋮</text><text x="330" y="332">⋮</text>
-          <text x="580" y="300">⋮</text><text x="580" y="316">⋮</text><text x="580" y="332">⋮</text>
-          <text x="830" y="300">⋮</text><text x="830" y="316">⋮</text><text x="830" y="332">⋮</text>
-          <text x="1070" y="300">⋮</text><text x="1070" y="316">⋮</text><text x="1070" y="332">⋮</text>
+        <text x="200" y="100" text-anchor="middle" class="lbl-tiny">5 fragments, back-to-back</text>
+        <text x="200" y="111" text-anchor="middle" class="lbl-tiny">(ucieAdapterBase.h drain-loop fix)</text>
+
+        <rect x="556" y="52" width="48" height="16" rx="3" class="event-head"/>
+        <text x="580" y="63" text-anchor="middle" class="lbl-tiny" font-weight="700">reasm.</text>
+        <text x="580" y="80" text-anchor="middle" class="lbl-tiny">FlitFactory synthesizes</text>
+        <text x="580" y="91" text-anchor="middle" class="lbl-tiny">all 256 Mordred flits;</text>
+        <text x="580" y="102" text-anchor="middle" class="lbl-tiny">HEAD forwarded as soon</text>
+        <text x="580" y="113" text-anchor="middle" class="lbl-tiny">as it's routed — doesn't</text>
+        <text x="580" y="124" text-anchor="middle" class="lbl-tiny">wait for all 256</text>
+
+        <path d="M 604 60 L 820 60" class="flow-line" marker-end="url(#arrowT)"/>
+        <g transform="translate(700,68)">
+          <rect x="-42" y="0" width="16" height="14" rx="2" fill="var(--copper-soft)" stroke="var(--copper)"/>
+          <rect x="-24" y="0" width="16" height="14" rx="2" fill="var(--copper-soft)" stroke="var(--copper)"/>
+          <rect x="-6"  y="0" width="16" height="14" rx="2" fill="var(--copper-soft)" stroke="var(--copper)"/>
+          <rect x="12"  y="0" width="16" height="14" rx="2" fill="var(--copper-soft)" stroke="var(--copper)"/>
+          <rect x="30"  y="0" width="16" height="14" rx="2" fill="var(--copper-soft)" stroke="var(--copper)"/>
         </g>
-        <text x="580" y="362" text-anchor="middle" class="lbl-tiny" font-style="italic">
-          cadence set by UCIe (4 ns/flit) — slower than the router's 1 ns cycle, so the crossbar never becomes the bottleneck
+        <text x="700" y="100" text-anchor="middle" class="lbl-tiny">5 fragments, back-to-back</text>
+        <text x="700" y="111" text-anchor="middle" class="lbl-tiny">— same mechanism, hop 2</text>
+
+        <rect x="1046" y="52" width="48" height="16" rx="3" class="event-tail"/>
+        <text x="1070" y="63" text-anchor="middle" class="lbl-tiny" font-weight="700">done</text>
+        <text x="1070" y="80" text-anchor="middle" class="lbl-tiny">Request reassembled</text>
+
+        <defs>
+          <marker id="arrowT" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--copper)"/>
+          </marker>
+        </defs>
+
+        <line x1="24" y1="160" x2="1136" y2="160" class="lifeline"/>
+
+        <rect x="330" y="190" width="500" height="90" rx="6" class="router-band"/>
+        <text x="580" y="216" text-anchor="middle" class="lbl-sub" font-weight="700" fill="var(--ink)">
+          Router-internal: 254 BODY + TAIL still drain the input queue and crossbar
+        </text>
+        <text x="580" y="234" text-anchor="middle" class="lbl-tiny">
+          one router cycle each (RtrPortControlPC's pendingFlits_ drip queue) — but this now
+        </text>
+        <text x="580" y="248" text-anchor="middle" class="lbl-tiny">
+          overlaps with hop 2's wire transfer instead of blocking it, since HEAD alone already
+        </text>
+        <text x="580" y="262" text-anchor="middle" class="lbl-tiny">
+          carries enough information to start the second burst
         </text>
 
-        <!-- ===== TAIL flit, flit #256 ===== -->
-        <text x="14" y="404" class="lbl-time">t=1020ns</text>
-        <rect x="66" y="396" width="48" height="16" rx="3" class="event-tail"/>
-        <text x="90" y="407" text-anchor="middle" class="lbl-tiny" font-weight="700">TAIL</text>
-        <text x="140" y="407" class="lbl-tiny">flit #256 of 256</text>
-
-        <line x1="90" y1="404" x2="330" y2="428" class="flow-line" stroke="var(--teal)"/>
-        <text x="205" y="420" text-anchor="middle" class="lbl-tiny">serialize 4 ns</text>
-
-        <line x1="330" y1="428" x2="580" y2="448" class="flow-line" stroke="var(--teal)"/>
-        <text x="14" y="446" class="lbl-time">t=1026ns</text>
-        <text x="455" y="440" text-anchor="middle" class="lbl-tiny">propagate 2 ns</text>
-
-        <rect x="556" y="452" width="48" height="16" rx="3" class="event-tail"/>
-        <text x="580" y="463" text-anchor="middle" class="lbl-tiny">xbar</text>
-
-        <line x1="580" y1="468" x2="830" y2="488" class="flow-line" stroke="var(--teal)"/>
-        <text x="14" y="486" class="lbl-time">t=1027ns</text>
-        <text x="705" y="480" text-anchor="middle" class="lbl-tiny">serialize 4 ns</text>
-
-        <line x1="830" y1="488" x2="1070" y2="510" class="flow-line" stroke="var(--teal)"/>
-        <text x="14" y="508" class="lbl-time">t=1031ns</text>
-        <text x="950" y="502" text-anchor="middle" class="lbl-tiny">propagate 2 ns</text>
-
-        <rect x="1046" y="514" width="48" height="16" rx="3" class="event-tail"/>
-        <text x="1070" y="525" text-anchor="middle" class="lbl-tiny" font-weight="700">TAIL</text>
-
-        <line x1="1070" y1="530" x2="1070" y2="552" class="flow-line" stroke="var(--teal)"/>
-        <rect x="984" y="556" width="172" height="34" rx="5" fill="var(--teal-soft)" stroke="var(--teal)" stroke-width="1.2"/>
-        <text x="1070" y="570" text-anchor="middle" class="lbl-sub" font-weight="700" fill="var(--ink)">Request reassembled</text>
-        <text x="1070" y="583" text-anchor="middle" class="lbl-time">t ≈ 1035 ns</text>
+        <rect x="880" y="190" width="256" height="90" rx="6" fill="var(--teal-soft)" stroke="var(--teal)" stroke-width="1.2"/>
+        <text x="1008" y="216" text-anchor="middle" class="lbl-sub" font-weight="700" fill="var(--ink)">Measured, one-way</text>
+        <text x="1008" y="248" text-anchor="middle" font-size="26" font-weight="700" fill="var(--teal)">219 ns</text>
+        <text x="1008" y="266" text-anchor="middle" class="lbl-tiny">was 2427 ns before the fix</text>
       </svg>
     </div>
   </section>
@@ -604,48 +611,81 @@
   <!-- ============ SECTION 4: FINDING ============ -->
   <section>
     <div class="section-head">
-      <span class="section-num">04 — WHAT THE DEFAULTS ACTUALLY DO</span>
-      <h2>The flit-size mismatch is the whole story</h2>
+      <span class="section-num">04 — WHAT WAS WRONG, WHAT IT TOOK TO FIX, AND WHAT IT COST</span>
+      <h2>Three bugs, one fix, one honest caveat</h2>
     </div>
 
     <div class="callout">
-      <span class="callout-kicker">Efficiency at default settings ≈ 1.6%</span>
+      <span class="callout-kicker">The original finding — efficiency at defaults ≈ 1.6%</span>
       <p>
-        Mordred's default <code>flit_size</code> is <b>32 bits (4 B)</b>. UCIe's default
-        <code>flit_format 5</code> wire flit is <b>256 B</b>. Because
-        <code>RtrPortControlPC</code>/<code>MordredNicPC</code> send every Mordred flit as its own
-        independent UCIe message (<code>packet_size_bits=0</code>), each 4-byte flit burns an
-        entire 256-byte physical slot. That ratio, not the router's clock or the link's propagation
-        delay, is what turns a 1024 B packet into a ~1&nbsp;µs transit.
+        Mordred's default <code>flit_size</code> is <b>32 bits (4 B)</b>; UCIe's default
+        <code>flit_format 5</code> wire flit is <b>256 B</b>. <code>RtrPortControlPC</code> and
+        <code>MordredNicPC</code> sent every Mordred flit as its own independent UCIe message
+        (<code>packet_size_bits=0</code>) — including all 254 BODY flits of a packet that should
+        never have needed their own wire transfer — so each 4-byte flit burned an entire 256-byte
+        physical slot: 256 wire flits for one packet, ~1.6% payload efficiency.
       </p>
-      <div class="formula">
-        num_flits  = ceil(1024 B×8 / 32 b)              = <span class="res">256</span>  flits<br/>
-        ser_delay  = ceil(256 B×8 / (1×16×32 Gb/s)×1000) = <span class="res">4 ns</span>/flit<br/>
-        efficiency = 4 B ÷ 256 B                          = <span class="res">1.56%</span> payload/wire<br/>
-        latency    ≈ 256 × 4 ns  +  2×(4 ns + 2 ns)  +  router alloc  ≈ <span class="res">~1.03 µs</span>
-      </div>
+    </div>
+
+    <div class="callout">
+      <span class="callout-kicker">Fixing it took three changes, not one</span>
       <p>
-        This isn't a bug — it's the documented default pairing. Raising
-        <code>flit_size</code> to match UCIe's payload width (e.g. matching the 240 B usable
-        payload of format 5), or dropping to <code>flit_format 2</code> (68 B wire), collapses this
-        overhead; the test configs under <code>mordred/tests/*_uciePhysChannel*.py</code> already do
-        this (e.g. <code>flit_size="16b"</code> paired with a real router-to-router link). The
-        numbers above are what you get if you change nothing.
+        <b>1. Coalesce on HEAD</b> (<code>RtrPortControlPC.h</code>, <code>MordredNicPC.h</code>) —
+        only the HEAD flit now triggers a real wire transfer, carrying the true packet size so
+        <code>UCIePhysChannel::send()</code> fragments it properly; BODY/TAIL become free no-ops,
+        reconstructed on the far side by the existing (previously unused) <code>FlitFactory</code>.
+      </p>
+      <p>
+        <b>2. Drain fragments back-to-back</b> (<code>prydwen/src/ucie/ucieAdapterBase.h</code>,
+        <code>trySend()</code>) — the multi-fragment path had never been exercised before, and only
+        dispatched one fragment per credit round-trip; without this fix, coalescing's benefit would
+        have been mostly cancelled out by round-trip-paced draining instead of back-to-back
+        serialization.
+      </p>
+      <p>
+        <b>3. Widen UCIe addressing to (vn, vc)</b> (<code>RtrPortControlPC::extVn()</code>,
+        symmetric widening in <code>MordredNicPC</code>) — coalescing a whole packet into one
+        uninterruptible wire burst broke VC-based deadlock avoidance on wraparound topologies
+        (confirmed: a 5×5 torus deadlocked after the first two fixes landed). Fixing this required
+        giving every Mordred VC its own independent UCIe wire queue and credit pool, since UCIe's
+        addressing had only ever kept track of <code>vn</code>.
+      </p>
+    </div>
+
+    <div class="callout">
+      <span class="callout-kicker">The honest caveat — this is a wire-efficiency fix, not a router-throughput fix</span>
+      <p>
+        A follow-on discovery while chasing the torus deadlock: coalescing also raised the
+        per-flit credit-turnaround latency at every hop (<code>RtrPortControlPC.h</code>'s
+        <code>pendingFlits_</code> drip queue still drains bulk-delivered flits one per router
+        cycle, so a large packet's credit round trip now takes <i>O(M)</i> cycles longer than
+        before — see the doc comment there for the full mechanism). Ports need real
+        <code>output_buf_size</code> headroom to absorb that, not the bare 1-flit minimum that
+        sufficed under the old model.
+      </p>
+      <p>
+        And under heavy concurrent load, the improvement above <b>doesn't show up</b>: a 9-router
+        mesh saturated with all-to-all 1024 B traffic completed in <b>94.752&nbsp;µs before</b> the
+        fix and <b>94.897&nbsp;µs after</b> — statistically the same. Coalescing removes wire
+        overhead; it doesn't change the router's one-flit-per-cycle crossbar throughput, and under
+        heavy contention that crossbar rate, not the wire, is what limits completion time. The win
+        is real for latency-sensitive, lightly-loaded traffic — the isolated single-packet
+        measurement above — not for peak aggregate throughput at saturation.
       </p>
     </div>
 
     <div class="panel">
       <table class="result">
         <thead>
-          <tr><th>Quantity</th><th>Value</th><th>Source</th></tr>
+          <tr><th>Quantity</th><th>Before</th><th>After</th><th>Source</th></tr>
         </thead>
         <tbody>
-          <tr><td>Mordred flits per 1024 B packet</td><td class="num">256 (1 HEAD, 254 BODY, 1 TAIL)</td><td>MordredNicBase::calcNumFlits</td></tr>
-          <tr><td>UCIe wire flits actually sent</td><td class="num">256 (one per Mordred flit)</td><td>RtrPortControlPC::transportSendFlit</td></tr>
-          <tr><td>Bytes moved on the wire</td><td class="num">65,536 B for a 1,024 B packet</td><td>256 × 256 B format-5 flits</td></tr>
-          <tr><td>Per-flit serialize + propagate</td><td class="num">4 ns + 2 ns</td><td>ucieAdapterBase.h ser_delay_ps_ / link_latency</td></tr>
-          <tr><td>HEAD flit end-to-end</td><td class="num">~14 ns</td><td>2 hops × (4+2 ns) + a few ns router VC/switch alloc</td></tr>
-          <tr><td>Full packet (TAIL) end-to-end</td><td class="num">~1.03 µs</td><td>256 × 4 ns pipeline fill + fixed hop overhead</td></tr>
+          <tr><td>Mordred flits per 1024 B packet</td><td class="num">256</td><td class="num">256</td><td>MordredNicBase::calcNumFlits (unchanged)</td></tr>
+          <tr><td>Physical UCIe wire flits per packet</td><td class="num">256</td><td class="num">5</td><td>ceil(1024 B ÷ 240 B payload), format 5</td></tr>
+          <tr><td>Endpoint's own flits_sent (2-message run)</td><td class="num">1016</td><td class="num">12</td><td>prydwen uciePhysChannel stat, measured</td></tr>
+          <tr><td>average_noc_latency, one-way</td><td class="num">2427 ns</td><td class="num">219 ns</td><td>mordredNicPC stat, measured (11.1× faster)</td></tr>
+          <tr><td>Full 2-message sim, isolated (1 router)</td><td class="num">4.101 µs</td><td class="num">1.213 µs</td><td>single_packet_1router topology, measured</td></tr>
+          <tr><td>9-router mesh, 324 messages, saturated</td><td class="num">94.752 µs</td><td class="num">94.897 µs</td><td>mesh3x3_uciePhysChannel_large_message, measured — no improvement under contention</td></tr>
         </tbody>
       </table>
     </div>
@@ -656,14 +696,15 @@
     <ol>
       <li><b>UCIe flit formats</b> — prydwen/src/ucie/ucieFlit.h:20–42 (format 5 default = 256 B total / 240 B payload)</li>
       <li><b>UCIe default params</b> — prydwen/src/ucie/uciePhysChannel.h:69–99 (link_latency 2ns, num_lanes 16, lane_speed_gts 32, num_modules 1)</li>
-      <li><b>Serialization delay formula</b> — prydwen/src/ucie/ucieAdapterBase.h:454–459 (ser_delay_ps_ = ceil(flit_total_bytes×8 / bw_gbps × 1000))</li>
-      <li><b>Per-Mordred-flit atomic send (packet_size_bits=0)</b> — mordred/src/RtrPortControlPC.h:88–105, mordred/src/MordredNicPC.h:100–110</li>
+      <li><b>The fix — coalesce on HEAD, no-op BODY/TAIL</b> — mordred/src/RtrPortControlPC.h transportSendFlit()/transportSendCredit(), mordred/src/MordredNicPC.h (same pattern)</li>
+      <li><b>The fix — drain fragments back-to-back</b> — prydwen/src/ucie/ucieAdapterBase.h, trySend()/trySendOnce()</li>
+      <li><b>The fix — flit-timestamp bug</b> (made real by coalescing) — mordred/src/MordredNicBase.cc clockTick(), head_inject_cycle stamped onto HEAD</li>
+      <li><b>The fix — VC-aware UCIe addressing</b> — mordred/src/RtrPortControlPC.h extVn(), mordred/src/MordredNicPC.h (symmetric widening + transportValidateVcWidth safety net)</li>
+      <li><b>The drip-queue latency mechanism</b> — mordred/src/RtrPortControlPC.h, pendingFlits_ doc comment (full explanation + bisection evidence)</li>
       <li><b>Mordred flit count formula</b> — mordred/src/MordredNicBase.cc:403–408 (calcNumFlits, min 2)</li>
       <li><b>Router defaults</b> — mordred/src/MordredRouter.h:60–76 (clock 1GHz, flit_size 32b, num_vns 1, num_vcs 1)</li>
       <li><b>Wormhole crossbar, 1 flit/port/cycle</b> — mordred/src/MordredRouter.cc:249–325 (clockTick)</li>
-      <li><b>Per-port input state machine (IN_IDLE→ROUTING→WAIT_VC→IN_ACTIVE)</b> — mordred/src/RtrPortControlBase.cc:282–351; no fixed pipeline-depth constant is documented — mordred/README.md "Notes and Limitations"</li>
-      <li><b>Packet-based switching (VC/crossbar held until packet fully transferred)</b> — mordred/README.md; SST-UG2025-Mordred.pdf</li>
-      <li><b>Reference 2-endpoint UCIe topology</b> — mordred/tests/mesh2x1_uciePhysChannel.py</li>
+      <li><b>New test coverage</b> — mordred/tests/mesh3x3_uciePhysChannel_large_message.py (+ _lowcredits variant) — first tests in either repo to exercise the multi-fragment/FlitFactory path</li>
     </ol>
   </div>
 
