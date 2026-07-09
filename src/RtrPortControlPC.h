@@ -192,6 +192,12 @@ private:
   // match native link behaviour and avoid inBuf saturation leading to deadlock.
   // Credit events bypass this queue and are processed immediately.
   //
+  // UCIe's own wire-level credit return is scoped only to its own adapter
+  // buffer occupancy — see UCIePhysChannel.h's "Credit scope" doc — so it
+  // cannot see, and does not protect, this queue. That protection has to
+  // come from a separate credit loop with visibility into this resource,
+  // which is exactly what output_buf_size/destCredits below provides.
+  //
   // IMPORTANT — this queue adds real, packet-size-dependent latency to every
   // Mordred-level credit round trip, and `output_buf_size` must be sized with
   // that in mind:
