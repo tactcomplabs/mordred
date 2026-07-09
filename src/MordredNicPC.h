@@ -19,22 +19,18 @@
 namespace SST::Mordred {
 
 /**
- * Note (tdysart, 8-jul-2026):
- * Most of this code was developed by Claude with guidance (and having the SimpleNetwork model
- * completed) from me.  One of the things that has to happen when using the physical channel
+ * Note (tdysart, 9-jul-2026):
+ * Most of this file (along with its .cc as well as RtrPortControlPC.{h,cc} was developed by
+ * Claude with guidance from me.  One of the things that has to happen when using the physical channel
  * is that we have to convert mordred network flits into physical channel flits (e.g, ucie),
  * especially if they are different sizes.  This is required since the mordred_router expects
  * to handle mordred flits and the ucie flits may or may not match that size).
  *
- * Because I've been in and out of this code so much of late I'm not familiar enough with this
- * translation process (particularly on the transmit side) to be comfortable with it.  On the
- * receive side, we basically recreate the mordred flits (every mordred flit has the underlying
- * SST::Request and thus the packet size)
+ * Work over the last couple of days has focused on getting the transmit side to properly coalesce
+ * smaller mordred flits into the larger ucie flits (the receive side was pretty well complete
+ * previously).  Claude claims to have this issue resolved.
  *
- * I've had claude generate a simple timing diagram (see docs/1024b-packet-walkthrough.html) and
- * it highlights my concern with the transmit side in that we aren't coalescing mordred flits to
- * fill a ucie flit. Definitely have to resolve this.
- *
+ * Overall, this code should still be reviewed by a set of human eyes.
  */
 
 /**
