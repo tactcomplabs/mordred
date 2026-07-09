@@ -184,6 +184,11 @@
   .event-tail{ fill:var(--teal-soft); stroke:var(--teal); stroke-width:1.3; }
   .router-band{ fill:var(--teal-soft); opacity:0.35; }
 
+  .vc-a{ fill:var(--copper-soft); stroke:var(--copper); stroke-width:1.3; }
+  .vc-b{ fill:var(--teal-soft); stroke:var(--teal); stroke-width:1.3; }
+  .vc-shared{ fill:var(--alert-soft); stroke:var(--alert); stroke-width:1.4; stroke-dasharray:4 3; }
+  .vc-reserved{ fill:var(--panel-2); stroke:var(--ink-faint); stroke-width:1.2; stroke-dasharray:3 3; opacity:0.7; }
+
   /* ---------- Packet anatomy ---------- */
   .anatomy-row{ display:flex; flex-direction:column; gap:10px; }
   .flitbar{
@@ -379,8 +384,8 @@
         <text x="112" y="111" text-anchor="middle" class="lbl-sub">mordred.mordredNicPC</text>
         <line x1="42" y1="120" x2="182" y2="120" class="lane-line" opacity="0.4"/>
         <text x="42" y="138" class="lbl-param">clock: 1 GHz</text>
-        <text x="42" y="153" class="lbl-param">flit_size: 32 b (default)</text>
-        <text x="42" y="168" class="lbl-param">buf: 1 KiB → 256 credits</text>
+        <text x="42" y="153" class="lbl-param">flit_size: 32b</text>
+        <text x="42" y="168" class="lbl-param">buf → 256 credits</text>
         <text x="42" y="188" class="lbl-param" opacity="0.8">calcNumFlits(8192b)</text>
         <text x="42" y="202" class="lbl-accent" font-size="11">= 256 flits</text>
 
@@ -391,11 +396,11 @@
           <line x1="200" y1="124" x2="330" y2="124" class="lane-line"/>
           <line x1="200" y1="130" x2="330" y2="130" class="lane-line" opacity="0.4"/>
           <text x="265" y="100" text-anchor="middle" class="lbl-tiny">16 lanes</text>
-          <rect x="212" y="150" width="106" height="60" rx="5" class="phy-pill"/>
-          <text x="265" y="167" text-anchor="middle" class="lbl-sub" font-weight="700" fill="var(--ink)">uciePhysChannel</text>
-          <text x="265" y="181" text-anchor="middle" class="lbl-tiny">format 5 · 256B/240B</text>
-          <text x="265" y="193" text-anchor="middle" class="lbl-tiny">5 fragments, back-to-back</text>
-          <text x="265" y="205" text-anchor="middle" class="lbl-tiny">link_latency 2 ns</text>
+          <rect x="206" y="150" width="118" height="60" rx="5" class="phy-pill"/>
+          <text x="265" y="167" text-anchor="middle" class="lbl-sub" font-weight="700" fill="var(--ink)">UCIe PHY</text>
+          <text x="265" y="181" text-anchor="middle" class="lbl-tiny">format 5 (240B)</text>
+          <text x="265" y="193" text-anchor="middle" class="lbl-tiny">5 fragments</text>
+          <text x="265" y="205" text-anchor="middle" class="lbl-tiny">2 ns latency</text>
         </g>
 
         <!-- Router -->
@@ -419,11 +424,11 @@
           <line x1="562" y1="124" x2="692" y2="124" class="lane-line"/>
           <line x1="562" y1="130" x2="692" y2="130" class="lane-line" opacity="0.4"/>
           <text x="627" y="100" text-anchor="middle" class="lbl-tiny">16 lanes</text>
-          <rect x="574" y="150" width="106" height="60" rx="5" class="phy-pill"/>
-          <text x="627" y="167" text-anchor="middle" class="lbl-sub" font-weight="700" fill="var(--ink)">uciePhysChannel</text>
-          <text x="627" y="181" text-anchor="middle" class="lbl-tiny">format 5 · 256B/240B</text>
-          <text x="627" y="193" text-anchor="middle" class="lbl-tiny">5 fragments, back-to-back</text>
-          <text x="627" y="205" text-anchor="middle" class="lbl-tiny">link_latency 2 ns</text>
+          <rect x="568" y="150" width="118" height="60" rx="5" class="phy-pill"/>
+          <text x="627" y="167" text-anchor="middle" class="lbl-sub" font-weight="700" fill="var(--ink)">UCIe PHY</text>
+          <text x="627" y="181" text-anchor="middle" class="lbl-tiny">format 5 (240B)</text>
+          <text x="627" y="193" text-anchor="middle" class="lbl-tiny">5 fragments</text>
+          <text x="627" y="205" text-anchor="middle" class="lbl-tiny">2 ns latency</text>
         </g>
 
         <!-- EP B -->
@@ -432,8 +437,8 @@
         <text x="780" y="111" text-anchor="middle" class="lbl-sub">mordred.mordredNicPC</text>
         <line x1="710" y1="120" x2="850" y2="120" class="lane-line" opacity="0.4"/>
         <text x="710" y="138" class="lbl-param">clock: 1 GHz</text>
-        <text x="710" y="153" class="lbl-param">flit_size: 32 b (default)</text>
-        <text x="710" y="168" class="lbl-param">buf: 1 KiB → 256 credits</text>
+        <text x="710" y="153" class="lbl-param">flit_size: 32b</text>
+        <text x="710" y="168" class="lbl-param">buf → 256 credits</text>
         <text x="710" y="188" class="lbl-param" opacity="0.8">TAIL arrival</text>
         <text x="710" y="202" class="lbl-accent" font-size="11">reassembles Request</text>
 
@@ -446,15 +451,129 @@
         <text x="1014" y="166" text-anchor="middle" class="lbl-accent" font-size="13">11.1× faster</text>
         <text x="1014" y="184" text-anchor="middle" class="lbl-tiny">2 wire hops × 5 fragments,</text>
         <text x="1014" y="198" text-anchor="middle" class="lbl-tiny">not 256 individual sends —</text>
-        <text x="1014" y="212" text-anchor="middle" class="lbl-tiny">see §04 for the full run</text>
+        <text x="1014" y="212" text-anchor="middle" class="lbl-tiny">see §05 for the full run</text>
       </svg>
     </div>
   </section>
 
-  <!-- ============ SECTION 2: PACKET ANATOMY ============ -->
+  <!-- ============ SECTION 2: BUFFER ARCHITECTURE ============ -->
   <section>
     <div class="section-head">
-      <span class="section-num">02 — PACKET ANATOMY</span>
+      <span class="section-num">02 — BUFFER ARCHITECTURE</span>
+      <h2>Where the per-(vn, vc) buffers actually live</h2>
+      <p class="section-note">
+        Zooming into one router port's <b style="color:var(--ink)">outbound</b> side (the
+        direction <code>transportSendFlit()</code> runs). Two components own real, independent
+        per-VC buffers today; one used to lose the VC dimension entirely at the handoff between
+        them — that gap is what the widening fix in §05 closes.
+      </p>
+    </div>
+    <div class="diagram-scroll">
+      <svg viewBox="0 0 1200 700" width="1560" height="910" xmlns="http://www.w3.org/2000/svg">
+        <!-- ===== Lane A: Endpoint (mordredNicPC) ===== -->
+        <text x="220" y="30" text-anchor="middle" class="lbl-sub" font-weight="700" fill="var(--ink)">mordred.mordredNicPC — endpoint (no vc of its own)</text>
+
+        <rect x="90" y="46" width="260" height="60" rx="5" class="block-fill-strong"/>
+        <text x="220" y="68" text-anchor="middle" class="lbl-title">outBuf[vn=0]</text>
+        <text x="220" y="84" text-anchor="middle" class="lbl-tiny">rtrCredits[0] / outbufCredits[0]</text>
+        <text x="220" y="96" text-anchor="middle" class="lbl-tiny">— per-vn only, MordredNicBase.h</text>
+
+        <path d="M 220 106 L 220 132" class="flow-line" marker-end="url(#arrowBuf)"/>
+        <text x="220" y="126" text-anchor="middle" class="lbl-tiny">extVn(vn) = vn×numVcsForAddressing_ + 0</text>
+
+        <rect x="90" y="150" width="260" height="180" rx="6" class="block-fill-strong"/>
+        <text x="220" y="170" text-anchor="middle" class="lbl-sub" font-weight="700" fill="var(--ink)">own uciePhysChannel</text>
+
+        <rect x="106" y="182" width="228" height="50" rx="4" class="vc-a"/>
+        <text x="220" y="197" text-anchor="middle" class="lbl-tiny" font-weight="700">send_queues_[sid][0]</text>
+        <text x="220" y="210" text-anchor="middle" class="lbl-tiny">credits_available[sid][0]</text>
+        <text x="220" y="223" text-anchor="middle" class="lbl-tiny">used for sends (vc-slot 0)</text>
+
+        <rect x="106" y="240" width="228" height="64" rx="4" class="vc-reserved"/>
+        <text x="220" y="255" text-anchor="middle" class="lbl-tiny" font-weight="700">send_queues_[sid][1]</text>
+        <text x="220" y="268" text-anchor="middle" class="lbl-tiny">credits_available[sid][1]</text>
+        <text x="220" y="281" text-anchor="middle" class="lbl-tiny">reserved — widened for</text>
+        <text x="220" y="293" text-anchor="middle" class="lbl-tiny">vc=1 delivery to this EP</text>
+
+        <!-- ===== Lane B: Router port (rtrPortControlPC) ===== -->
+        <text x="820" y="30" text-anchor="middle" class="lbl-sub" font-weight="700" fill="var(--ink)">mordred.rtrPortControlPC — router port (real per-vc buffers)</text>
+        <text x="820" y="44" text-anchor="middle" class="lbl-tiny" font-style="italic">cur_vc assigned by VcAllocRR when the crossbar forwards a flit</text>
+
+        <rect x="460" y="54" width="220" height="60" rx="5" class="vc-a"/>
+        <text x="570" y="72" text-anchor="middle" class="lbl-title">outStateVec[0][0]</text>
+        <text x="570" y="86" text-anchor="middle" class="lbl-tiny">outBuf queue</text>
+        <text x="570" y="100" text-anchor="middle" class="lbl-tiny">destCredits / outBufCredits</text>
+
+        <rect x="700" y="54" width="220" height="60" rx="5" class="vc-b"/>
+        <text x="810" y="72" text-anchor="middle" class="lbl-title">outStateVec[0][1]</text>
+        <text x="810" y="86" text-anchor="middle" class="lbl-tiny">outBuf queue</text>
+        <text x="810" y="100" text-anchor="middle" class="lbl-tiny">destCredits / outBufCredits</text>
+
+        <path d="M 570 114 L 690 132" class="flow-line" stroke="var(--copper)" marker-end="url(#arrowBuf)"/>
+        <path d="M 810 114 L 690 132" class="flow-line" stroke="var(--teal)" marker-end="url(#arrowBuf)"/>
+        <text x="690" y="126" text-anchor="middle" class="lbl-tiny" font-weight="700">extVn(vn, vc) = vn×numVcs + vc</text>
+        <text x="690" y="140" text-anchor="middle" class="lbl-tiny">RtrPortControlPC::transportSendFlit()</text>
+
+        <rect x="460" y="150" width="460" height="180" rx="6" class="block-fill-strong"/>
+        <text x="690" y="170" text-anchor="middle" class="lbl-sub" font-weight="700" fill="var(--ink)">own uciePhysChannel (this port's outbound link)</text>
+
+        <rect x="476" y="182" width="212" height="50" rx="4" class="vc-a"/>
+        <text x="582" y="197" text-anchor="middle" class="lbl-tiny" font-weight="700">send_queues_[sid][0]</text>
+        <text x="582" y="210" text-anchor="middle" class="lbl-tiny">credits_available[sid][0]</text>
+        <text x="582" y="223" text-anchor="middle" class="lbl-tiny">(fed by vc0 only)</text>
+
+        <rect x="694" y="182" width="212" height="50" rx="4" class="vc-b"/>
+        <text x="800" y="197" text-anchor="middle" class="lbl-tiny" font-weight="700">send_queues_[sid][1]</text>
+        <text x="800" y="210" text-anchor="middle" class="lbl-tiny">credits_available[sid][1]</text>
+        <text x="800" y="223" text-anchor="middle" class="lbl-tiny">(fed by vc1 only)</text>
+
+        <text x="690" y="256" text-anchor="middle" class="lbl-sub" font-weight="700" fill="var(--teal)">independent queue + credit pool per VC</text>
+        <text x="690" y="272" text-anchor="middle" class="lbl-tiny">a VC0 burst can never block VC1 from making progress on the wire</text>
+
+        <defs>
+          <marker id="arrowBuf" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--ink-faint)"/>
+          </marker>
+        </defs>
+
+        <line x1="40" y1="350" x2="1160" y2="350" class="lifeline"/>
+
+        <!-- ===== "Before the fix" inset, scoped to the router-port bug ===== -->
+        <text x="690" y="376" text-anchor="middle" font-size="12" fill="var(--alert)" font-weight="700">
+          Before the fix — same router port, ext_vn = vn only
+        </text>
+
+        <rect x="460" y="392" width="220" height="52" rx="5" class="vc-a"/>
+        <text x="570" y="414" text-anchor="middle" class="lbl-title">outStateVec[0][0]</text>
+        <text x="570" y="430" text-anchor="middle" class="lbl-tiny">outBuf · destCredits</text>
+
+        <rect x="700" y="392" width="220" height="52" rx="5" class="vc-b"/>
+        <text x="810" y="414" text-anchor="middle" class="lbl-title">outStateVec[0][1]</text>
+        <text x="810" y="430" text-anchor="middle" class="lbl-tiny">outBuf · destCredits</text>
+
+        <path d="M 570 444 L 660 478" class="flow-line" stroke="var(--copper)" marker-end="url(#arrowBuf)"/>
+        <path d="M 810 444 L 720 478" class="flow-line" stroke="var(--teal)" marker-end="url(#arrowBuf)"/>
+        <text x="690" y="464" text-anchor="middle" class="lbl-tiny">extVn(vn) — vc dropped, both map to ivn 0</text>
+
+        <rect x="580" y="486" width="220" height="70" rx="6" class="vc-shared"/>
+        <text x="690" y="508" text-anchor="middle" class="lbl-title">send_queues_[sid][0]</text>
+        <text x="690" y="524" text-anchor="middle" class="lbl-tiny" font-weight="700">SHARED by both VCs</text>
+        <text x="690" y="540" text-anchor="middle" class="lbl-tiny">credits_available[sid][0]</text>
+
+        <text x="690" y="576" text-anchor="middle" class="lbl-tiny" font-style="italic">
+          one physical queue, one credit pool for both VCs — a VC0 burst can fully block VC1
+        </text>
+        <text x="690" y="590" text-anchor="middle" class="lbl-tiny" font-style="italic">
+          (this is exactly the mechanism that deadlocked the 5×5 torus — see §05)
+        </text>
+      </svg>
+    </div>
+  </section>
+
+  <!-- ============ SECTION 3: PACKET ANATOMY ============ -->
+  <section>
+    <div class="section-head">
+      <span class="section-num">03 — PACKET ANATOMY</span>
       <h2>What "1024 bytes" turns into on the wire, before and after</h2>
       <p class="section-note">
         <code>calcNumFlits(8192 b ÷ 32 b) = 256 Mordred flits</code> is unchanged by the fix — the
@@ -509,10 +628,10 @@
     </div>
   </section>
 
-  <!-- ============ SECTION 3: TIMING DIAGRAM ============ -->
+  <!-- ============ SECTION 4: TIMING DIAGRAM ============ -->
   <section>
     <div class="section-head">
-      <span class="section-num">03 — TIMING</span>
+      <span class="section-num">04 — TIMING</span>
       <h2>The pipeline, and the real measured result</h2>
       <p class="section-note">
         This section used to show a hand-calculated, nanosecond-by-nanosecond sequence — that
@@ -587,17 +706,23 @@
         <line x1="24" y1="160" x2="1136" y2="160" class="lifeline"/>
 
         <rect x="330" y="190" width="500" height="90" rx="6" class="router-band"/>
-        <text x="580" y="216" text-anchor="middle" class="lbl-sub" font-weight="700" fill="var(--ink)">
-          Router-internal: 254 BODY + TAIL still drain the input queue and crossbar
+        <text x="580" y="208" text-anchor="middle" class="lbl-sub" font-weight="700" fill="var(--ink)">
+          Router-internal: 254 BODY + TAIL
         </text>
-        <text x="580" y="234" text-anchor="middle" class="lbl-tiny">
-          one router cycle each (RtrPortControlPC's pendingFlits_ drip queue) — but this now
+        <text x="580" y="222" text-anchor="middle" class="lbl-tiny">
+          still drain the input queue and crossbar,
+        </text>
+        <text x="580" y="235" text-anchor="middle" class="lbl-tiny">
+          one router cycle each (pendingFlits_ drip queue) —
         </text>
         <text x="580" y="248" text-anchor="middle" class="lbl-tiny">
-          overlaps with hop 2's wire transfer instead of blocking it, since HEAD alone already
+          but this now overlaps hop 2's wire transfer
         </text>
-        <text x="580" y="262" text-anchor="middle" class="lbl-tiny">
-          carries enough information to start the second burst
+        <text x="580" y="261" text-anchor="middle" class="lbl-tiny">
+          instead of blocking it — HEAD alone already
+        </text>
+        <text x="580" y="274" text-anchor="middle" class="lbl-tiny">
+          carries enough info to start the second burst
         </text>
 
         <rect x="880" y="190" width="256" height="90" rx="6" fill="var(--teal-soft)" stroke="var(--teal)" stroke-width="1.2"/>
@@ -608,10 +733,10 @@
     </div>
   </section>
 
-  <!-- ============ SECTION 4: FINDING ============ -->
+  <!-- ============ SECTION 5: FINDING ============ -->
   <section>
     <div class="section-head">
-      <span class="section-num">04 — WHAT WAS WRONG, WHAT IT TOOK TO FIX, AND WHAT IT COST</span>
+      <span class="section-num">05 — WHAT WAS WRONG, WHAT IT TOOK TO FIX, AND WHAT IT COST</span>
       <h2>Three bugs, one fix, one honest caveat</h2>
     </div>
 
