@@ -68,7 +68,7 @@ class MordredNetwork:
     def __init__(self, name):
         self.name = name
         self.ports = 4
-        self.rtr = sst.Component("rtr_%s"%name, "mordred.simple_rtr")
+        self.rtr = sst.Component("rtr_%s"%name, "mordred.mordred_router")
         self.rtr.addParam( "id", 0 )
         self.rtr.addParams(BridgeRtrParams)
         self.rtr.setSubComponent("topology","mordred.MeshTopology")

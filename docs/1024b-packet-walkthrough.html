@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>1024 B Packet Walkthrough — UCIe-Bridged Mordred Router</title>
+<style>
+  :root{
+    --bg:#eef1f0;
+    --panel:#ffffff;
+    --panel-2:#f4f6f5;
+    --line:#d7dfdd;
+    --ink:#141b1d;
+    --ink-dim:#5c6c6f;
+    --ink-faint:#8a9a9c;
+    --copper:#c1631e;
+    --copper-soft:#e9c4a3;
+    --teal:#177f76;
+    --teal-soft:#bfe3de;
+    --alert:#b23a2c;
+    --alert-soft:#f0d2cc;
+    --font-mono: ui-monospace, "SF Mono", "Cascadia Mono", "Roboto Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#0f1416;
+      --panel:#161d20;
+      --panel-2:#131a1c;
+      --line:#2b363a;
+      --ink:#e8eeef;
+      --ink-dim:#93a3a6;
+      --ink-faint:#5f7275;
+      --copper:#f0954a;
+      --copper-soft:#4a3323;
+      --teal:#5fd0c0;
+      --teal-soft:#173634;
+      --alert:#e4614f;
+      --alert-soft:#3a211d;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0f1416; --panel:#161d20; --panel-2:#131a1c; --line:#2b363a;
+    --ink:#e8eeef; --ink-dim:#93a3a6; --ink-faint:#5f7275;
+    --copper:#f0954a; --copper-soft:#4a3323; --teal:#5fd0c0; --teal-soft:#173634;
+    --alert:#e4614f; --alert-soft:#3a211d;
+  }
+  :root[data-theme="light"]{
+    --bg:#eef1f0; --panel:#ffffff; --panel-2:#f4f6f5; --line:#d7dfdd;
+    --ink:#141b1d; --ink-dim:#5c6c6f; --ink-faint:#8a9a9c;
+    --copper:#c1631e; --copper-soft:#e9c4a3; --teal:#177f76; --teal-soft:#bfe3de;
+    --alert:#b23a2c; --alert-soft:#f0d2cc;
+  }
+
+  *{ box-sizing:border-box; }
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:var(--font-sans);
+    -webkit-font-smoothing:antialiased;
+  }
+  ::selection{ background:var(--copper-soft); }
+
+  .page{
+    max-width:980px;
+    margin:0 auto;
+    padding:56px 24px 96px;
+    display:flex;
+    flex-direction:column;
+    gap:52px;
+  }
+
+  /* ---------- Header ---------- */
+  .masthead{
+    display:flex;
+    flex-direction:column;
+    gap:18px;
+    border-bottom:1px solid var(--line);
+    padding-bottom:28px;
+  }
+  .kicker{
+    font-family:var(--font-mono);
+    font-size:12.5px;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    color:var(--copper);
+  }
+  h1{
+    margin:0;
+    font-size:34px;
+    line-height:1.15;
+    font-weight:700;
+    letter-spacing:-0.01em;
+    text-wrap:balance;
+  }
+  .dek{
+    margin:0;
+    max-width:62ch;
+    color:var(--ink-dim);
+    font-size:16px;
+    line-height:1.55;
+  }
+  .dek code{ font-family:var(--font-mono); font-size:0.92em; }
+
+  .spec-strip{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    margin-top:4px;
+  }
+  .chip{
+    font-family:var(--font-mono);
+    font-size:12px;
+    color:var(--ink-dim);
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    border-radius:4px;
+    padding:5px 9px;
+    white-space:nowrap;
+  }
+  .chip b{ color:var(--ink); font-weight:600; }
+
+  .compare-strip{ display:flex; flex-wrap:wrap; gap:10px; margin-top:2px; }
+  .compare-chip{ font-family:var(--font-mono); font-size:12px; border-radius:5px; padding:7px 11px; border:1px solid; display:flex; gap:8px; align-items:baseline; }
+  .compare-chip.bad{ background:var(--alert-soft); border-color:color-mix(in srgb, var(--alert) 55%, var(--line)); color:var(--ink); }
+  .compare-chip.ok{ background:var(--teal-soft); border-color:color-mix(in srgb, var(--teal) 55%, var(--line)); color:var(--ink); }
+  .compare-chip b{ font-weight:700; }
+  .compare-chip .tag{ font-size:10px; text-transform:uppercase; letter-spacing:.06em; opacity:.75; }
+
+  /* ---------- Section scaffolding ---------- */
+  section{ display:flex; flex-direction:column; gap:16px; }
+  .section-head{ display:flex; flex-direction:column; gap:6px; }
+  .section-num{
+    font-family:var(--font-mono);
+    font-size:12px;
+    color:var(--ink-faint);
+    letter-spacing:.06em;
+  }
+  h2{
+    margin:0;
+    font-size:21px;
+    font-weight:700;
+    letter-spacing:-0.005em;
+  }
+  .section-note{
+    margin:0;
+    color:var(--ink-dim);
+    font-size:14.5px;
+    line-height:1.6;
+    max-width:68ch;
+  }
+
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:22px;
+  }
+  .diagram-scroll{
+    overflow-x:auto;
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:8px;
+  }
+  .diagram-scroll svg{ display:block; min-width:640px; }
+
+  svg text{ font-family:var(--font-mono); fill:var(--ink); }
+  .lbl-title{ font-size:13px; font-weight:700; }
+  .lbl-sub{ font-size:10.5px; fill:var(--ink-dim); }
+  .lbl-param{ font-size:10px; fill:var(--ink-dim); }
+  .lbl-tiny{ font-size:9.5px; fill:var(--ink-faint); }
+  .lbl-time{ font-size:10.5px; fill:var(--teal); font-weight:600; }
+  .lbl-accent{ fill:var(--copper); font-weight:700; }
+
+  .block-fill{ fill:var(--panel-2); stroke:var(--line); stroke-width:1.3; }
+  .block-fill-strong{ fill:var(--panel-2); stroke:var(--ink-faint); stroke-width:1.3; }
+  .lane-line{ stroke:var(--ink-faint); stroke-width:1.4; }
+  .phy-pill{ fill:var(--copper-soft); stroke:var(--copper); stroke-width:1.2; }
+  .flow-line{ stroke:var(--copper); stroke-width:1.6; fill:none; }
+  .flow-arrow{ fill:var(--copper); }
+  .lifeline{ stroke:var(--line); stroke-width:1.3; stroke-dasharray:3 3; }
+  .event-head{ fill:var(--copper-soft); stroke:var(--copper); stroke-width:1.3; }
+  .event-tail{ fill:var(--teal-soft); stroke:var(--teal); stroke-width:1.3; }
+  .router-band{ fill:var(--teal-soft); opacity:0.35; }
+
+  .vc-a{ fill:var(--copper-soft); stroke:var(--copper); stroke-width:1.3; }
+  .vc-b{ fill:var(--teal-soft); stroke:var(--teal); stroke-width:1.3; }
+  .vc-shared{ fill:var(--alert-soft); stroke:var(--alert); stroke-width:1.4; stroke-dasharray:4 3; }
+  .vc-reserved{ fill:var(--panel-2); stroke:var(--ink-faint); stroke-width:1.2; stroke-dasharray:3 3; opacity:0.7; }
+
+  /* ---------- Packet anatomy ---------- */
+  .anatomy-row{ display:flex; flex-direction:column; gap:10px; }
+  .flitbar{
+    display:flex;
+    width:100%;
+    height:34px;
+    border-radius:5px;
+    overflow:hidden;
+    border:1px solid var(--line);
+    font-family:var(--font-mono);
+  }
+  .flitbar .seg{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:10.5px;
+    color:var(--ink);
+    border-right:1px solid var(--panel);
+    white-space:nowrap;
+    overflow:hidden;
+  }
+  .seg.head{ background:var(--copper-soft); flex:0 0 6px; }
+  .seg.body{ background:var(--panel-2); flex:1; }
+  .seg.tail{ background:var(--teal-soft); flex:0 0 6px; }
+
+  .wire-compare{
+    display:grid;
+    grid-template-columns:120px 1fr;
+    gap:10px 16px;
+    align-items:center;
+    font-family:var(--font-mono);
+    font-size:12px;
+  }
+  .wire-compare .rowlabel{ color:var(--ink-dim); text-align:right; }
+  .wire-track{
+    position:relative;
+    height:22px;
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    border-radius:4px;
+  }
+  .wire-fill{
+    position:absolute; top:0; left:0; bottom:0;
+    border-radius:3px 0 0 3px;
+  }
+  .wire-fill.payload{ background:var(--copper); }
+  .wire-fill.full{ background:var(--ink-faint); opacity:.55; }
+
+  /* ---------- Callout ---------- */
+  .callout{
+    background:var(--alert-soft);
+    border:1px solid color-mix(in srgb, var(--alert) 55%, var(--line));
+    border-radius:8px;
+    padding:20px 22px;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+  }
+  .callout .callout-kicker{
+    font-family:var(--font-mono);
+    font-size:11.5px;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    color:var(--alert);
+    font-weight:700;
+  }
+  .callout p{ margin:0; font-size:14.5px; line-height:1.6; color:var(--ink); }
+  .callout code{ font-family:var(--font-mono); font-size:0.9em; background:var(--panel); border:1px solid var(--line); padding:1px 5px; border-radius:3px; }
+
+  .formula{
+    font-family:var(--font-mono);
+    font-size:13px;
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:6px;
+    padding:12px 14px;
+    color:var(--ink);
+    overflow-x:auto;
+    line-height:1.7;
+  }
+  .formula .res{ color:var(--copper); font-weight:700; }
+
+  table.result{
+    width:100%;
+    border-collapse:collapse;
+    font-size:13.5px;
+  }
+  table.result th, table.result td{
+    text-align:left;
+    padding:9px 12px;
+    border-bottom:1px solid var(--line);
+  }
+  table.result th{
+    font-family:var(--font-mono);
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:.05em;
+    color:var(--ink-faint);
+    font-weight:600;
+  }
+  table.result td.num{ font-family:var(--font-mono); font-variant-numeric:tabular-nums; color:var(--ink); }
+  table.result tr:last-child td{ border-bottom:none; }
+
+  /* ---------- Footnotes ---------- */
+  .footnotes{
+    border-top:1px solid var(--line);
+    padding-top:20px;
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+  }
+  .footnotes h3{
+    margin:0 0 4px;
+    font-family:var(--font-mono);
+    font-size:11.5px;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    color:var(--ink-faint);
+    font-weight:600;
+  }
+  .footnotes ol{
+    margin:0;
+    padding-left:18px;
+    display:flex;
+    flex-direction:column;
+    gap:5px;
+  }
+  .footnotes li{
+    font-family:var(--font-mono);
+    font-size:11.5px;
+    color:var(--ink-dim);
+    line-height:1.5;
+  }
+  .footnotes li b{ color:var(--ink); font-weight:600; }
+
+  @media (max-width:640px){
+    h1{ font-size:27px; }
+    .page{ padding:36px 16px 72px; gap:40px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <header class="masthead">
+    <div class="kicker">noc-redo · mordred + prydwen · updated after the coalescing fix</div>
+    <h1>How a 1024&nbsp;B packet crosses two endpoints through a Mordred router over UCIe</h1>
+    <p class="dek">
+      Endpoint&nbsp;A and Endpoint&nbsp;B each run <code>mordred.mordredNicPC</code>; a single
+      <code>mordred.mordred_router</code> sits between them; every hop is a
+      <code>prydwen.uciePhysChannel</code> die-to-die link. The first version of this doc found
+      that Mordred flits weren't being coalesced into UCIe wire flits at all — every number below
+      is now measured <b>after</b> that fix (<code>RtrPortControlPC::transportSendFlit()</code>,
+      the <code>ucieAdapterBase.h</code> drain-loop fix, and the VC-addressing widening), on a
+      real simulation run, not hand-calculated.
+    </p>
+    <div class="spec-strip">
+      <span class="chip">router clock <b>1&nbsp;GHz</b></span>
+      <span class="chip">mordred flit_size <b>32&nbsp;b</b> (4&nbsp;B)</span>
+      <span class="chip">UCIe flit_format <b>5</b> (256&nbsp;B wire / 240&nbsp;B payload)</span>
+      <span class="chip">1&nbsp;module × <b>16 lanes</b> × <b>32&nbsp;GT/s</b></span>
+      <span class="chip">link_latency <b>2&nbsp;ns</b></span>
+      <span class="chip">credits_per_vn <b>32</b></span>
+    </div>
+    <div class="compare-strip">
+      <div class="compare-chip bad"><span class="tag">before fix, measured</span> <b>2427&nbsp;ns</b> one-way latency</div>
+      <div class="compare-chip ok"><span class="tag">after fix, measured</span> <b>219&nbsp;ns</b> one-way latency</div>
+      <div class="compare-chip ok"><span class="tag">11.1×</span> faster, same packet, same defaults</div>
+    </div>
+  </header>
+
+  <!-- ============ SECTION 1: TOPOLOGY ============ -->
+  <section>
+    <div class="section-head">
+      <span class="section-num">01 — TOPOLOGY</span>
+      <h2>The physical path</h2>
+      <p class="section-note">
+        Each UCIe link is its own <code>uciePhysChannel</code> instance loaded as the
+        <code>port_iface</code> of a <code>mordredNicPC</code> (endpoints) or
+        <code>rtrPortControlPC</code> (router). The router needs one more port than it has local
+        endpoints, so a 2-endpoint router is configured with <code>num_local_ports=2</code>,
+        <code>num_ports=3</code> — the third port stays unconnected. Numbers below are measured
+        from a real run of this exact topology (<code>message_size=1024B</code>,
+        <code>flit_size=32b</code>), not hand-calculated.
+      </p>
+    </div>
+    <div class="diagram-scroll">
+      <svg viewBox="0 0 1160 300" xmlns="http://www.w3.org/2000/svg">
+        <!-- EP A -->
+        <rect x="24" y="70" width="176" height="150" rx="6" class="block-fill-strong"/>
+        <text x="112" y="96" text-anchor="middle" class="lbl-title">Endpoint A</text>
+        <text x="112" y="111" text-anchor="middle" class="lbl-sub">mordred.mordredNicPC</text>
+        <line x1="42" y1="120" x2="182" y2="120" class="lane-line" opacity="0.4"/>
+        <text x="42" y="138" class="lbl-param">clock: 1 GHz</text>
+        <text x="42" y="153" class="lbl-param">flit_size: 32b</text>
+        <text x="42" y="168" class="lbl-param">buf → 256 credits</text>
+        <text x="42" y="188" class="lbl-param" opacity="0.8">calcNumFlits(8192b)</text>
+        <text x="42" y="202" class="lbl-accent" font-size="11">= 256 flits</text>
+
+        <!-- Link A: EP_A -> Router -->
+        <g>
+          <line x1="200" y1="112" x2="330" y2="112" class="lane-line"/>
+          <line x1="200" y1="118" x2="330" y2="118" class="lane-line"/>
+          <line x1="200" y1="124" x2="330" y2="124" class="lane-line"/>
+          <line x1="200" y1="130" x2="330" y2="130" class="lane-line" opacity="0.4"/>
+          <text x="265" y="100" text-anchor="middle" class="lbl-tiny">16 lanes</text>
+          <rect x="206" y="150" width="118" height="60" rx="5" class="phy-pill"/>
+          <text x="265" y="167" text-anchor="middle" class="lbl-sub" font-weight="700" fill="var(--ink)">UCIe PHY</text>
+          <text x="265" y="181" text-anchor="middle" class="lbl-tiny">format 5 (240B)</text>
+          <text x="265" y="193" text-anchor="middle" class="lbl-tiny">5 fragments</text>
+          <text x="265" y="205" text-anchor="middle" class="lbl-tiny">2 ns latency</text>
+        </g>
+
+        <!-- Router -->
+        <rect x="330" y="46" width="220" height="198" rx="6" class="block-fill-strong"/>
+        <text x="440" y="70" text-anchor="middle" class="lbl-title">Mordred Router</text>
+        <text x="440" y="85" text-anchor="middle" class="lbl-sub">mordred.mordred_router (id 0)</text>
+        <line x1="348" y1="95" x2="532" y2="95" class="lane-line" opacity="0.4"/>
+        <text x="348" y="113" class="lbl-param">clock: 1 GHz (1 ns/cycle)</text>
+        <text x="348" y="128" class="lbl-param">wormhole crossbar:</text>
+        <text x="348" y="142" class="lbl-param">1 flit / port / cycle</text>
+        <text x="348" y="160" class="lbl-param">VC alloc: num_vns=1, num_vcs=1</text>
+        <text x="348" y="178" class="lbl-param">num_local_ports: 2</text>
+        <text x="348" y="192" class="lbl-param">num_ports: 3 (3rd unused)</text>
+        <text x="348" y="212" class="lbl-param" opacity="0.8">port0/port1: rtrPortControlPC</text>
+        <text x="348" y="226" class="lbl-param" opacity="0.8">→ each owns a uciePhysChannel</text>
+
+        <!-- Link B: Router -> EP_B (mirror) -->
+        <g>
+          <line x1="562" y1="112" x2="692" y2="112" class="lane-line"/>
+          <line x1="562" y1="118" x2="692" y2="118" class="lane-line"/>
+          <line x1="562" y1="124" x2="692" y2="124" class="lane-line"/>
+          <line x1="562" y1="130" x2="692" y2="130" class="lane-line" opacity="0.4"/>
+          <text x="627" y="100" text-anchor="middle" class="lbl-tiny">16 lanes</text>
+          <rect x="568" y="150" width="118" height="60" rx="5" class="phy-pill"/>
+          <text x="627" y="167" text-anchor="middle" class="lbl-sub" font-weight="700" fill="var(--ink)">UCIe PHY</text>
+          <text x="627" y="181" text-anchor="middle" class="lbl-tiny">format 5 (240B)</text>
+          <text x="627" y="193" text-anchor="middle" class="lbl-tiny">5 fragments</text>
+          <text x="627" y="205" text-anchor="middle" class="lbl-tiny">2 ns latency</text>
+        </g>
+
+        <!-- EP B -->
+        <rect x="692" y="70" width="176" height="150" rx="6" class="block-fill-strong"/>
+        <text x="780" y="96" text-anchor="middle" class="lbl-title">Endpoint B</text>
+        <text x="780" y="111" text-anchor="middle" class="lbl-sub">mordred.mordredNicPC</text>
+        <line x1="710" y1="120" x2="850" y2="120" class="lane-line" opacity="0.4"/>
+        <text x="710" y="138" class="lbl-param">clock: 1 GHz</text>
+        <text x="710" y="153" class="lbl-param">flit_size: 32b</text>
+        <text x="710" y="168" class="lbl-param">buf → 256 credits</text>
+        <text x="710" y="188" class="lbl-param" opacity="0.8">TAIL arrival</text>
+        <text x="710" y="202" class="lbl-accent" font-size="11">reassembles Request</text>
+
+        <!-- overall latency banner -->
+        <rect x="892" y="70" width="244" height="150" rx="6" class="block-fill" stroke-dasharray="4 3"/>
+        <text x="1014" y="92" text-anchor="middle" class="lbl-sub" font-weight="700" fill="var(--ink)">Measured, one-way</text>
+        <text x="1014" y="122" text-anchor="middle" font-size="22" font-weight="700" fill="var(--teal)">219 ns</text>
+        <text x="1014" y="138" text-anchor="middle" class="lbl-tiny">was 2427 ns before the fix</text>
+        <line x1="932" y1="148" x2="1096" y2="148" class="lane-line" opacity="0.3"/>
+        <text x="1014" y="166" text-anchor="middle" class="lbl-accent" font-size="13">11.1× faster</text>
+        <text x="1014" y="184" text-anchor="middle" class="lbl-tiny">2 wire hops × 5 fragments,</text>
+        <text x="1014" y="198" text-anchor="middle" class="lbl-tiny">not 256 individual sends —</text>
+        <text x="1014" y="212" text-anchor="middle" class="lbl-tiny">see §05 for the full run</text>
+      </svg>
+    </div>
+  </section>
+
+  <!-- ============ SECTION 2: BUFFER ARCHITECTURE ============ -->
+  <section>
+    <div class="section-head">
+      <span class="section-num">02 — BUFFER ARCHITECTURE</span>
+      <h2>Where the per-(vn, vc) buffers actually live</h2>
+      <p class="section-note">
+        Zooming into one router port's <b style="color:var(--ink)">outbound</b> side (the
+        direction <code>transportSendFlit()</code> runs). Two components own real, independent
+        per-VC buffers today; one used to lose the VC dimension entirely at the handoff between
+        them — that gap is what the widening fix in §05 closes.
+      </p>
+    </div>
+    <div class="diagram-scroll">
+      <svg viewBox="0 0 1200 700" width="1560" height="910" xmlns="http://www.w3.org/2000/svg">
+        <!-- ===== Lane A: Endpoint (mordredNicPC) ===== -->
+        <text x="220" y="30" text-anchor="middle" class="lbl-sub" font-weight="700" fill="var(--ink)">mordred.mordredNicPC — endpoint (no vc of its own)</text>
+
+        <rect x="90" y="46" width="260" height="60" rx="5" class="block-fill-strong"/>
+        <text x="220" y="68" text-anchor="middle" class="lbl-title">outBuf[vn=0]</text>
+        <text x="220" y="84" text-anchor="middle" class="lbl-tiny">rtrCredits[0] / outbufCredits[0]</text>
+        <text x="220" y="96" text-anchor="middle" class="lbl-tiny">— per-vn only, MordredNicBase.h</text>
+
+        <path d="M 220 106 L 220 132" class="flow-line" marker-end="url(#arrowBuf)"/>
+        <text x="220" y="126" text-anchor="middle" class="lbl-tiny">extVn(vn) = vn×numVcsForAddressing_ + 0</text>
+
+        <rect x="90" y="150" width="260" height="180" rx="6" class="block-fill-strong"/>
+        <text x="220" y="170" text-anchor="middle" class="lbl-sub" font-weight="700" fill="var(--ink)">own uciePhysChannel</text>
+
+        <rect x="106" y="182" width="228" height="50" rx="4" class="vc-a"/>
+        <text x="220" y="197" text-anchor="middle" class="lbl-tiny" font-weight="700">send_queues_[sid][0]</text>
+        <text x="220" y="210" text-anchor="middle" class="lbl-tiny">credits_available[sid][0]</text>
+        <text x="220" y="223" text-anchor="middle" class="lbl-tiny">used for sends (vc-slot 0)</text>
+
+        <rect x="106" y="240" width="228" height="64" rx="4" class="vc-reserved"/>
+        <text x="220" y="255" text-anchor="middle" class="lbl-tiny" font-weight="700">send_queues_[sid][1]</text>
+        <text x="220" y="268" text-anchor="middle" class="lbl-tiny">credits_available[sid][1]</text>
+        <text x="220" y="281" text-anchor="middle" class="lbl-tiny">reserved — widened for</text>
+        <text x="220" y="293" text-anchor="middle" class="lbl-tiny">vc=1 delivery to this EP</text>
+
+        <!-- ===== Lane B: Router port (rtrPortControlPC) ===== -->
+        <text x="820" y="30" text-anchor="middle" class="lbl-sub" font-weight="700" fill="var(--ink)">mordred.rtrPortControlPC — router port (real per-vc buffers)</text>
+        <text x="820" y="44" text-anchor="middle" class="lbl-tiny" font-style="italic">cur_vc assigned by VcAllocRR when the crossbar forwards a flit</text>
+
+        <rect x="460" y="54" width="220" height="60" rx="5" class="vc-a"/>
+        <text x="570" y="72" text-anchor="middle" class="lbl-title">outStateVec[0][0]</text>
+        <text x="570" y="86" text-anchor="middle" class="lbl-tiny">outBuf queue</text>
+        <text x="570" y="100" text-anchor="middle" class="lbl-tiny">destCredits / outBufCredits</text>
+
+        <rect x="700" y="54" width="220" height="60" rx="5" class="vc-b"/>
+        <text x="810" y="72" text-anchor="middle" class="lbl-title">outStateVec[0][1]</text>
+        <text x="810" y="86" text-anchor="middle" class="lbl-tiny">outBuf queue</text>
+        <text x="810" y="100" text-anchor="middle" class="lbl-tiny">destCredits / outBufCredits</text>
+
+        <path d="M 570 114 L 690 132" class="flow-line" stroke="var(--copper)" marker-end="url(#arrowBuf)"/>
+        <path d="M 810 114 L 690 132" class="flow-line" stroke="var(--teal)" marker-end="url(#arrowBuf)"/>
+        <text x="690" y="126" text-anchor="middle" class="lbl-tiny" font-weight="700">extVn(vn, vc) = vn×numVcs + vc</text>
+        <text x="690" y="140" text-anchor="middle" class="lbl-tiny">RtrPortControlPC::transportSendFlit()</text>
+
+        <rect x="460" y="150" width="460" height="180" rx="6" class="block-fill-strong"/>
+        <text x="690" y="170" text-anchor="middle" class="lbl-sub" font-weight="700" fill="var(--ink)">own uciePhysChannel (this port's outbound link)</text>
+
+        <rect x="476" y="182" width="212" height="50" rx="4" class="vc-a"/>
+        <text x="582" y="197" text-anchor="middle" class="lbl-tiny" font-weight="700">send_queues_[sid][0]</text>
+        <text x="582" y="210" text-anchor="middle" class="lbl-tiny">credits_available[sid][0]</text>
+        <text x="582" y="223" text-anchor="middle" class="lbl-tiny">(fed by vc0 only)</text>
+
+        <rect x="694" y="182" width="212" height="50" rx="4" class="vc-b"/>
+        <text x="800" y="197" text-anchor="middle" class="lbl-tiny" font-weight="700">send_queues_[sid][1]</text>
+        <text x="800" y="210" text-anchor="middle" class="lbl-tiny">credits_available[sid][1]</text>
+        <text x="800" y="223" text-anchor="middle" class="lbl-tiny">(fed by vc1 only)</text>
+
+        <text x="690" y="256" text-anchor="middle" class="lbl-sub" font-weight="700" fill="var(--teal)">independent queue + credit pool per VC</text>
+        <text x="690" y="272" text-anchor="middle" class="lbl-tiny">a VC0 burst can never block VC1 from making progress on the wire</text>
+
+        <defs>
+          <marker id="arrowBuf" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--ink-faint)"/>
+          </marker>
+        </defs>
+
+        <line x1="40" y1="350" x2="1160" y2="350" class="lifeline"/>
+
+        <!-- ===== "Before the fix" inset, scoped to the router-port bug ===== -->
+        <text x="690" y="376" text-anchor="middle" font-size="12" fill="var(--alert)" font-weight="700">
+          Before the fix — same router port, ext_vn = vn only
+        </text>
+
+        <rect x="460" y="392" width="220" height="52" rx="5" class="vc-a"/>
+        <text x="570" y="414" text-anchor="middle" class="lbl-title">outStateVec[0][0]</text>
+        <text x="570" y="430" text-anchor="middle" class="lbl-tiny">outBuf · destCredits</text>
+
+        <rect x="700" y="392" width="220" height="52" rx="5" class="vc-b"/>
+        <text x="810" y="414" text-anchor="middle" class="lbl-title">outStateVec[0][1]</text>
+        <text x="810" y="430" text-anchor="middle" class="lbl-tiny">outBuf · destCredits</text>
+
+        <path d="M 570 444 L 660 478" class="flow-line" stroke="var(--copper)" marker-end="url(#arrowBuf)"/>
+        <path d="M 810 444 L 720 478" class="flow-line" stroke="var(--teal)" marker-end="url(#arrowBuf)"/>
+        <text x="690" y="464" text-anchor="middle" class="lbl-tiny">extVn(vn) — vc dropped, both map to ivn 0</text>
+
+        <rect x="580" y="486" width="220" height="70" rx="6" class="vc-shared"/>
+        <text x="690" y="508" text-anchor="middle" class="lbl-title">send_queues_[sid][0]</text>
+        <text x="690" y="524" text-anchor="middle" class="lbl-tiny" font-weight="700">SHARED by both VCs</text>
+        <text x="690" y="540" text-anchor="middle" class="lbl-tiny">credits_available[sid][0]</text>
+
+        <text x="690" y="576" text-anchor="middle" class="lbl-tiny" font-style="italic">
+          one physical queue, one credit pool for both VCs — a VC0 burst can fully block VC1
+        </text>
+        <text x="690" y="590" text-anchor="middle" class="lbl-tiny" font-style="italic">
+          (this is exactly the mechanism that deadlocked the 5×5 torus — see §05)
+        </text>
+      </svg>
+    </div>
+  </section>
+
+  <!-- ============ SECTION 3: PACKET ANATOMY ============ -->
+  <section>
+    <div class="section-head">
+      <span class="section-num">03 — PACKET ANATOMY</span>
+      <h2>What "1024 bytes" turns into on the wire, before and after</h2>
+      <p class="section-note">
+        <code>calcNumFlits(8192 b ÷ 32 b) = 256 Mordred flits</code> is unchanged by the fix — the
+        packet is still logically 256 flits (confirmed by the real run's
+        <code>average_packet_size = 256.000000</code>). What changed is how many of those flits
+        each cost their own physical UCIe wire transfer.
+      </p>
+    </div>
+
+    <div class="panel anatomy-row">
+      <div class="wire-compare" style="grid-template-columns:1fr;">
+        <div>
+          <div style="font-family:var(--font-mono); font-size:12px; color:var(--ink-dim); margin-bottom:6px;">
+            256 Mordred flits (1 HEAD, 254 BODY, 1 TAIL) — same before and after
+          </div>
+          <div class="flitbar">
+            <div class="seg head">H</div>
+            <div class="seg body">254 × BODY (4 B payload each)</div>
+            <div class="seg tail">T</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="wire-compare">
+        <div class="rowlabel">Before: every flit</div>
+        <div class="wire-track"><div class="wire-fill payload" style="width:1.6%"></div></div>
+
+        <div class="rowlabel">→ UCIe wire flit</div>
+        <div class="wire-track"><div class="wire-fill full" style="width:100%"></div></div>
+      </div>
+      <p class="section-note" style="margin-top:-2px; margin-bottom:8px;">
+        <code>transportSendFlit()</code> used to hand <b style="color:var(--ink)">every</b> Mordred
+        flit to the UCIe channel with <code>packet_size_bits=0</code>, so each one — including all
+        254 BODY flits — became its own atomic, single-fragment wire message: <b>256</b> physical
+        UCIe flits for one packet, 4 bytes of real payload in each 256-byte wire slot.
+      </p>
+
+      <div class="wire-compare">
+        <div class="rowlabel">After: HEAD only</div>
+        <div class="wire-track"><div class="wire-fill payload" style="width:100%"></div></div>
+
+        <div class="rowlabel">→ 5 wire flits</div>
+        <div class="wire-track"><div class="wire-fill full" style="width:100%"></div></div>
+      </div>
+      <p class="section-note" style="margin-top:-2px;">
+        Now only the HEAD triggers a real wire transfer — carrying the true packet size, it
+        fragments into <code>ceil(1024 B ÷ 240 B) = 5</code> physical UCIe flits, each one packed
+        with real payload (240 of 256 bytes). BODY/TAIL become free no-ops on the wire; the far
+        side's <code>FlitFactory</code> resynthesizes all 256 Mordred flits from those 5 fragments.
+        <b>256 → 5</b> physical wire flits for the same packet.
+      </p>
+    </div>
+  </section>
+
+  <!-- ============ SECTION 4: TIMING DIAGRAM ============ -->
+  <section>
+    <div class="section-head">
+      <span class="section-num">04 — TIMING</span>
+      <h2>The pipeline, and the real measured result</h2>
+      <p class="section-note">
+        This section used to show a hand-calculated, nanosecond-by-nanosecond sequence — that
+        precision wasn't earned, since the router's per-flit pipeline depth isn't a documented
+        constant (<code>mordred/README.md</code>). Below is what actually changed structurally,
+        plus the one number that matters: measured end-to-end latency from a real run of this
+        exact topology.
+      </p>
+    </div>
+    <div class="diagram-scroll">
+      <svg viewBox="0 0 1160 340" xmlns="http://www.w3.org/2000/svg">
+        <g font-family="var(--font-mono)">
+          <text x="90"  y="26" text-anchor="middle" class="lbl-title">EP A NIC</text>
+          <text x="330" y="26" text-anchor="middle" class="lbl-title">UCIe link A</text>
+          <text x="580" y="26" text-anchor="middle" class="lbl-title">Mordred router</text>
+          <text x="830" y="26" text-anchor="middle" class="lbl-title">UCIe link B</text>
+          <text x="1070" y="26" text-anchor="middle" class="lbl-title">EP B NIC</text>
+        </g>
+        <line x1="90" y1="38" x2="90" y2="300" class="lifeline"/>
+        <line x1="330" y1="38" x2="330" y2="300" class="lifeline"/>
+        <line x1="580" y1="38" x2="580" y2="300" class="lifeline"/>
+        <line x1="830" y1="38" x2="830" y2="300" class="lifeline"/>
+        <line x1="1070" y1="38" x2="1070" y2="300" class="lifeline"/>
+
+        <!-- HEAD triggers burst A -->
+        <rect x="66" y="52" width="48" height="16" rx="3" class="event-head"/>
+        <text x="90" y="63" text-anchor="middle" class="lbl-tiny" font-weight="700">HEAD</text>
+        <text x="90" y="80" text-anchor="middle" class="lbl-tiny">triggers full-packet</text>
+        <text x="90" y="91" text-anchor="middle" class="lbl-tiny">transfer (size known</text>
+        <text x="90" y="102" text-anchor="middle" class="lbl-tiny">from req*)</text>
+
+        <path d="M 108 60 L 320 60" class="flow-line" marker-end="url(#arrowT)"/>
+        <g transform="translate(200,68)">
+          <rect x="-42" y="0" width="16" height="14" rx="2" fill="var(--copper-soft)" stroke="var(--copper)"/>
+          <rect x="-24" y="0" width="16" height="14" rx="2" fill="var(--copper-soft)" stroke="var(--copper)"/>
+          <rect x="-6"  y="0" width="16" height="14" rx="2" fill="var(--copper-soft)" stroke="var(--copper)"/>
+          <rect x="12"  y="0" width="16" height="14" rx="2" fill="var(--copper-soft)" stroke="var(--copper)"/>
+          <rect x="30"  y="0" width="16" height="14" rx="2" fill="var(--copper-soft)" stroke="var(--copper)"/>
+        </g>
+        <text x="200" y="100" text-anchor="middle" class="lbl-tiny">5 fragments, back-to-back</text>
+        <text x="200" y="111" text-anchor="middle" class="lbl-tiny">(ucieAdapterBase.h drain-loop fix)</text>
+
+        <rect x="556" y="52" width="48" height="16" rx="3" class="event-head"/>
+        <text x="580" y="63" text-anchor="middle" class="lbl-tiny" font-weight="700">reasm.</text>
+        <text x="580" y="80" text-anchor="middle" class="lbl-tiny">FlitFactory synthesizes</text>
+        <text x="580" y="91" text-anchor="middle" class="lbl-tiny">all 256 Mordred flits;</text>
+        <text x="580" y="102" text-anchor="middle" class="lbl-tiny">HEAD forwarded as soon</text>
+        <text x="580" y="113" text-anchor="middle" class="lbl-tiny">as it's routed — doesn't</text>
+        <text x="580" y="124" text-anchor="middle" class="lbl-tiny">wait for all 256</text>
+
+        <path d="M 604 60 L 820 60" class="flow-line" marker-end="url(#arrowT)"/>
+        <g transform="translate(700,68)">
+          <rect x="-42" y="0" width="16" height="14" rx="2" fill="var(--copper-soft)" stroke="var(--copper)"/>
+          <rect x="-24" y="0" width="16" height="14" rx="2" fill="var(--copper-soft)" stroke="var(--copper)"/>
+          <rect x="-6"  y="0" width="16" height="14" rx="2" fill="var(--copper-soft)" stroke="var(--copper)"/>
+          <rect x="12"  y="0" width="16" height="14" rx="2" fill="var(--copper-soft)" stroke="var(--copper)"/>
+          <rect x="30"  y="0" width="16" height="14" rx="2" fill="var(--copper-soft)" stroke="var(--copper)"/>
+        </g>
+        <text x="700" y="100" text-anchor="middle" class="lbl-tiny">5 fragments, back-to-back</text>
+        <text x="700" y="111" text-anchor="middle" class="lbl-tiny">— same mechanism, hop 2</text>
+
+        <rect x="1046" y="52" width="48" height="16" rx="3" class="event-tail"/>
+        <text x="1070" y="63" text-anchor="middle" class="lbl-tiny" font-weight="700">done</text>
+        <text x="1070" y="80" text-anchor="middle" class="lbl-tiny">Request reassembled</text>
+
+        <defs>
+          <marker id="arrowT" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--copper)"/>
+          </marker>
+        </defs>
+
+        <line x1="24" y1="160" x2="1136" y2="160" class="lifeline"/>
+
+        <rect x="330" y="190" width="500" height="90" rx="6" class="router-band"/>
+        <text x="580" y="208" text-anchor="middle" class="lbl-sub" font-weight="700" fill="var(--ink)">
+          Router-internal: 254 BODY + TAIL
+        </text>
+        <text x="580" y="222" text-anchor="middle" class="lbl-tiny">
+          still drain the input queue and crossbar,
+        </text>
+        <text x="580" y="235" text-anchor="middle" class="lbl-tiny">
+          one router cycle each (pendingFlits_ drip queue) —
+        </text>
+        <text x="580" y="248" text-anchor="middle" class="lbl-tiny">
+          but this now overlaps hop 2's wire transfer
+        </text>
+        <text x="580" y="261" text-anchor="middle" class="lbl-tiny">
+          instead of blocking it — HEAD alone already
+        </text>
+        <text x="580" y="274" text-anchor="middle" class="lbl-tiny">
+          carries enough info to start the second burst
+        </text>
+
+        <rect x="880" y="190" width="256" height="90" rx="6" fill="var(--teal-soft)" stroke="var(--teal)" stroke-width="1.2"/>
+        <text x="1008" y="216" text-anchor="middle" class="lbl-sub" font-weight="700" fill="var(--ink)">Measured, one-way</text>
+        <text x="1008" y="248" text-anchor="middle" font-size="26" font-weight="700" fill="var(--teal)">219 ns</text>
+        <text x="1008" y="266" text-anchor="middle" class="lbl-tiny">was 2427 ns before the fix</text>
+      </svg>
+    </div>
+  </section>
+
+  <!-- ============ SECTION 5: FINDING ============ -->
+  <section>
+    <div class="section-head">
+      <span class="section-num">05 — WHAT WAS WRONG, WHAT IT TOOK TO FIX, AND WHAT IT COST</span>
+      <h2>Three bugs, one fix, one honest caveat</h2>
+    </div>
+
+    <div class="callout">
+      <span class="callout-kicker">The original finding — efficiency at defaults ≈ 1.6%</span>
+      <p>
+        Mordred's default <code>flit_size</code> is <b>32 bits (4 B)</b>; UCIe's default
+        <code>flit_format 5</code> wire flit is <b>256 B</b>. <code>RtrPortControlPC</code> and
+        <code>MordredNicPC</code> sent every Mordred flit as its own independent UCIe message
+        (<code>packet_size_bits=0</code>) — including all 254 BODY flits of a packet that should
+        never have needed their own wire transfer — so each 4-byte flit burned an entire 256-byte
+        physical slot: 256 wire flits for one packet, ~1.6% payload efficiency.
+      </p>
+    </div>
+
+    <div class="callout">
+      <span class="callout-kicker">Fixing it took three changes, not one</span>
+      <p>
+        <b>1. Coalesce on HEAD</b> (<code>RtrPortControlPC.h</code>, <code>MordredNicPC.h</code>) —
+        only the HEAD flit now triggers a real wire transfer, carrying the true packet size so
+        <code>UCIePhysChannel::send()</code> fragments it properly; BODY/TAIL become free no-ops,
+        reconstructed on the far side by the existing (previously unused) <code>FlitFactory</code>.
+      </p>
+      <p>
+        <b>2. Drain fragments back-to-back</b> (<code>prydwen/src/ucie/ucieAdapterBase.h</code>,
+        <code>trySend()</code>) — the multi-fragment path had never been exercised before, and only
+        dispatched one fragment per credit round-trip; without this fix, coalescing's benefit would
+        have been mostly cancelled out by round-trip-paced draining instead of back-to-back
+        serialization.
+      </p>
+      <p>
+        <b>3. Widen UCIe addressing to (vn, vc)</b> (<code>RtrPortControlPC::extVn()</code>,
+        symmetric widening in <code>MordredNicPC</code>) — coalescing a whole packet into one
+        uninterruptible wire burst broke VC-based deadlock avoidance on wraparound topologies
+        (confirmed: a 5×5 torus deadlocked after the first two fixes landed). Fixing this required
+        giving every Mordred VC its own independent UCIe wire queue and credit pool, since UCIe's
+        addressing had only ever kept track of <code>vn</code>.
+      </p>
+    </div>
+
+    <div class="callout">
+      <span class="callout-kicker">The honest caveat — this is a wire-efficiency fix, not a router-throughput fix</span>
+      <p>
+        A follow-on discovery while chasing the torus deadlock: coalescing also raised the
+        per-flit credit-turnaround latency at every hop (<code>RtrPortControlPC.h</code>'s
+        <code>pendingFlits_</code> drip queue still drains bulk-delivered flits one per router
+        cycle, so a large packet's credit round trip now takes <i>O(M)</i> cycles longer than
+        before — see the doc comment there for the full mechanism). Ports need real
+        <code>output_buf_size</code> headroom to absorb that, not the bare 1-flit minimum that
+        sufficed under the old model.
+      </p>
+      <p>
+        And under heavy concurrent load, the improvement above <b>doesn't show up</b>: a 9-router
+        mesh saturated with all-to-all 1024 B traffic completed in <b>94.752&nbsp;µs before</b> the
+        fix and <b>94.897&nbsp;µs after</b> — statistically the same. Coalescing removes wire
+        overhead; it doesn't change the router's one-flit-per-cycle crossbar throughput, and under
+        heavy contention that crossbar rate, not the wire, is what limits completion time. The win
+        is real for latency-sensitive, lightly-loaded traffic — the isolated single-packet
+        measurement above — not for peak aggregate throughput at saturation.
+      </p>
+    </div>
+
+    <div class="panel">
+      <table class="result">
+        <thead>
+          <tr><th>Quantity</th><th>Before</th><th>After</th><th>Source</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Mordred flits per 1024 B packet</td><td class="num">256</td><td class="num">256</td><td>MordredNicBase::calcNumFlits (unchanged)</td></tr>
+          <tr><td>Physical UCIe wire flits per packet</td><td class="num">256</td><td class="num">5</td><td>ceil(1024 B ÷ 240 B payload), format 5</td></tr>
+          <tr><td>Endpoint's own flits_sent (2-message run)</td><td class="num">1016</td><td class="num">12</td><td>prydwen uciePhysChannel stat, measured</td></tr>
+          <tr><td>average_noc_latency, one-way</td><td class="num">2427 ns</td><td class="num">219 ns</td><td>mordredNicPC stat, measured (11.1× faster)</td></tr>
+          <tr><td>Full 2-message sim, isolated (1 router)</td><td class="num">4.101 µs</td><td class="num">1.213 µs</td><td>single_packet_1router topology, measured</td></tr>
+          <tr><td>9-router mesh, 324 messages, saturated</td><td class="num">94.752 µs</td><td class="num">94.897 µs</td><td>mesh3x3_uciePhysChannel_large_message, measured — no improvement under contention</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <div class="footnotes">
+    <h3>Sources</h3>
+    <ol>
+      <li><b>UCIe flit formats</b> — prydwen/src/ucie/ucieFlit.h:20–42 (format 5 default = 256 B total / 240 B payload)</li>
+      <li><b>UCIe default params</b> — prydwen/src/ucie/uciePhysChannel.h:69–99 (link_latency 2ns, num_lanes 16, lane_speed_gts 32, num_modules 1)</li>
+      <li><b>The fix — coalesce on HEAD, no-op BODY/TAIL</b> — mordred/src/RtrPortControlPC.h transportSendFlit()/transportSendCredit(), mordred/src/MordredNicPC.h (same pattern)</li>
+      <li><b>The fix — drain fragments back-to-back</b> — prydwen/src/ucie/ucieAdapterBase.h, trySend()/trySendOnce()</li>
+      <li><b>The fix — flit-timestamp bug</b> (made real by coalescing) — mordred/src/MordredNicBase.cc clockTick(), head_inject_cycle stamped onto HEAD</li>
+      <li><b>The fix — VC-aware UCIe addressing</b> — mordred/src/RtrPortControlPC.h extVn(), mordred/src/MordredNicPC.h (symmetric widening + transportValidateVcWidth safety net)</li>
+      <li><b>The drip-queue latency mechanism</b> — mordred/src/RtrPortControlPC.h, pendingFlits_ doc comment (full explanation + bisection evidence)</li>
+      <li><b>Mordred flit count formula</b> — mordred/src/MordredNicBase.cc:403–408 (calcNumFlits, min 2)</li>
+      <li><b>Router defaults</b> — mordred/src/MordredRouter.h:60–76 (clock 1GHz, flit_size 32b, num_vns 1, num_vcs 1)</li>
+      <li><b>Wormhole crossbar, 1 flit/port/cycle</b> — mordred/src/MordredRouter.cc:249–325 (clockTick)</li>
+      <li><b>New test coverage</b> — mordred/tests/mesh3x3_uciePhysChannel_large_message.py (+ _lowcredits variant) — first tests in either repo to exercise the multi-fragment/FlitFactory path</li>
+    </ol>
+  </div>
+
+</div>
+</body>
+</html>

@@ -74,7 +74,7 @@ class FlattenedButterfly:
         routers = []
         for i in range(self.num_routers):
             rtr_name = "rtr_%d"%(i)
-            routers.append(sst.Component(rtr_name, "mordred.simple_rtr"))
+            routers.append(sst.Component(rtr_name, "mordred.mordred_router"))
             routers[i].addParam( "id", i )
             routers[i].addParams(FixedRtrParams)
             routers[i].addParam( "num_ports", self.radix )

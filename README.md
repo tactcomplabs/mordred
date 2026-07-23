@@ -1,14 +1,38 @@
-# mordred - SST NoC Library
+# Mordred - SST Network-on-Chip Library
 
-[Here](SST-UG2025-Mordred.pdf) is an introductory presentation on this library from the 2025 SST User's Group meeting.
+Mordred is a modular, packet-switched Network-on-Chip (NoC) simulation library for the
+[Structural Simulation Toolkit (SST)](http://sst-simulator.org/). It provides a router,
+endpoint NIC, and topology implementations as drop-in alternatives to Merlin, with a
+pluggable physical-channel layer that allows the transport between routers and endpoints
+to be swapped independently of the routing and flow-control machinery.
+
+An introductory presentation from the 2025 SST User's Group meeting is available [here](SST-UG2025-Mordred.pdf).
+
+## Requirements
+
+- CMake >= 3.19
+- SST and SST-Elements (including Merlin) >= 15.0
+- C++17 compiler
+- `sst` and `sst-config` must be on `PATH`
+- **Prydwen** must be built and registered before building Mordred (Mordred's build
+  system references `prydwen/src/` for the `PhysChannelAPI` header)
+  - Mordred can be built without Prydwen; add the `-DMORDRED_ENABLE_PHYS_CHANNEL=OFF` to your cmake command
+    line when building mordred.
 
 ## Building
-### Requirements
-CMake version >= 3.19<br>
-SST and SST-Elements (especially merlin) version >= 15.0 installed and in the current `PATH`
 
-### Build/install/test steps
-```
+Build prydwen first, then mordred:
+
+```bash
+# 1. Build prydwen (physical channel library)
+cd ../prydwen
+mkdir build && cd build
+cmake ..
+make -j
+make install
+
+# 2. Build mordred
+cd ../../mordred
 mkdir build && cd build
 cmake ..
 make -j
@@ -16,93 +40,324 @@ make install
 make test
 ```
 
-## Tests/Tested Compatibility
-The tests run by `make test` are in the `tests/` folder. 
+## Repository Layout
 
-### Tested compatibility
-To replace a `merlin.hr_router` using a singlerouter topology, a single `mordred.simple_rtr` can be used with a 1x1 mesh topology.  The links between the endpoints and the `merlin.hr_router` then become links between the endpoints and the local ports of `mordred.simple_rtr`
+```
+src/             Main library source
+tests/           SST Python test scripts
+repotest/        Sandbox scripts for experiments and performance comparisons
+merlin_testing/  Scripts comparing Mordred and Merlin behavior
+sst_test_framework/  Files for running tests via the standard SST test framework
+```
 
-The `mordred.mordredNIC` subcomponent works in the subcomponent slots of `memHierarchy.MemNIC` and `memHierarchy.MemNICFour`.  See `tests/ipdps25tutorial_demo7.py` and `tests/mordred_memNICFour.py` respectively.
+### `repotest/` folder
 
-The `mordred.mordredNIC` subcomponent also works in the `networkIF` subcomponent slot of the `merlin.Bridge` component; see `tests/mordred_testBridge.py`.
+This folder is a sandbox for scripts and tests under development, performance comparisons, etc. No promises are made as to completeness or correctness. Most scripts are copy/edit variants of scripts from `tests/`.
 
-### Comments on the `repotest` folder
-This folder is a sandbox for scipts/tests under development, performance comparisons, etc.  Feel free to use anything in here, but no promises are made as to the completeness and correctness of any script.  Only a couple of unique scripts exist - most are copy/edit from one of the original ones.
+Two historical notes:
+- An early component `mordred.test_ep` served as a stand-in for `merlin.test_nic`. It has since been removed/replaced, so some older scripts in this folder may fail.
+- Several scripts reference `merlin.clocked_offered_load`, a local (non-upstreamed) component based on `merlin.offered_load` that generated traffic using a clock rate rather than a bandwidth parameter. Its behavior was equivalent to `merlin.offered_load` when `link_bw` was set to match the Mordred network's link bandwidth.
 
-In an early development stage, Mordred had a component named `mordred.test_ep` as a standin for `merlin.test_nic`; while the `test_ep` component has been removed/replaced by `test_nic`, some scripts may fail as not every script has been retested.
+### `sst_test_framework/` folder
 
-Numerous scripts in this folder also use a component named `merlin.clocked_offered_load` - this was a local component (not upstreamed) based on `merlin.offered_load` to test using a clock rate to generate traffic (rather than a bandwidth parameter).  The behavior between the `clocked_offered_load` component and `merlin.offered_load` was equivalent when setting the `link_bw` parameter to match the link bandwidth of the Mordred network.
+Contains files for executing the tests via the standard SST elements test framework.  Most of the documentation for this
+approach can be found [here](https://sst-simulator.org/sst-docs/docs/guides/dev/testframework).
 
-### Comments on the `sst_test_framework` folder
-This folder contains a collection of files that would be useful for executing the tests via the standard SST elements test framework.
+---
 
-## Usage/Assumptions/Etc
-Endpoints are expected to be connected to the local ports of the router; do not connect endpoints to the normal "routing" ports (for example, if doing a mesh, endpoints should be connected to port 4 or higher).
+## Components
 
-All routers should have the same number of local ports to ensure proper endpoint numbering.  Unconnected local ports are allowed.
+### Router: `mordred.mordred_router`
 
-### Mesh/2D Torus Topology
-For these topologies, $x = 0, y = 0$ is the bottom left corner of the network.  The router ID is calculated as $(y * xDim) + x$.  Router IDs are expected to increase linearly following this equation.
+The top-level SST component representing one router in the network. It owns the topology,
+per-port control subcomponents, a VC allocator, and a crossbar arbiter.
 
-### 3D Torus Topology
-This topology is an extension of the mesh/2D torus topology. The router ID is calculated as $(z * (xDim * yDim)) + (y * xDim) + x$. Router IDs are expected to increase linearly following this equation.
+**Parameters**
 
-### Flattened Butterfly Topology
-The FlattenedButterfly class in tests/flatbutterfly_k2n4_testnic.py will handle the naming and numbering of routers and endpoints.
+| Parameter        | Description                                        | Default |
+|------------------|----------------------------------------------------|---------|
+| `id`             | Router ID (must follow topology numbering)         | —       |
+| `clock`          | Clock frequency (e.g. `"1GHz"`)                   | —       |
+| `num_ports`      | Total number of ports (routing + local combined)   | —       |
+| `num_local_ports`| Number of ports connected to endpoints             | —       |
+| `num_vns`        | Number of virtual networks                         | —       |
+| `num_vcs`        | Virtual channels per VN                            | —       |
+| `flit_size`      | Flit width (e.g. `"16b"`, `"64b"`)                | —       |
+| `input_buf_size` | Per-VC input buffer size (e.g. `"8"` flits)        | —       |
+| `output_buf_size`| Per-VC output buffer size                          | —       |
+| `verbose`        | Verbosity level                                    | `0`     |
 
-## Notes on VN,VC
-In Merlin, the topology is what defines the number of VCs per VN - so this is a factor of the topology, not the router. Within the router, they sum the number of VCs across the VNs and use this value (num_vcs) when allocating data structures, etc.
+**Subcomponent slots**
 
-Here, most data structures are multi-dimensional arrays contained within a port (or within a per-port object) where one dimension is the number of VNs and another dimension is the number of VCs.
+| Slot           | API                       | Required |
+|----------------|---------------------------|----------|
+| `topology`     | `TopologyAPI`             | Yes      |
+| `portcontrol*` | `RtrPortControlAPI`       | Yes      |
+| `vcalloc`      | `VcAllocAPI`              | Yes      |
+| `xbarArb`      | `XbarArbAPI`              | Yes      |
 
-## Random commentary
-- Assuming 1 flit traverses the link at a time; see the channel_width branch for some initial support that modifies this (this branch is likely out of date)
-- Priority is completely unimplemented (may need to use VNs since SST::SimpleNetwork::Request does not have a priority field)
-- Additional topologies and arbitration methods can be added
-- Router latency is fixed
-- No maximum packet length (number of flits) set; packet to flit translation is happening only in MordredNIC and there is a minimum of 2 flits per packet
-- Continue to review timing of the router and its subcomponents
-- NetworkInspectors are not yet supported.
-- See comments towards top of MordredEvents.h for a description of the event types
-- The current design maintains a buffer on the output of router ports (currently have a small one per VN and VC)
-  - Do we want to have a configurable arbitration for which VN,VC gets access? Currently designed as round-robin
-  - In merlin, there is an OutputArbitration API class that is a member of the PortInterface (see comments in RtrPortControlAPI.h)
-- Buffers are all individualized per VN,VC - no sharing of buffer space
+---
 
-## Basic Software Architecture/Router Behavior
-The router owns a vector called perPortSharedObjs (one element per port) where each element is a RtrOwnedSharedObjs (in MordredEvents).
-The RtrOwnedSharedObjs contains a pair of 2D vectors: needVcAlloc and needSwitchAlloc.
+### Endpoint NIC: `mordred.mordredNIC`
 
-On a clock tick, the RtrPortControl will inspect the state of each VN, VC pair it owns.  If the flit in that pair needs an output VC
-the needVcAlloc for that VN, VC pair is marked.  The VC allocator can then identify and operate (however it would like) on any/all
-of the VN, VC pairs that need a VC allocation.  When the VC allocator has given an output VC for a given VN,VC pair, that entry in 
-needVcAlloc is cleared.  This allows for persistent requests across clock cycles.  Additionally, since the VC allocator will know
-all the packets that are ready for an allocation, it can operate at whatever level it desires (across ports, vns, vcs, etc).
+An `SST::Interfaces::SimpleNetwork` subcomponent that connects an endpoint (e.g.
+`merlin.test_nic`, `memHierarchy.MemNIC`) to a Mordred router over a raw SST link.
+Handles packet-to-flit fragmentation, credit-based flow control, and reassembly.
 
-We do a similar thing for the flits that are in need of switch allocation.
+Minimum packet size is 2 flits (one HEAD flit carrying the destination and a TAIL flit
+carrying the payload).
 
-Currently, the SimpleRtr performs a switch allocation on a per packet basis however, it should be able to handle doing allocations
-on a per clock tick basis (this should be tested).
+**Parameters**
 
-## Notes on the initialization process
+| Parameter        | Description                                              |
+|------------------|----------------------------------------------------------|
+| `clock`          | Interface clock frequency                                |
+| `input_buf_size` | Input buffer size in bits/bytes (SI prefix supported)    |
+| `output_buf_size`| Output buffer size                                       |
+| `verbose`        | Verbosity level                                          |
 
-Currently, the initialization procedure does not send any information "globally" to all routers/endpoints; the
-initialization is strictly done between the endpoint NIC (MordredNIC) and the port control of the router (RtrPortControl
-is the only one implemented).
+**Statistics:** `packets_recv`, `average_noc_latency`, `average_packet_size`
 
-Note to self: If there are no messages during a phase of init(), the init() process ends.
+---
 
-The table below outlines the current initialization process. The (s) notes a send, (r) notes a receive.
+### Endpoint NIC (PhysChannel-backed): `mordred.mordredNicPC`
 
-| Phase | MordredNIC                                        | RtrPortControl                                                                                                                                                          |
-|-------|---------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| 0     | (s) Report Endpoint                               | - (s) Report Router <br> - (s) Router ID <br> - (s) Port Number                                                                                                         |
-| 1     | - (r) Router report <br> - (r) Router ID <br> - (r) Port Number | (r) Connection type <br> - If Router <br>   - (r) Router ID <br>   - (r) Port Number <br> - Else (endpoint) <br> - (s) Num VNs <br> - (s) Num VCs <br> - (s) Flit Width |
-| 2     | - (r) Num VNs <br> - (r) Num VCs <br> - (r) Flit Width <br> | If connection_type = Endpoint <br> - (s) Endpoint ID                                                                                                                    |
-| 3     | (r) Endpoint ID                                   | IDLE (held for channel width setup if needed in the future)                                                                                                             |
-| 4     | Send credits                                      | Send credits                                                                                                                                                            |
-| 5+    | Receive Credits; enqueue anything else            | Receive Credits; enqueue anything else                                                                                                                                  |
+Identical external interface to `mordredNIC` but uses an inner `PhysChannelAPI`
+subcomponent (slot `port_iface`) instead of a raw SST link. This makes the physical
+transport between the NIC and router pluggable — swap in `prydwen.genericPhysChannel`
+for a simple raw-link transport, or `prydwen.uciePhysChannel` (from the prydwen repo)
+for a full UCIe adapter-layer transport.
+
+**Additional subcomponent slot**
+
+| Slot         | API              | Description                                     |
+|--------------|------------------|-------------------------------------------------|
+| `port_iface` | `PhysChannelAPI` | Physical channel to the router (e.g. `prydwen.genericPhysChannel`) |
+
+---
+
+### Test Endpoint: `mordred.mordredTestEP`
+
+A configurable traffic-generator component for mordred test scenarios that require
+`num_vns > 1`. `merlin.test_nic` and `merlin.trafficgen` both hardcode `num_vns=1`
+when loading their `networkIF` subcomponent, making them incompatible with
+`prydwen.uciePhysChannel` in `num_stacks=2` configuration. `mordredTestEP` accepts
+`num_vns` as an explicit parameter and correctly propagates it to the networkIF loader.
+
+Each endpoint sends `num_messages` messages, rotating through VNs 0..`num_vns-1` and
+cycling through destinations, then calls `primaryComponentOKToEndSim()`.
+
+**Parameters**
+
+| Parameter       | Description                                              | Default |
+|-----------------|----------------------------------------------------------|---------|
+| `id`            | Endpoint ID                                              | `0`     |
+| `num_peers`     | Total endpoints in the network                           | `1`     |
+| `num_vns`       | VNs to request from the `networkIF` subcomponent         | `1`     |
+| `num_messages`  | Total messages to send                                   | `10`    |
+| `message_size`  | Message size (UnitAlgebra; bits or bytes)                | `64b`   |
+| `clock`         | Clock frequency                                          | `1GHz`  |
+
+**Subcomponent slot:** `networkIF` — accepts any `SST::Interfaces::SimpleNetwork` implementation.
+
+---
+
+### Port Control: `mordred.rtrPortControl`
+
+Per-port subcomponent of `mordred_router`. Manages the raw SST link to the attached
+router or endpoint, input/output VC state machines, credit tracking, and flit
+buffering. Coordinates with the VC allocator and crossbar arbiter through shared
+per-router data structures.
+
+---
+
+### Port Control (PhysChannel-backed): `mordred.rtrPortControlPC`
+
+Same as `rtrPortControl` but uses a `PhysChannelAPI` subcomponent (slot `port_iface`)
+for the physical link, matching `mordredNicPC` on the endpoint side.
+
+---
+
+### Physical Channel API: `SST::Mordred::PhysChannelAPI`
+
+> **Moved to the [prydwen](../prydwen) repo.** Concrete implementations and the
+> abstract API now live in `prydwen/src/`. Mordred references `prydwen/src/` at
+> build time via `PRYDWEN_SRC_DIR` in `src/CMakeLists.txt`.
+
+Available implementations (registered in the prydwen element library):
+
+| SST name                   | Library  | Description                                              |
+|----------------------------|----------|----------------------------------------------------------|
+| `prydwen.genericPhysChannel` | prydwen | Raw `SST::Link` transport via `PhysChannelLinkEvent`     |
+| `prydwen.uciePhysChannel`   | prydwen | Full UCIe adapter-layer with FLIT serialization + credits |
+
+---
+
+## Topologies
+
+All topologies are subcomponents registered under the `TopologyAPI`. Endpoints must be
+connected to **local ports only** — do not connect endpoints to routing ports.
+
+All routers in a simulation should have the same number of local ports. Unconnected
+local ports are permitted.
+
+### 2D Mesh — `mordred.MeshTopology`
+
+Rectangular grid without wrap-around.
+
+Router ID = `(y × xDim) + x`, where `(x=0, y=0)` is the bottom-left corner.
+
+**Parameters:** `xDim`, `yDim`, `num_local_ports`, `num_vns`, `num_vcs`
+
+### 2D Torus — `mordred.torusTopo`
+
+Mesh with wrap-around in both dimensions. Requires at least 2 VCs per VN to avoid
+deadlock on larger networks.
+
+Router ID = `(y × xDim) + x`
+
+**Parameters:** `xDim`, `yDim`, `num_local_ports`, `num_vns`, `num_vcs`
+
+### 3D Torus — `mordred.torus3DTopo`
+
+Extension of the 2D torus with a Z dimension.
+
+Router ID = `(z × (xDim × yDim)) + (y × xDim) + x`
+
+**Parameters:** `xDim`, `yDim`, `zDim`, `num_local_ports`, `num_vns`, `num_vcs`
+
+### Flattened Butterfly — `mordred.flattenedButterfly`
+
+K-ary N-fly topology. A helper class in `tests/flatbutterfly_k2n4_testnic.py` handles
+router and endpoint naming/numbering.
+
+**Parameters:** `k`, `n`, `num_local_ports`, `num_vns`, `num_vcs`
+
+---
+
+## Allocators and Arbiters
+
+| Component              | SST name                  | Description                                   |
+|------------------------|---------------------------|-----------------------------------------------|
+| `VcAllocRR`            | `mordred.vcAllocRR`       | Round-robin virtual channel allocator         |
+| `XbarArbRR`            | `mordred.xbarArbRR`       | Round-robin crossbar arbitration              |
+
+---
+
+## Notes on VN and VC
+
+The topology defines the number of VCs per VN, so VC count is a topology-level property, not a router-level one. Inside the router, the total VC count (`num_vcs`) is the sum across all VNs. Most data structures are multi-dimensional arrays contained within a port (or a per-port object) where one dimension is the number of VNs and another is the number of VCs.
+
+---
+
+## Basic Software Architecture / Router Behavior
+
+The router owns a vector `perPortSharedObjs` (one element per port), where each element is a `RtrOwnedSharedObjs` (defined in `MordredEvents`). `RtrOwnedSharedObjs` contains a pair of 2D vectors: `needVcAlloc` and `needSwitchAlloc`.
+
+On each clock tick, `RtrPortControl` inspects the state of each (VN, VC) pair it owns. If the flit in a pair needs an output VC, `needVcAlloc` for that pair is marked. The VC allocator can then operate on any/all pairs that need allocation. When it grants an output VC, it clears `needVcAlloc` for that pair. This allows requests to persist across clock cycles, and lets the VC allocator reason about all pending requests simultaneously (across ports, VNs, and VCs).
+
+The same pattern applies for switch allocation via `needSwitchAlloc`.
+
+Currently `MordredRouter` performs switch allocation on a per-packet basis, but the design should support per-clock-tick allocation (this should be tested).
+
+---
+
+## Flow Control and Initialization
+
+Credits are exchanged during SST's `init()` phases before simulation begins. One credit
+represents one flit of buffer space. The initialization handshake runs strictly between
+each `MordredNIC` (or `MordredNicPC`) and the `RtrPortControl` (or `RtrPortControlPC`)
+of the directly connected router port; no global broadcast occurs.
+
+| Phase | MordredNIC                              | RtrPortControl                                                   |
+|-------|-----------------------------------------|------------------------------------------------------------------|
+| 0     | Send: report endpoint                   | Send: report router, router ID, port number                      |
+| 1     | Recv: router ID and port number         | Recv: connection type; if endpoint, send num VNs, num VCs, flit width |
+| 2     | Recv: num VNs, num VCs, flit width      | If endpoint: send endpoint ID                                    |
+| 3     | Recv: endpoint ID                       | Idle                                                             |
+| 4     | Exchange credits                        | Exchange credits                                                 |
+| 5+    | Receive credits; enqueue other events   | Receive credits; enqueue other events                            |
+
+---
+
+## Compatibility with Merlin
+
+`mordred.mordredNIC` fills the `SST::Interfaces::SimpleNetwork` subcomponent slot, so
+it works with any component that accepts a `SimpleNetwork` interface:
+
+- `merlin.test_nic` — general-purpose test endpoint
+- `memHierarchy.MemNIC` — see `tests/ipdps25tutorial_demo7.py`
+- `memHierarchy.MemNICFour` — see `tests/mordred_memNICFour.py`
+- `merlin.Bridge` — see `tests/mordred_testBridge.py`
+
+To replace a `merlin.hr_router` with a single-router deployment, use a 1×1 mesh
+topology. Links that previously connected to `hr_router` become links to the local
+ports of `mordred.mordred_router`.
+
+---
+
+## Tests
+
+Tests live in `tests/` and are run via `make test` from the build directory.
+
+**Standard tests** (always registered):
+
+| Test script                                  | Topology           | Notes                                                                  |
+|----------------------------------------------|--------------------|------------------------------------------------------------------------|
+| `mesh3x3_testnic.py`                         | 3×3 mesh           | Baseline: 1 VC, 1 VN, 16-bit flits, 1 local port per router           |
+| `mesh3x3_untimed_broadcast.py`               | 3×3 mesh           | `send_untimed_broadcast=true`; exercises `MeshTopology::routeUntimedBroadcastPacket` |
+| `mesh3x3_2local_testnic.py`                  | 3×3 mesh           | Concentration=2 (2 local ports per router); exercises non-zero `dest - endptZeroId` final-hop offset |
+| `mesh3x3_single_flit.py`                     | 3×3 mesh           | 1-flit request → 2-flit minimum packet; HEAD immediately followed by TAIL, empty body loop |
+| `mesh3x3_large_message.py`                   | 3×3 mesh           | 16-flit packets; stresses body-flit send loop and output-buffer backpressure |
+| `torus5x5_2vc_testnic.py`                    | 5×5 2D torus       | 2 VCs required for deadlock avoidance on 5×5                           |
+| `torus5x5_2vc_untimed_broadcast.py`          | 5×5 2D torus       | `send_untimed_broadcast=true`; exercises `TorusTopo::sendBroadcast` wrap-aware flood logic |
+| `torus5x5_3vc_testnic.py`                    | 5×5 2D torus       | 3 VCs; exercises `VcAllocRR` beyond the minimum deadlock-free VC count |
+| `torus3D_3x3x3_2vc_testnic.py`              | 3×3×3 3D torus     | 2 VCs                                                                  |
+| `torus3D_3x3x3_2vc_untimed_broadcast.py`    | 3×3×3 3D torus     | `send_untimed_broadcast=true`; exercises `Torus3DTopo::sendBroadcast` across 6 directions |
+| `flatbutterfly_k2n4_testnic.py`             | k=2, n=4 butterfly | —                                                                      |
+| `ipdps25tutorial_demo7.py`                  | Mesh               | `memHierarchy.MemNIC` integration                                      |
+| `mordred_memNICFour.py`                     | Mesh               | `memHierarchy.MemNICFour` integration                                  |
+| `mordred_testBridge.py`                     | Mesh               | `merlin.Bridge` integration                                            |
+
+**PhysChannel tests** (registered only when `MORDRED_ENABLE_PHYS_CHANNEL=ON`; require prydwen):
+
+| Test script                                  | Topology           | Transport                               |
+|----------------------------------------------|--------------------|-----------------------------------------|
+| `mesh2x1_rtrportcontrolpc.py`                | 2×1 mesh           | `prydwen.genericPhysChannel`            |
+| `mesh2x1_uciePhysChannel.py`                 | 2×1 mesh           | `prydwen.uciePhysChannel`               |
+| `mesh3x3_uciePhysChannel.py`                 | 3×3 mesh           | `prydwen.uciePhysChannel`               |
+| `flatbutterfly_k2n4_uciePhysChannel.py`      | k=2, n=4 butterfly | `prydwen.uciePhysChannel`               |
+| `torus5x5_2vc_uciePhysChannel.py`            | 5×5 2D torus       | `prydwen.uciePhysChannel`, 2 VCs        |
+| `torus5x5_3vc_uciePhysChannel.py`            | 5×5 2D torus       | `prydwen.uciePhysChannel`, 3 VCs        |
+| `torus5x5_4vc_uciePhysChannel.py`            | 5×5 2D torus       | `prydwen.uciePhysChannel`, 4 VCs        |
+| `torus3D_3x3x3_2vc_uciePhysChannel.py`      | 3×3×3 3D torus     | `prydwen.uciePhysChannel`, 2 VCs        |
+| `mesh2x1_uciePhysChannel_flit_format2.py`   | 2×1 mesh           | `prydwen.uciePhysChannel`, FLIT format 2 (68B/64B payload, 16 GT/s) |
+| `mesh3x3_uciePhysChannel_2module.py`        | 3×3 mesh           | `prydwen.uciePhysChannel`, 2 bonded modules |
+| `mesh3x3_uciePhysChannel_2stack.py`         | 3×3 mesh           | `prydwen.uciePhysChannel`, 2 UCIe stacks; uses `mordred.mordredTestEP` for multi-VN traffic |
+
+---
+
+## Notes and Limitations
+
+- **Priority:** Not implemented. Use VNs for traffic class separation (SST `SimpleNetwork::Request` has no priority field).
+- **Router latency:** Fixed; no configurable pipeline depth.
+- **Packet size:** No maximum enforced. Minimum is 2 flits (one HEAD + one TAIL), enforced at the NIC.
+- **Channel width:** Only one flit traverses a link per clock cycle. The `channel_width` branch has initial support for modifying this but is likely out of date.
+- **NetworkInspectors:** Not yet supported.
+- **Buffer allocation:** Buffers are fully segregated per (VN, VC) pair; no shared pool. The output buffer currently has a small buffer per (VN, VC). A configurable arbitration policy for which (VN, VC) gets access is not yet implemented; the current design is round-robin. See also the `OutputArbitration` API class in `RtrPortControlAPI.h`.
+- **Arbitration:** Round-robin only for both VC allocation and crossbar arbitration.
+- **Timing:** Router and subcomponent timing should continue to be reviewed.
+- **Routing:** Each topology implements its own routing; no general-purpose routing algorithm API.
+- **Broadcast/Multicast:** Not supported at simulation time. Untimed broadcast (SST init/complete phases) is supported and tested via the `*_untimed_broadcast` test scripts — each topology implements `routeUntimedBroadcastPacket` with its own flood logic.
+- **UCIe multi-stack (requires Prydwen) (`num_stacks=2`):** Tested via `mesh3x3_uciePhysChannel_2stack.py` using `mordred.mordredTestEP` with `num_vns=2`. `merlin.test_nic` and `merlin.trafficgen` cannot be used here: both hardcode `num_vns=1` when loading their `networkIF` subcomponent (trafficgen's `num_vns` parameter is documented but its value is ignored in the implementation), so `uciePhysChannel` always receives a VN count of 1 and rejects `num_vns_per_stack="1,1"` (total=2) as a mismatch. `mordredTestEP` was added to mordred specifically to support configurable `num_vns`.
+
+---
 
 ## Acknowledgments
 
-This work was supported by the U.S. Department of Energy, Office of Science, Advanced Scientific Computing Research program under project 84245—Democratization of Co-design for Energy-Efficient Heterogeneous Computing (DeCoDe) at Pacific Northwest National Laboratory (PNNL).  PNNL is a multi-program national laboratory operated for the U.S. Department of Energy (DOE) by Battelle Memorial Institute under Contract No. DE-AC05-76RL01830.
+This work was supported by the U.S. Department of Energy, Office of Science, Advanced
+Scientific Computing Research program under project 84245 — Democratization of
+Co-design for Energy-Efficient Heterogeneous Computing (DeCoDe) at Pacific Northwest
+National Laboratory (PNNL). PNNL is a multi-program national laboratory operated for
+the U.S. Department of Energy (DOE) by Battelle Memorial Institute under Contract No.
+DE-AC05-76RL01830.

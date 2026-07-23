@@ -91,6 +91,10 @@ if(NOT "${SST_MAJOR_VERSION}" STREQUAL "DEV")
   if(${SST_VERSION} VERSION_LESS "15.0")
     message(FATAL_ERROR "Mordred requires SST 15.0.0+")
   endif()
+  add_compile_definitions(SST_MAJOR_VERSION=${SST_MAJOR_VERSION})
+else()
+  # DEV builds track main and are assumed to be SST 16+
+  add_compile_definitions(SST_MAJOR_VERSION=16)
 endif()
 
 # Compiler Options
@@ -105,6 +109,11 @@ endif()
 set(CMAKE_CXX_FLAGS "-std=c++17 ${FP_MODE_FLAG} -O2 -Wall -Wextra -Wsuggest-override -Wmissing-noreturn -Wvla -Wuninitialized -Wdouble-promotion -Wsign-conversion -Wno-unused-parameter -Wno-deprecated-declarations -Wno-macro-redefined -Werror ${CMAKE_CXX_FLAGS} -I./ ${LDFLAGS}")
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 -Wall")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -Wall")
+
+# Build options
+option(MORDRED_ENABLE_PHYS_CHANNEL
+    "Build PhysChannel-backed components (RtrPortControlPC, MordredNicPC). Requires prydwen."
+    ON)
 
 # Turn on testing
 enable_testing()

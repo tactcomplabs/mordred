@@ -2,8 +2,10 @@
 *.so
 *.exe
 build/*
+build-*
 *.dylib
 *.dot
 *.pdf
 *.csv
 __pycache__/
+Testing/
