@@ -61,7 +61,7 @@ TorusTopo::TorusTopo(
 }
 
 void TorusTopo::init( uint32_t phase ) {
-  output->verbose( CALL_INFO, MORDRED_VERBOSE_HIGH, 0, "TorusTopo::init(%" PRIu32 ")\n", phase );
+  output->verbose( CALL_INFO, MORDRED_VERBOSE_HIGH, DEBUG_INIT_PHASE, "TorusTopo::init(%" PRIu32 ")\n", phase );
   output->flush();
   if( phase != 3 )
     return;

@@ -18,6 +18,6 @@ MordredNIC::MordredNIC( ComponentId_t cid, Params& params, int vns )
   if( !link )
     output->fatal( CALL_INFO, -1, "Failed to initialize link\n" );
 
-  output->verbose( CALL_INFO, MORDRED_VERBOSE_MED, 0, "MordredNIC constructed\n" );
+  output->verbose( CALL_INFO, MORDRED_VERBOSE_MIN, 0, "MordredNIC constructed\n" );
   output->flush();
 }

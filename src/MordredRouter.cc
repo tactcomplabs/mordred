@@ -117,7 +117,7 @@ MordredRouter::MordredRouter( ComponentId_t cid, Params& params ) : Component( c
 
   output.verbose(
     CALL_INFO,
-    MORDRED_VERBOSE_MED,
+    MORDRED_VERBOSE_MIN,
     0,
     "Constructor complete for %s. local_ports=%" PRIu32 "; rtr_ports=%" PRIu32 "\n",
     getName().c_str(),
@@ -136,7 +136,7 @@ MordredRouter::~MordredRouter() {
 }
 
 void MordredRouter::init( uint32_t phase ) {
-  output.verbose( CALL_INFO, MORDRED_VERBOSE_HIGH, 0, "MordredRouter::init(%" PRIu32 ")\n", phase );
+  output.verbose( CALL_INFO, MORDRED_VERBOSE_HIGH, DEBUG_INIT_PHASE, "MordredRouter::init(%" PRIu32 ")\n", phase );
   output.flush();
 
   topology->init( phase );
