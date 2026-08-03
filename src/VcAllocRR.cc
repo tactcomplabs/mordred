@@ -29,7 +29,7 @@ void VcAllocRR::arbitrate( std::vector<RtrPortControlAPI*>& ports, std::vector<R
     MordredFlit* flit       = findMappableFlit( &shared_obj );
     if( flit != nullptr ) {
       auto& input_port   = ports[portnum];
-      auto  dest_portnum = input_port->getDestPort( src_vn, src_vc );
+      auto  dest_portnum = input_port->getDestPort( src_vn, src_vc ); // HERE
       if( ( dest_portnum >= numPorts ) || ( ports.at( dest_portnum ) == nullptr ) )
         output->fatal(
           CALL_INFO, -1, "Invalid out_port=%" PRIu32 "; invalid packet dest=%" PRIu64 "?\n", dest_portnum, flit->req->dest

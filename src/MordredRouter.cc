@@ -25,8 +25,6 @@ MordredRouter::MordredRouter( ComponentId_t cid, Params& params ) : Component( c
   // Initialize the output handler
   output.init( "MordredRouter[" + getName() + ":@p:@t]: ", Verbosity, 0, SST::Output::STDOUT );
 
-  //output.setVerboseMask( DEBUG_INIT_PHASE );
-
   id = params.find<uint32_t>( "id", UINT32_MAX );
   if( id == UINT32_MAX ) {
     output.fatal( CALL_INFO, -1, "MordredRouter requires id to be specified\n" );
@@ -136,7 +134,7 @@ MordredRouter::~MordredRouter() {
 }
 
 void MordredRouter::init( uint32_t phase ) {
-  output.verbose( CALL_INFO, MORDRED_VERBOSE_HIGH, DEBUG_INIT_PHASE, "MordredRouter::init(%" PRIu32 ")\n", phase );
+  output.verbose( CALL_INFO, MORDRED_VERBOSE_HIGH, 0, "MordredRouter::init(%" PRIu32 ")\n", phase );
   output.flush();
 
   topology->init( phase );
@@ -165,7 +163,7 @@ void MordredRouter::init( uint32_t phase ) {
     if( phase >= 4 ) {
       Event* ev = port->recvUntimedData();
       while( ev != nullptr ) {
-        output.verbose( CALL_INFO, MORDRED_VERBOSE_MED, DEBUG_INIT_PHASE, "Received untimed data packet\n" );
+        output.verbose( CALL_INFO, MORDRED_VERBOSE_MED, 0, "Received untimed data packet\n" );
         auto init_ev = static_cast<MordredInitEvent*>( ev );
         if( init_ev->req->dest == Interfaces::SimpleNetwork::INIT_BROADCAST_ADDR ) {
           std::vector<Event*> out_events( numPorts, nullptr );
@@ -179,7 +177,7 @@ void MordredRouter::init( uint32_t phase ) {
           output.verbose(
             CALL_INFO,
             MORDRED_VERBOSE_MED,
-            DEBUG_INIT_PHASE,
+            0,
             "Determined route of untimed data packet; dest=%" PRId64 ", dest_port=%u\n",
             init_ev->req->dest,
             dest_port

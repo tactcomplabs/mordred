@@ -45,7 +45,7 @@ MordredNicBase::MordredNicBase( ComponentId_t cid, Params& params, int vns, cons
 void MordredNicBase::init( uint32_t phase ) {
   transportInit( phase );
 
-  output->verbose( CALL_INFO, MORDRED_VERBOSE_MED, DEBUG_INIT_PHASE, "START init phase=%" PRIu32 "\n", phase );
+  output->verbose( CALL_INFO, MORDRED_VERBOSE_MED, 0, "START init phase=%" PRIu32 "\n", phase );
 
   switch( phase ) {
   case 0: {
@@ -69,7 +69,7 @@ void MordredNicBase::init( uint32_t phase ) {
     delete init_ev;
 
     output->verbose(
-      CALL_INFO, MORDRED_VERBOSE_MED, DEBUG_INIT_PHASE,
+      CALL_INFO, MORDRED_VERBOSE_MED, 0,
       "Phase 1: [Rtr.Port]=[%" PRIu32 ".%" PRIu32 "]\n", rtrId, rtrPort
     );
     break;
@@ -91,7 +91,7 @@ void MordredNicBase::init( uint32_t phase ) {
     delete init_ev;
 
     output->verbose(
-      CALL_INFO, MORDRED_VERBOSE_MED, DEBUG_INIT_PHASE,
+      CALL_INFO, MORDRED_VERBOSE_MED, 0,
       "Phase 2: numVNs=%" PRIu32 ", numVCs=%" PRIu32 ", flit_width=%" PRIu32 "\n",
       numVns, numVcs, flitSize
     );
@@ -103,7 +103,7 @@ void MordredNicBase::init( uint32_t phase ) {
     auto* init_ev = getInitEvent( MordredInitEvent::ENDPOINT_ID );
     netID         = static_cast<nid_t>( init_ev->value );
     initialized   = true;
-    output->verbose( CALL_INFO, MORDRED_VERBOSE_MED, DEBUG_INIT_PHASE,
+    output->verbose( CALL_INFO, MORDRED_VERBOSE_MED, 0,
                      "Phase 3: endpoint id = %" PRId64 "\n", netID );
     delete init_ev;
 
@@ -142,7 +142,7 @@ void MordredNicBase::init( uint32_t phase ) {
   }
   }
 
-  output->verbose( CALL_INFO, MORDRED_VERBOSE_MED, DEBUG_INIT_PHASE, "END init phase=%" PRIu32 "\n", phase );
+  output->verbose( CALL_INFO, MORDRED_VERBOSE_MED, 0, "END init phase=%" PRIu32 "\n", phase );
   output->flush();
 }
 

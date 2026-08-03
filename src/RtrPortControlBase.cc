@@ -172,7 +172,7 @@ void RtrPortControlBase::init( unsigned int phase ) {
       auto* ev_port   = getInitEvent( MordredInitEvent::PORT_NUM );
       connectedPortId = ev_port->value;
       output->verbose(
-        CALL_INFO, MORDRED_VERBOSE_MED, DEBUG_INIT_PHASE, "Received init from [Rtr.Port]=[%" PRIu32 ".%" PRIu32 "]\n",
+        CALL_INFO, MORDRED_VERBOSE_MED, 0, "Received init from [Rtr.Port]=[%" PRIu32 ".%" PRIu32 "]\n",
         connectedRtrId, connectedPortId
       );
       delete ev_port;
@@ -192,7 +192,7 @@ void RtrPortControlBase::init( unsigned int phase ) {
       ev->value   = flitSize;
       transportSendUntimedData( ev );
 
-      output->verbose( CALL_INFO, MORDRED_VERBOSE_MED, DEBUG_INIT_PHASE, "Sent VNS/VCS/flit_size to endpoint\n" );
+      output->verbose( CALL_INFO, MORDRED_VERBOSE_MED, 0, "Sent VNS/VCS/flit_size to endpoint\n" );
     }
     break;
   }
@@ -226,7 +226,7 @@ void RtrPortControlBase::init( unsigned int phase ) {
         auto* credit_ev = static_cast<MordredCreditEvent*>( ev );
         outStateVec.at( credit_ev->vn ).at( credit_ev->vc ).destCredits += credit_ev->credits;
         output->verbose(
-          CALL_INFO, MORDRED_VERBOSE_MED, DEBUG_INIT_PHASE, "Received credit vn=%d, vc=%d, credits=%d\n",
+          CALL_INFO, MORDRED_VERBOSE_MED, 0, "Received credit vn=%d, vc=%d, credits=%d\n",
           credit_ev->vn, credit_ev->vc, credit_ev->credits
         );
         delete ev;
@@ -240,7 +240,7 @@ void RtrPortControlBase::init( unsigned int phase ) {
     break;
   }
   }
-  output->verbose( CALL_INFO, MORDRED_VERBOSE_MED, DEBUG_INIT_PHASE, "END init phase=%" PRIu32 "\n", phase );
+  output->verbose( CALL_INFO, MORDRED_VERBOSE_MED, 0, "END init phase=%" PRIu32 "\n", phase );
   output->flush();
 }
 

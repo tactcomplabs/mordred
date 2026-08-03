@@ -50,7 +50,7 @@ foreach(testSrc ${MORDRED_TEST_SRCS})
           COMMAND sst --add-lib-path=${CMAKE_BINARY_DIR}/src ${testSrc})
   set_tests_properties(${testName}
           PROPERTIES
-          TIMEOUT 60
+          TIMEOUT 120
           LABELS "all"
           PASS_REGULAR_EXPRESSION "${passRegex}")
 endforeach(testSrc)

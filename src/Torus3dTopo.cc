@@ -76,7 +76,7 @@ Torus3DTopo::Torus3DTopo(
 }
 
 void Torus3DTopo::init( uint32_t phase ) {
-  output->verbose( CALL_INFO, MORDRED_VERBOSE_HIGH, DEBUG_INIT_PHASE,
+  output->verbose( CALL_INFO, MORDRED_VERBOSE_HIGH, 0,
                    "Torus3DTopo::init(%" PRIu32 ")\n", phase );
   output->flush();
   if( phase != 3 )
