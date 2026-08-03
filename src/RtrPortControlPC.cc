@@ -30,7 +30,7 @@ RtrPortControlPC::RtrPortControlPC(
   );
 
   output->verbose(
-    CALL_INFO, 1, 0,
+    CALL_INFO, MORDRED_VERBOSE_MIN, 0,
     "Constructor complete; [Rtr.Port]=[%" PRIu32 ".%" PRIu32 "], inbuf=%" PRIu32 "b, outbuf=%" PRIu32 "b\n",
     rtrId, portId, inBufSize, outBufSize
   );

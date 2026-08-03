@@ -31,7 +31,7 @@ RtrPortControlBase::RtrPortControlBase(
     rtrId( rtr_num ),
     portId( port_num ),
     rtrSharedObjs( rtr_shared_objs ) {
-  const auto verbosity = params.find<uint32_t>( "verbose", 5 );
+  const auto verbosity = params.find<uint32_t>( "verbose", MORDRED_VERBOSE_MED );
   output               = new Output(
     std::string( class_name ) + "[[" + std::to_string( rtrId ) + "." + std::to_string( portId ) + "]:@p:@t]: ",
     verbosity, 0, Output::STDOUT
@@ -172,7 +172,7 @@ void RtrPortControlBase::init( unsigned int phase ) {
       auto* ev_port   = getInitEvent( MordredInitEvent::PORT_NUM );
       connectedPortId = ev_port->value;
       output->verbose(
-        CALL_INFO, 5, DEBUG_INIT_PHASE, "Received init from [Rtr.Port]=[%" PRIu32 ".%" PRIu32 "]\n",
+        CALL_INFO, MORDRED_VERBOSE_MED, DEBUG_INIT_PHASE, "Received init from [Rtr.Port]=[%" PRIu32 ".%" PRIu32 "]\n",
         connectedRtrId, connectedPortId
       );
       delete ev_port;
@@ -192,7 +192,7 @@ void RtrPortControlBase::init( unsigned int phase ) {
       ev->value   = flitSize;
       transportSendUntimedData( ev );
 
-      output->verbose( CALL_INFO, 5, DEBUG_INIT_PHASE, "Sent VNS/VCS/flit_size to endpoint\n" );
+      output->verbose( CALL_INFO, MORDRED_VERBOSE_MED, DEBUG_INIT_PHASE, "Sent VNS/VCS/flit_size to endpoint\n" );
     }
     break;
   }
@@ -226,21 +226,21 @@ void RtrPortControlBase::init( unsigned int phase ) {
         auto* credit_ev = static_cast<MordredCreditEvent*>( ev );
         outStateVec.at( credit_ev->vn ).at( credit_ev->vc ).destCredits += credit_ev->credits;
         output->verbose(
-          CALL_INFO, 5, DEBUG_INIT_PHASE, "Received credit vn=%d, vc=%d, credits=%d\n",
+          CALL_INFO, MORDRED_VERBOSE_MED, DEBUG_INIT_PHASE, "Received credit vn=%d, vc=%d, credits=%d\n",
           credit_ev->vn, credit_ev->vc, credit_ev->credits
         );
         delete ev;
       } else if( base_ev->getType() == baseMordredEvent::PACKET ) {
         initEvents.push( ev );
       } else {
-        output->verbose( CALL_INFO, 5, 0, "Unexpected event type=%d in init\n", (int) base_ev->getType() );
+        output->verbose( CALL_INFO, MORDRED_VERBOSE_MED, 0, "Unexpected event type=%d in init\n", (int) base_ev->getType() );
         delete ev;
       }
     }
     break;
   }
   }
-  output->verbose( CALL_INFO, 5, DEBUG_INIT_PHASE, "END init phase=%" PRIu32 "\n", phase );
+  output->verbose( CALL_INFO, MORDRED_VERBOSE_MED, DEBUG_INIT_PHASE, "END init phase=%" PRIu32 "\n", phase );
   output->flush();
 }
 
@@ -261,7 +261,7 @@ void RtrPortControlBase::complete( unsigned int phase ) {
     } else if( base_ev->getType() == baseMordredEvent::PACKET ) {
       initEvents.push( ev );
     } else {
-      output->verbose( CALL_INFO, 5, 0, "Unexpected event type=%d in complete\n", (int) base_ev->getType() );
+      output->verbose( CALL_INFO, MORDRED_VERBOSE_MED, 0, "Unexpected event type=%d in complete\n", (int) base_ev->getType() );
       delete ev;
     }
   }

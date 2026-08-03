@@ -56,6 +56,14 @@ namespace SST::Mordred {
 constexpr uint32_t DEBUG_CONSTRUCTORS = ( 1UL << 0 );
 constexpr uint32_t DEBUG_INIT_PHASE   = ( 1UL << 1 );
 
+// -- Verbosity Constants
+#define MORDRED_VERBOSE_NONE  0
+#define MORDRED_VERBOSE_MIN   1
+#define MORDRED_VERBOSE_LOW   2
+#define MORDRED_VERBOSE_MED   5
+#define MORDRED_VERBOSE_HIGH  8
+#define MORDRED_VERBOSE_ALL   10
+
 // TODO: Add a mask for debugging credits
 
 // This is a very simple event being sent by the TestEP.

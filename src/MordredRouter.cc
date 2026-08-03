@@ -21,9 +21,10 @@ using namespace SST::Mordred;
 
 MordredRouter::MordredRouter( ComponentId_t cid, Params& params ) : Component( cid ) {
 
-  auto Verbosity = params.find<uint32_t>( "verbose", 5 );
+  auto Verbosity = params.find<uint32_t>( "verbose", MORDRED_VERBOSE_MED );
   // Initialize the output handler
   output.init( "MordredRouter[" + getName() + ":@p:@t]: ", Verbosity, 0, SST::Output::STDOUT );
+
   //output.setVerboseMask( DEBUG_INIT_PHASE );
 
   id = params.find<uint32_t>( "id", UINT32_MAX );
@@ -85,7 +86,7 @@ MordredRouter::MordredRouter( ComponentId_t cid, Params& params ) : Component( c
         i
       );
     } else {
-      output.verbose( CALL_INFO, 5, 0, "Port %u (%s) unconnected\n", i, linkname.c_str() );
+      output.verbose( CALL_INFO, MORDRED_VERBOSE_MED, 0, "Port %u (%s) unconnected\n", i, linkname.c_str() );
     }
 
     portsVec.push_back( pc );
@@ -116,7 +117,7 @@ MordredRouter::MordredRouter( ComponentId_t cid, Params& params ) : Component( c
 
   output.verbose(
     CALL_INFO,
-    5,
+    MORDRED_VERBOSE_MED,
     0,
     "Constructor complete for %s. local_ports=%" PRIu32 "; rtr_ports=%" PRIu32 "\n",
     getName().c_str(),
@@ -135,8 +136,8 @@ MordredRouter::~MordredRouter() {
 }
 
 void MordredRouter::init( uint32_t phase ) {
-  //output.verbose( CALL_INFO, 5, 0, "MordredRouter::init(%" PRIu32 ")\n", phase );
-  //output.flush();
+  output.verbose( CALL_INFO, MORDRED_VERBOSE_HIGH, 0, "MordredRouter::init(%" PRIu32 ")\n", phase );
+  output.flush();
 
   topology->init( phase );
   vcAlloc->init( phase );
@@ -164,7 +165,7 @@ void MordredRouter::init( uint32_t phase ) {
     if( phase >= 4 ) {
       Event* ev = port->recvUntimedData();
       while( ev != nullptr ) {
-        output.verbose( CALL_INFO, 5, DEBUG_INIT_PHASE, "Received untimed data packet\n" );
+        output.verbose( CALL_INFO, MORDRED_VERBOSE_MED, DEBUG_INIT_PHASE, "Received untimed data packet\n" );
         auto init_ev = static_cast<MordredInitEvent*>( ev );
         if( init_ev->req->dest == Interfaces::SimpleNetwork::INIT_BROADCAST_ADDR ) {
           std::vector<Event*> out_events( numPorts, nullptr );
@@ -177,7 +178,7 @@ void MordredRouter::init( uint32_t phase ) {
           auto dest_port = topology->routePacket( init_ev->req->dest );
           output.verbose(
             CALL_INFO,
-            5,
+            MORDRED_VERBOSE_MED,
             DEBUG_INIT_PHASE,
             "Determined route of untimed data packet; dest=%" PRId64 ", dest_port=%u\n",
             init_ev->req->dest,
@@ -192,8 +193,8 @@ void MordredRouter::init( uint32_t phase ) {
 }
 
 void MordredRouter::setup() {
-  //output.verbose(CALL_INFO, 5, 0, "MordredRouter::setup\n");
-  //output.flush();
+  output.verbose(CALL_INFO, MORDRED_VERBOSE_HIGH, 0, "MordredRouter::setup\n");
+  output.flush();
 
   topology->setup();
   vcAlloc->setup();
@@ -204,8 +205,8 @@ void MordredRouter::setup() {
 }
 
 void MordredRouter::complete( uint32_t phase ) {
-  //output.verbose(CALL_INFO, 5, 0, "MordredRouter::complete(%" PRIu32 ")\n", phase);
-  //output.flush();
+  output.verbose(CALL_INFO, MORDRED_VERBOSE_HIGH, 0, "MordredRouter::complete(%" PRIu32 ")\n", phase);
+  output.flush();
 
   topology->complete( phase );
   vcAlloc->complete( phase );
@@ -236,8 +237,8 @@ void MordredRouter::complete( uint32_t phase ) {
 }
 
 void MordredRouter::finish() {
-  //output.verbose(CALL_INFO, 5, 0, "MordredRouter::finish\n");
-  //output.flush();
+  output.verbose(CALL_INFO, MORDRED_VERBOSE_HIGH, 0, "MordredRouter::finish\n");
+  output.flush();
   topology->finish();
   vcAlloc->finish();
   arbiter->finish();
@@ -304,12 +305,12 @@ bool MordredRouter::clockTick( Cycle_t cycle ) {
       // The switch allocation could be done more frequently than on a packet basis
       portsVec.at( sending_port )->resetSwitchSendAllocation();
       portsVec.at( i )->resetSwitchRecvAllocation();
-      //output.verbose( CALL_INFO, 3, 0, "Tail flit %s observed\n", flit->pktIdStr().c_str() );
+      output.verbose( CALL_INFO, MORDRED_VERBOSE_HIGH, 0, "Tail flit %s observed\n", flit->pktIdStr().c_str() );
     }
   }
 
-  //output.verbose( CALL_INFO, 3, 0, "Cycle=%" PRIu64 "\n", cycle );
-  //output.flush();
+  output.verbose( CALL_INFO, MORDRED_VERBOSE_HIGH, 0, "Cycle=%" PRIu64 "\n", cycle );
+  output.flush();
   arbiter->arbitrate( portsVec, perPortSharedObjs );
 
   vcAlloc->arbitrate( portsVec, perPortSharedObjs );

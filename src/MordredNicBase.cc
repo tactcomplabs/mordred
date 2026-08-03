@@ -16,7 +16,7 @@ using namespace SST::Mordred;
 
 MordredNicBase::MordredNicBase( ComponentId_t cid, Params& params, int vns, const char* class_name )
     : SimpleNetwork( cid ) {
-  const auto verbosity = params.find<uint32_t>( "verbose", 5 );
+  const auto verbosity = params.find<uint32_t>( "verbose", MORDRED_VERBOSE_MED );
   output = new SST::Output( std::string( class_name ) + "[" + getName() + ":@p:@t]: ", verbosity, 0, Output::STDOUT );
 
   inbufSize = params.find<UnitAlgebra>( "input_buf_size", "1kiB" );
@@ -45,7 +45,7 @@ MordredNicBase::MordredNicBase( ComponentId_t cid, Params& params, int vns, cons
 void MordredNicBase::init( uint32_t phase ) {
   transportInit( phase );
 
-  output->verbose( CALL_INFO, 5, DEBUG_INIT_PHASE, "START init phase=%" PRIu32 "\n", phase );
+  output->verbose( CALL_INFO, MORDRED_VERBOSE_MED, DEBUG_INIT_PHASE, "START init phase=%" PRIu32 "\n", phase );
 
   switch( phase ) {
   case 0: {
@@ -69,7 +69,8 @@ void MordredNicBase::init( uint32_t phase ) {
     delete init_ev;
 
     output->verbose(
-      CALL_INFO, 5, DEBUG_INIT_PHASE, "Phase 1: [Rtr.Port]=[%" PRIu32 ".%" PRIu32 "]\n", rtrId, rtrPort
+      CALL_INFO, MORDRED_VERBOSE_MED, DEBUG_INIT_PHASE,
+      "Phase 1: [Rtr.Port]=[%" PRIu32 ".%" PRIu32 "]\n", rtrId, rtrPort
     );
     break;
   }
@@ -90,7 +91,7 @@ void MordredNicBase::init( uint32_t phase ) {
     delete init_ev;
 
     output->verbose(
-      CALL_INFO, 5, DEBUG_INIT_PHASE,
+      CALL_INFO, MORDRED_VERBOSE_MED, DEBUG_INIT_PHASE,
       "Phase 2: numVNs=%" PRIu32 ", numVCs=%" PRIu32 ", flit_width=%" PRIu32 "\n",
       numVns, numVcs, flitSize
     );
@@ -102,7 +103,8 @@ void MordredNicBase::init( uint32_t phase ) {
     auto* init_ev = getInitEvent( MordredInitEvent::ENDPOINT_ID );
     netID         = static_cast<nid_t>( init_ev->value );
     initialized   = true;
-    output->verbose( CALL_INFO, 5, DEBUG_INIT_PHASE, "Phase 3: endpoint id = %" PRId64 "\n", netID );
+    output->verbose( CALL_INFO, MORDRED_VERBOSE_MED, DEBUG_INIT_PHASE,
+                     "Phase 3: endpoint id = %" PRId64 "\n", netID );
     delete init_ev;
 
     const auto credits = static_cast<int32_t>( inbufSize.getRoundedValue() / flitSize );
@@ -124,7 +126,7 @@ void MordredNicBase::init( uint32_t phase ) {
         auto* credit_ev = static_cast<MordredCreditEvent*>( ev );
         rtrCredits.at( credit_ev->vn ) += credit_ev->credits;
         output->verbose(
-          CALL_INFO, 5, 0,
+          CALL_INFO, MORDRED_VERBOSE_MED, 0,
           "Received credit vn=%" PRIu32 ", credits=%" PRId32 "; cur=%" PRId32 "\n",
           credit_ev->vn, credit_ev->credits, rtrCredits.at( credit_ev->vn )
         );
@@ -132,7 +134,7 @@ void MordredNicBase::init( uint32_t phase ) {
       } else if( base_ev->getType() == baseMordredEvent::PACKET ) {
         initEvents.push( static_cast<MordredInitEvent*>( ev ) );
       } else {
-        output->verbose( CALL_INFO, 5, 0, "Unexpected event type=%d in init\n", (int) base_ev->getType() );
+        output->verbose( CALL_INFO, MORDRED_VERBOSE_MED, 0, "Unexpected event type=%d in init\n", (int) base_ev->getType() );
         delete ev;
       }
     }
@@ -140,7 +142,7 @@ void MordredNicBase::init( uint32_t phase ) {
   }
   }
 
-  output->verbose( CALL_INFO, 5, DEBUG_INIT_PHASE, "END init phase=%" PRIu32 "\n", phase );
+  output->verbose( CALL_INFO, MORDRED_VERBOSE_MED, DEBUG_INIT_PHASE, "END init phase=%" PRIu32 "\n", phase );
   output->flush();
 }
 
@@ -161,7 +163,9 @@ void MordredNicBase::complete( uint32_t phase ) {
     } else if( base_ev->getType() == baseMordredEvent::PACKET ) {
       initEvents.push( static_cast<MordredInitEvent*>( ev ) );
     } else {
-      output->verbose( CALL_INFO, 5, 0, "Unexpected event type=%d in complete\n", (int) base_ev->getType() );
+      output->verbose( CALL_INFO, MORDRED_VERBOSE_MED, 0,
+                       "Unexpected event type=%d in complete\n",
+                       (int) base_ev->getType() );
       delete ev;
     }
   }
@@ -305,7 +309,7 @@ bool MordredNicBase::clockTick( Cycle_t cycle ) {
       outbufCredits.at( vn )++;
 
       output->verbose(
-        CALL_INFO, 7, 0, "Sent flit %s at cycle=%" PRIu64 "; rtrCredits=%" PRId32 "\n",
+        CALL_INFO, MORDRED_VERBOSE_HIGH, 0, "Sent flit %s at cycle=%" PRIu64 "; rtrCredits=%" PRId32 "\n",
         flit_dbg.c_str(), cycle, rtrCredits.at( vn )
       );
       output->flush();
@@ -335,7 +339,8 @@ void MordredNicBase::processIncomingEvent( SST::Event* ev ) {
       output->fatal( CALL_INFO, -1, "Unsupported vn=%u\n", credit->vn );
     rtrCredits.at( credit->vn ) += credit->credits;
     output->verbose(
-      CALL_INFO, 7, 0, "Received %" PRId32 " credits for vn=%" PRIu32 ", cur=%" PRId32 "\n",
+      CALL_INFO, MORDRED_VERBOSE_HIGH, 0,
+      "Received %" PRId32 " credits for vn=%" PRIu32 ", cur=%" PRId32 "\n",
       credit->credits, credit->vn, rtrCredits.at( credit->vn )
     );
     delete bev;
