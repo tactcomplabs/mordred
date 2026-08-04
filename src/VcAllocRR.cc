@@ -30,10 +30,19 @@ void VcAllocRR::arbitrate( std::vector<RtrPortControlAPI*>& ports, std::vector<R
     if( flit != nullptr ) {
       auto& input_port   = ports[portnum];
       auto  dest_portnum = input_port->getDestPort( src_vn, src_vc ); // HERE
-      if( ( dest_portnum >= numPorts ) || ( ports.at( dest_portnum ) == nullptr ) )
+
+      // validate the port numbers
+      if( dest_portnum >= numPorts ){
         output->fatal(
-          CALL_INFO, -1, "Invalid out_port=%" PRIu32 "; invalid packet dest=%" PRIu64 "?\n", dest_portnum, flit->req->dest
+          CALL_INFO, -1, "Invalid out_port=%" PRIu32 "; portnum >= numPorts(%" PRIu32 ")\n",
+          dest_portnum, numPorts );
+      }else if( ports.at( dest_portnum ) == nullptr ){
+        output->fatal(
+          CALL_INFO, -1,
+          "Invalid out_port=%" PRIu32 "; invalid packet dest=%" PRIu64 "?\n", dest_portnum, flit->req->dest
         );
+      }
+
       auto dest_vc = findDestVc( ports.at( dest_portnum ), portnum, dest_portnum );
       if( dest_vc != UINT32_MAX ) {
         input_port->inUnitSetDestVc( src_vn, src_vc, dest_vc );
