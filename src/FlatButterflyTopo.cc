@@ -30,7 +30,7 @@ FlatButterflyTopo::FlatButterflyTopo(
 )
   : TopologyAPI( id ), rtrId( rtr_id ), numPorts( num_ports ), numLocalPorts( num_local_ports ),
     numRtrPorts( num_ports - num_local_ports ), perPortConnectedRtr( connected_ports ) {
-  const auto verbosity = params.find<uint32_t>( "verbose", 5 );
+  const auto verbosity = params.find<uint32_t>( "verbose", MORDRED_VERBOSE_MED );
   output               = new Output( "FlatButterflyTopo [" + getName() + ":@p:@t]:", verbosity, 0, Output::STDOUT );
 
   k                    = params.find<uint32_t>( "k", UINT32_MAX );
@@ -50,7 +50,7 @@ FlatButterflyTopo::FlatButterflyTopo(
 
   output->verbose(
     CALL_INFO,
-    1,
+    MORDRED_VERBOSE_MIN,
     0,
     "FlatButterflyTopo constructed; rtr_id=%" PRIu32 ", base_endpt=%" PRIu32 ", num_ports=%" PRIu32 ", local_ports=%" PRIu32 "\n",
     rtrId,
@@ -58,11 +58,10 @@ FlatButterflyTopo::FlatButterflyTopo(
     numPorts,
     numLocalPorts
   );
-#if 0
+
   for ( uint32_t i = 0; i < n; i++ ) {
-    output->verbose( CALL_INFO, 5, 0, "myAddress[%" PRIu32 "] = %" PRIu32 "\n", i, myAddress.at( i ) );
+    output->verbose( CALL_INFO, MORDRED_VERBOSE_ALL, 0, "myAddress[%" PRIu32 "] = %" PRIu32 "\n", i, myAddress.at( i ) );
   }
-#endif
 }
 
 void FlatButterflyTopo::init( uint32_t phase ) {
@@ -112,9 +111,10 @@ uint32_t FlatButterflyTopo::routePacket( uint32_t dest ) {
   // If so, we return local output port
   if( isLocalAddr( dest_addr ) ) {
     dest_port = numRtrPorts + dest_addr[0];
-    //output->verbose( CALL_INFO, 5, 0, "Found local delivery; dest=%" PRIu32 ", outport=%" PRIu32 "\n",
-    //  dest, dest_port);
-    //output->flush();
+    output->verbose( CALL_INFO, MORDRED_VERBOSE_HIGH, 0,
+                     "Found local delivery; dest=%" PRIu32 ", outport=%" PRIu32 "\n",
+                     dest, dest_port);
+    output->flush();
     return dest_port;
   }
 
@@ -125,8 +125,8 @@ uint32_t FlatButterflyTopo::routePacket( uint32_t dest ) {
     if( perPortConnectedRtr->at( i ) == UINT32_MAX )
       continue;
     distances.at( i ) = calcDist( i, dest_addr );
-    //output->verbose( CALL_INFO, 5, 0, "Distance[%" PRIu32 "] = %" PRIu32 "\n", i, distances.at(i) );
-    //output->flush();
+    output->verbose( CALL_INFO, MORDRED_VERBOSE_HIGH, 0, "Distance[%" PRIu32 "] = %" PRIu32 "\n", i, distances.at(i) );
+    output->flush();
   }
 
   // At this point, the distances vector has how many digits differ between the destination endpt and

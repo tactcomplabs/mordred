@@ -22,7 +22,7 @@ using namespace SST::Mordred;
 
 XbarArbRR::XbarArbRR( ComponentId_t id, Params& params, uint32_t rtr_id, uint32_t num_ports, uint32_t num_vns, uint32_t num_vcs )
   : XbarArbAPI( id ), rtrId( rtr_id ), numPorts( num_ports ), numVns( num_vns ), numVcs( num_vcs ) {
-  const auto verbosity = params.find<uint32_t>( "verbose", 5 );
+  const auto verbosity = params.find<uint32_t>( "verbose", MORDRED_VERBOSE_MED );
   output               = new Output( "ArbRR[[" + std::to_string( rtrId ) + "]:@p:@t]: ", verbosity, 0, Output::STDOUT );
 
   resetSendingVnVc();
@@ -50,9 +50,10 @@ void XbarArbRR::arbitrate( std::vector<RtrPortControlAPI*>& ports, std::vector<R
         auto dest_vc = ports.at( sendportnum )->getDestVc( sending_vn, sending_vc );
         ports.at( rcvportnum )->recvAllocateFromSwitch( sendportnum, sending_vn, dest_vc );
         rtr_shared_objs.at( sendportnum ).needSwitchAlloc.at( sending_vn ).at( sending_vc ) = nullptr;
-        //output->verbose( CALL_INFO, 5, 0, "SwitchArb flit [Port:VN:VC] from [%" PRIu32 ":%" PRIu32 ":%" PRIu32 "] to [%" PRIu32 ":%" PRIu32 ":%" PRIu32 "]\n",
-        //  sendportnum, sending_vn, sending_vc, rcvportnum, sending_vn, dest_vc);
-        //output->flush();
+        output->verbose( CALL_INFO, MORDRED_VERBOSE_HIGH, 0,
+                         "SwitchArb flit [Port:VN:VC] from [%" PRIu32 ":%" PRIu32 ":%" PRIu32 "] to [%" PRIu32 ":%" PRIu32 ":%" PRIu32 "]\n",
+                         sendportnum, sending_vn, sending_vc, rcvportnum, sending_vn, dest_vc);
+        output->flush();
         resetSendingVnVc();
         break;  // found a matching sender, no need to do another one
       }
@@ -71,8 +72,10 @@ bool XbarArbRR::findSendableFlit( uint32_t rcvportnum, RtrPortControlAPI*& sendp
       if( shared_obj.needSwitchAlloc.at( vn ).at( vc ) != nullptr ) {
         if( rcvportnum == sendport->getDestPort( vn, vc ) ) {
           // We have a winner!
-          //output->verbose( CALL_INFO, 5, 0, "Flit %s wins the switch\n", shared_obj.needSwitchAlloc.at(vn).at(vc)->pktIdStr().c_str() );
-          //output->flush();
+          output->verbose( CALL_INFO, MORDRED_VERBOSE_HIGH, 0,
+                           "Flit %s wins the switch\n",
+                           shared_obj.needSwitchAlloc.at(vn).at(vc)->pktIdStr().c_str() );
+          output->flush();
           sending_vn = vn;
           sending_vc = vc;
           return true;

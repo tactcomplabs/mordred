@@ -30,7 +30,7 @@ MeshTopology::MeshTopology(
 )
   : TopologyAPI( id ), rtrId( rtr_id ), endptZeroId( rtr_id * num_local_ports ), numPorts( num_ports ),
     numLocalPorts( num_local_ports ), perPortConnectedRtr( connected_ports ) {
-  const auto verbosity = params.find<uint32_t>( "verbose", 5 );
+  const auto verbosity = params.find<uint32_t>( "verbose", MORDRED_VERBOSE_MED );
   output               = new Output( "MeshTopology [" + getName() + ":@p:@t]:", verbosity, 0, Output::STDOUT );
 
   // Process and validate input parameters
@@ -48,7 +48,7 @@ MeshTopology::MeshTopology(
 
   output->verbose(
     CALL_INFO,
-    1,
+    MORDRED_VERBOSE_MIN,
     0,
     "MeshTopology constructed; rtr_id=%" PRIu32 ", num_ports=%" PRIu32 ", local_ports=%" PRIu32 "\n",
     rtrId,
@@ -59,7 +59,9 @@ MeshTopology::MeshTopology(
 
 void MeshTopology::setup() {
   for( uint32_t i = 0; i < numPorts; ++i ) {
-    output->verbose( CALL_INFO, 7, 0, "perPortConnectedRtr[%" PRIu32 "]=%" PRIu32 "\n", i, perPortConnectedRtr->at( i ) );
+    output->verbose( CALL_INFO, MORDRED_VERBOSE_HIGH, 0,
+                     "perPortConnectedRtr[%" PRIu32 "]=%" PRIu32 "\n",
+                     i, perPortConnectedRtr->at( i ) );
   }
 }
 
@@ -79,9 +81,10 @@ uint32_t MeshTopology::routePacket( uint32_t dest ) {
     uint32_t dest_x = dest_rtr_id % xDim;
     uint32_t dest_y = dest_rtr_id / xDim;
 
-    //output->verbose( CALL_INFO, 5, 0, "Routing: dest=%" PRIu32 ", dest_rtr_id=%" PRIu32 ", dest_x=%" PRIu32 ", dest_y=%" PRIu32 "\n",
-    //  dest, dest_rtr_id, dest_x, dest_y );
-    //output->flush();
+    output->verbose( CALL_INFO, MORDRED_VERBOSE_HIGH, 0,
+                     "Routing: dest=%" PRIu32 ", dest_rtr_id=%" PRIu32 ", dest_x=%" PRIu32 ", dest_y=%" PRIu32 "\n",
+                     dest, dest_rtr_id, dest_x, dest_y );
+    output->flush();
 
     // Currently just going along x until we hit the proper y
     // then we'll route along the y.

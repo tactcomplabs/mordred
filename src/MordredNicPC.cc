@@ -29,7 +29,7 @@ MordredNicPC::MordredNicPC( ComponentId_t cid, Params& params, int vns )
     new Prydwen::PhysChannelAPI::Handler2<MordredNicPC, &MordredNicPC::onReceive>( this )
   );
 
-  output->verbose( CALL_INFO, 5, 0, "MordredNicPC constructed\n" );
+  output->verbose( CALL_INFO, MORDRED_VERBOSE_MIN, 0, "MordredNicPC constructed\n" );
 }
 
 bool MordredNicPC::onReceive( int sn_vn ) {

@@ -30,7 +30,7 @@ Torus3DTopo::Torus3DTopo(
 )
   : TopologyAPI( id ), rtrId( rtr_id ), endptZeroId( rtr_id * num_local_ports ), numPorts( num_ports ),
     numLocalPorts( num_local_ports ), perPortConnectedRtr( connected_ports ) {
-  const auto verbosity = params.find<uint32_t>( "verbose", 5 );
+  const auto verbosity = params.find<uint32_t>( "verbose", MORDRED_VERBOSE_MED );
   output               = new Output( "Torus3DTopo [" + getName() + ":@p:@t]:", verbosity, 0, Output::STDOUT );
 
   // Process and validate input parameters
@@ -65,19 +65,20 @@ Torus3DTopo::Torus3DTopo(
 
   output->verbose(
     CALL_INFO,
-    1,
+    MORDRED_VERBOSE_MIN,
     0,
     "Torus3DTopo constructed; rtr_id=%" PRIu32 ", num_ports=%" PRIu32 ", local_ports=%" PRIu32 "\n",
     rtr_id,
     numPorts,
     numLocalPorts
   );
-  output->verbose( CALL_INFO, 1, 0, "\t xId=%" PRIu32 ", yId=%" PRIu32 ", zId=%" PRIu32 "\n", xId, yId, zId );
+  output->verbose( CALL_INFO, MORDRED_VERBOSE_MIN, 0, "\t xId=%" PRIu32 ", yId=%" PRIu32 ", zId=%" PRIu32 "\n", xId, yId, zId );
 }
 
 void Torus3DTopo::init( uint32_t phase ) {
-  //output->verbose( CALL_INFO, 5, 0, "Torus3DTopo::init(%" PRIu32 ")\n", phase );
-  //output->flush();
+  output->verbose( CALL_INFO, MORDRED_VERBOSE_HIGH, 0,
+                   "Torus3DTopo::init(%" PRIu32 ")\n", phase );
+  output->flush();
   if( phase != 3 )
     return;
   // Verify that every rtr-rtr port is connected
@@ -88,11 +89,11 @@ void Torus3DTopo::init( uint32_t phase ) {
 }
 
 void Torus3DTopo::setup() {
-#if 0
   for (uint32_t i = 0; i < numPorts; ++i) {
-    output->verbose( CALL_INFO, 5, 0, "perPortConnectedRtr[%" PRIu32 "]=%" PRIu32 "\n", i, perPortConnectedRtr->at(i) );
+    output->verbose( CALL_INFO, MORDRED_VERBOSE_HIGH, 0,
+                     "perPortConnectedRtr[%" PRIu32 "]=%" PRIu32 "\n",
+                     i, perPortConnectedRtr->at(i) );
   }
-#endif
 }
 
 int32_t Torus3DTopo::getEndpointId( uint32_t portnum ) {
@@ -161,7 +162,7 @@ uint32_t Torus3DTopo::routePacket( uint32_t dest ) {
         outport = PortDirE::MINUSZ;
     }
     output->verbose(
-      CALL_INFO, 5, 0, "Routing: dest_rtr_id=%" PRIu32 ", outport=%" PRIu32 "\n", orig_dest_rtr_id, (uint32_t) outport
+      CALL_INFO, MORDRED_VERBOSE_MED, 0, "Routing: dest_rtr_id=%" PRIu32 ", outport=%" PRIu32 "\n", orig_dest_rtr_id, (uint32_t) outport
     );
     output->flush();
     return outport;
@@ -174,8 +175,8 @@ uint32_t Torus3DTopo::routePacket( uint32_t dest ) {
     output->fatal(
       CALL_INFO, -1, "Error! Invalid destination for packet; numPorts=%" PRIu32 ", dest_port=%" PRIu32 "\n", numPorts, dest_port
     );
-  //output->verbose( CALL_INFO, 5, 0, "Local packet; dest_port=%" PRIu32 "\n", dest_port);
-  //output->flush();
+  output->verbose( CALL_INFO, MORDRED_VERBOSE_MED, 0, "Local packet; dest_port=%" PRIu32 "\n", dest_port);
+  output->flush();
   return dest_port;
 }
 
