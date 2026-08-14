@@ -35,13 +35,14 @@ testname = "mesh2x1_ucie_rtrlink_testnic"
 MAXV         = 10  # MORDRED_VERBOSE_ALL (see MordredEvents.h)
 clk          = UnitAlgebra("1GHz")
 clk_pd       = clk.invert()
-link_latency = UnitAlgebra(0.8) * clk_pd
+noc_link_latency = UnitAlgebra(0.8) * clk_pd
 flit_size    = UnitAlgebra("16b")
 num_vns      = 1
 num_vcs      = 1
+ucie_link_latency = "2ns"
 
 UCIeParams = {
-    "link_latency"      : "2ns",
+    "link_latency"      : ucie_link_latency,
     "num_stacks"        : 1,
     "num_vns_per_stack" : "1",
     "credits_per_vn"    : "32",
@@ -112,9 +113,9 @@ pif_1 = pc_1.setSubComponent("port_iface", "prydwen.uciePhysChannel", 0)
 pif_1.addParams(UCIeParams)
 pif_1.addParams({"port_name": "port3", "endpoint_id": 11})
 
-rtr_link = sst.Link("link_rtr0_rtr1")
-rtr_0.addLink(rtr_link, "port1", link_latency)
-rtr_1.addLink(rtr_link, "port3", link_latency)
+rtr_link = sst.Link("link_rtr0_rtr1", ucie_link_latency)
+rtr_0.addLink(rtr_link, "port1")
+rtr_1.addLink(rtr_link, "port3")
 
 # ---- Endpoint 0 on rtr_0_0 : plain mordredNIC, no portcontrol subcomponent ----
 # (router falls back to an anonymous mordred.rtrPortControl on port4 since no
@@ -127,8 +128,8 @@ ep0_iface = ep0.setSubComponent("networkIF", "mordred.mordredNIC")
 ep0_iface.addParams(MordredNICParams)
 
 ep0_link = sst.Link("link_ep0_rtr0")
-rtr_0.addLink(ep0_link, "port4", link_latency)
-ep0_iface.addLink(ep0_link, "port", link_latency)
+rtr_0.addLink(ep0_link, "port4", noc_link_latency)
+ep0_iface.addLink(ep0_link, "port", noc_link_latency)
 
 # ---- Endpoint 1 on rtr_1_0 : plain mordredNIC, no portcontrol subcomponent ----
 
@@ -139,8 +140,8 @@ ep1_iface = ep1.setSubComponent("networkIF", "mordred.mordredNIC")
 ep1_iface.addParams(MordredNICParams)
 
 ep1_link = sst.Link("link_ep1_rtr1")
-rtr_1.addLink(ep1_link, "port4", link_latency)
-ep1_iface.addLink(ep1_link, "port", link_latency)
+rtr_1.addLink(ep1_link, "port4", noc_link_latency)
+ep1_iface.addLink(ep1_link, "port", noc_link_latency)
 
 # ---- Statistics ----
 

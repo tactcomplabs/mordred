@@ -45,6 +45,9 @@ bool RtrPortControlPC::onReceive( int sn_vn ) {
     if( base && base->getType() == baseMordredEvent::CREDIT ) {
       processIncomingEvent( ev );
     } else {
+      output->verbose( CALL_INFO, MORDRED_VERBOSE_HIGH, 0,
+                         "Flit %s received\n",
+                         ((MordredFlit*)base)->pktIdStr().c_str() );
       pendingFlits_.push_back( ev );
     }
   }
