@@ -28,7 +28,7 @@ GatewayTopology::GatewayTopology(
   uint32_t               num_local_ports,
   std::vector<uint32_t>* connected_ports
 )
-  : TopologyAPI( id ), rtrId( rtr_id ), numLocalPorts( num_local_ports ) {
+  : TopologyAPI( id ), rtrId( rtr_id ), numLocalPorts( num_local_ports ), perPortConnectedRtr( connected_ports ) {
   const auto verbosity = params.find<uint32_t>( "verbose", MORDRED_VERBOSE_MED );
   output               = new Output( "GatewayTopology [" + getName() + ":@p:@t]:", verbosity, 0, Output::STDOUT );
 
@@ -54,6 +54,18 @@ GatewayTopology::GatewayTopology(
     gatewayPort = params.find<uint32_t>( "gateway_port", UINT32_MAX );
     if( gatewayPort == UINT32_MAX )
       output->fatal( CALL_INFO, -1, "GatewayTopology: gateway router (rtr_id=%" PRIu32 ") requires gateway_port\n", rtrId );
+
+    // routeUntimedBroadcastPacket() relies on gatewayPort being exactly the
+    // one extra, additive port beyond what the inner topology knows about
+    // (see its use of "gatewayPort" as an out-of-range sentinel) -- enforce
+    // that here rather than let a misconfigured gateway_port silently
+    // corrupt the inner topology's own local-port bookkeeping.
+    if( gatewayPort != num_ports - 1 )
+      output->fatal( CALL_INFO, -1,
+        "GatewayTopology: gateway_port (%" PRIu32 ") must be the last port index (num_ports-1=%" PRIu32
+        ") -- it must be an extra, additive port, never a repurposed cardinal/local one\n",
+        gatewayPort, num_ports - 1 );
+
     inner_num_ports = num_ports - 1;
   }
 
@@ -122,7 +134,36 @@ uint32_t GatewayTopology::routePacket( uint32_t dest ) {
 void GatewayTopology::routeUntimedBroadcastPacket(
   uint32_t receive_port_id, MordredInitEvent* init_ev, std::vector<Event*>& output_events
 ) {
+  if( amGateway && ( receive_port_id == gatewayPort ) ) {
+    // Arrived from the other domain via the cross-domain link -- flood this
+    // ENTIRE domain as if it originated at one of my own local endpoints.
+    // "gatewayPort" doubles as the sentinel here: it is guaranteed to be
+    // >= the inner topology's own local-port range (gatewayPort == the
+    // inner topology's own numPorts, by the gateway_port == num_ports-1
+    // check in the constructor) yet never equal to any of its real port
+    // indices, so the inner topology's "send to all local endpoints except
+    // sender" exclusion never matches a real port -- every real local
+    // endpoint in this domain still gets the broadcast -- while its
+    // "receive_port_id >= <cardinal-port-count>" check still correctly
+    // treats this as an endpoint-style injection, flooding all cardinal
+    // directions too.
+    inner->routeUntimedBroadcastPacket( gatewayPort, init_ev, output_events );
+    return;  // never bounce it back out the gateway
+  }
+
   inner->routeUntimedBroadcastPacket( receive_port_id, init_ev, output_events );
+
+  if( amGateway && ( perPortConnectedRtr->at( gatewayPort ) != UINT32_MAX ) ) {
+    // This broadcast is circulating in MY domain -- whether it originated at
+    // one of my own local endpoints or is arriving from a neighboring router
+    // as part of the normal intra-domain flood -- and hasn't been seen on
+    // the far side yet (that case returned above). Relay it across so the
+    // other domain gets it too. A given broadcast can only reach this
+    // router once via the intra-domain flood (each inner topology's flood
+    // algorithm is a spanning tree over its own mesh/torus/etc.), so this
+    // fires exactly once per distinct broadcast, not once per hop.
+    output_events.at( gatewayPort ) = init_ev->clone();
+  }
 }
 
 bool GatewayTopology::isWrapAroundOutput( uint32_t output_port ) const {

@@ -98,9 +98,10 @@ public:
   /// Get the output port for a packet
   uint32_t routePacket( uint32_t dest ) final;
 
-  /// Do routing for untimed packets; delegates to the inner topology unchanged.
-  /// TODO(broadcast-across-gateway): broadcasts do not currently cross the
-  /// gateway -- fine as long as send_untimed_broadcast stays disabled.
+  /// Do routing for untimed broadcast packets. Delegates to the inner
+  /// topology for intra-domain flooding; on the gateway router, additionally
+  /// relays every broadcast across the cross-domain link -- except the one
+  /// just received FROM that link, so it never bounces back.
   void routeUntimedBroadcastPacket( uint32_t receive_port_id, MordredInitEvent* ev, std::vector<Event*>& output_events ) final;
 
   /// Pass through to the inner topology; the gateway port itself is never a wraparound link.
@@ -120,6 +121,7 @@ public:
     SST_SER( localRangeSize );
     SST_SER( gatewayPort );
     SST_SER( amGateway );
+    SST_SER( perPortConnectedRtr );
   }
 
   /// serialization implementations
@@ -138,6 +140,10 @@ private:
   uint32_t localRangeSize;
   uint32_t gatewayPort{ 0 };
   bool     amGateway{ false };
+
+  // Needed to check whether the gateway port is actually wired before
+  // relaying a broadcast out it (see routeUntimedBroadcastPacket()).
+  std::vector<uint32_t>* perPortConnectedRtr;
 };
 
 }  // namespace SST::Mordred
