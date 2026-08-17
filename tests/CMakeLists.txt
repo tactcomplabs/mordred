@@ -40,6 +40,7 @@ if(MORDRED_ENABLE_PHYS_CHANNEL)
     mesh3x3_uciePhysChannel_large_message_lowcredits.py
     mesh2x1_ucie_rtrlink_testnic.py
     mesh4x2_ucie_rtrlink_testnic.py
+    mesh2x2_gateway_ucie_testnic.py
   )
 endif()
 

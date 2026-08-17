@@ -17,6 +17,8 @@ set(MordredSrcs
         TopologyAPI.h
         MeshTopology.h
         MeshTopology.cc
+        GatewayTopology.h
+        GatewayTopology.cc
         RtrPortControlAPI.h
         RtrPortControlBase.h
         RtrPortControlBase.cc
