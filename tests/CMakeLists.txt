@@ -42,6 +42,7 @@ if(MORDRED_ENABLE_PHYS_CHANNEL)
     mesh4x2_ucie_rtrlink_testnic.py
     mesh2x2_gateway_ucie_testnic.py
     mesh2x2_gateway_untimed_broadcast.py
+    torus3D_3x3x3_2vc_gateway_ucie_testnic.py
   )
 endif()
 
