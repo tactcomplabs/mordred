@@ -101,6 +101,27 @@ GatewayTopology::GatewayTopology(
   for( size_t i = 0; i < remote_id_bases.size(); i++ )
     remoteRoutes.push_back( RemoteRoute{ remote_id_bases[i], remote_range_sizes[i], remote_gateway_rtr_ids[i], remote_gateway_ports[i] } );
 
+  // Not fatal: an intentionally isolated domain (no cross-domain links at
+  // all) is a legitimate configuration, and none of the four remote_*
+  // params have a meaningful required value to enforce the way
+  // local_range_size does. But an EMPTY remote_id_bases is also exactly
+  // what a forgotten/mis-wired remotes list looks like, and unlike a
+  // missing required param, nothing catches that at construction time --
+  // routePacket() only finds out the hard way, via its generic "no
+  // matching remote entry" fatal, whenever something eventually tries to
+  // reach a domain this router doesn't know about (which may be
+  // immediately, much later, or never, depending on traffic patterns).
+  // output() (not verbose()) so this is visible regardless of verbosity.
+  if( remoteRoutes.empty() )
+    output->output(
+      CALL_INFO,
+      "WARNING: GatewayTopology on rtr_id=%" PRIu32 " (id_base=%" PRIu32 ") has no remote_* entries configured -- "
+      "every destination outside [%" PRIu32 ", %" PRIu32 ") will fatal in routePacket() the first time something "
+      "tries to reach it. Fine for an intentionally isolated domain; otherwise check that "
+      "remote_id_bases/remote_range_sizes/remote_gateway_rtr_ids/remote_gateway_ports were actually populated.\n",
+      rtrId, idBase, idBase, idBase + localRangeSize
+    );
+
   // Distinct physical ports this router itself hosts. Several remote routes
   // can name the same gateway_rtr_id/gateway_port -- e.g. in a chain A-B-C,
   // A has separate entries for B's range and C's range, but both point at
