@@ -203,6 +203,12 @@ bool MordredNicBase::send( Request* req, int vn ) {
     return false;
   outbufCredits.at( u_vn ) -= num_flits;
 
+#if 0
+  req->setTraceType( Request::FULL );
+  int trace_id = (int)((netID * 1000) + (nid_t)packetId);
+  req->setTraceID( trace_id );
+#endif
+
   const auto u_num_flits = static_cast<uint32_t>( num_flits );
   // req* is borrowed by all flits — it is not owned by any flit. Ownership
   // transfers to the receiver: on TAIL arrival processIncomingEvent() moves req

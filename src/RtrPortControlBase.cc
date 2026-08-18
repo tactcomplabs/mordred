@@ -340,6 +340,9 @@ void RtrPortControlBase::ClockTick( Cycle_t cycle ) {
           }
         }
 
+        output->verbose( CALL_INFO, MORDRED_VERBOSE_HIGH, 0,
+                         "Flit %s going to transport layer\n",
+                         flit->pktIdStr().c_str() );
         transportSendFlit( flit, vn );
         sent = true;
         break;
@@ -413,6 +416,9 @@ void RtrPortControlBase::recvOutBufFlit( MordredFlit* flit ) {
   auto& out    = outStateVec.at( switch_alloc_rcvto_vn ).at( switch_alloc_rcvto_vc );
   out.outBuf.push( flit );
   out.outBufCredits--;
+  output->verbose( CALL_INFO, MORDRED_VERBOSE_HIGH, 0,
+                           "Flit %s pushed to output buffer\n",
+                           flit->pktIdStr().c_str() );
 }
 
 MordredInitEvent* RtrPortControlBase::getInitEvent( MordredInitEvent::Commands cmd ) {

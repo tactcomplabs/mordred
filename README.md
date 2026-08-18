@@ -233,6 +233,60 @@ router and endpoint naming/numbering.
 
 **Parameters:** `k`, `n`, `num_local_ports`, `num_vns`, `num_vcs`
 
+### Cross-Domain Gateway — `mordred.GatewayTopology`
+
+Decorates any other `TopologyAPI` implementation (`MeshTopology`, `torusTopo`,
+`torus3DTopo`, `flattenedButterfly`) to join two or more independently-addressed
+topology **domains** into one shared global id space — e.g. two meshes joined by a
+single UCIe link, a mesh and a torus, or three domains laid out as a triangle or
+chain. Each domain owns a contiguous slice `[id_base, id_base+local_range_size)`;
+parallel `remote_*` lists describe every other domain directly reachable from here and
+which local router+port reaches it. A destination outside a router's own slice is
+matched against these entries and redirected toward that entry's gateway router,
+which alone forwards it out an extra, additive port — never a repurposed
+cardinal/wraparound port, since several inner topologies (`torusTopo`, `torus3DTopo`)
+fatal in `init()` if any of their own router-router ports is left unconnected.
+
+This also gives multi-hop transit for free, with no address translation: a domain
+that isn't directly linked to some other domain can still reach it by naming that
+domain's range with a `gateway_rtr_id`/`gateway_port` pointed at whichever neighbor
+*is* directly linked. Routing is purely dest-based at every hop, so the neighbor
+forwards the packet on using its own accurate, direct entry, with no awareness the
+packet actually originated further away.
+
+Untimed broadcasts relay the same way — out every gateway port a router hosts except
+the one the broadcast just arrived from — made cycle-safe by a domain-wide (not
+per-router) dedup keyed by `id_base`. This is needed because a domain graph with a
+cycle (e.g. a triangle) can enter the same domain via two different physical gateway
+routers, each its own `GatewayTopology` instance with no other shared state.
+
+**Parameters**
+
+| Parameter               | Description                                                                          | Default |
+|-------------------------|----------------------------------------------------------------------------------------|---------|
+| `id_base`               | Offset of this domain's slice in the shared global id space                            | `0`     |
+| `local_range_size`      | Total endpoints this domain's inner topology owns (e.g. `xDim*yDim*num_local_ports`)   | —       |
+| `remote_id_bases`       | Comma-separated `id_base` of each directly-reachable remote domain                     | `""`    |
+| `remote_range_sizes`    | Comma-separated size of each remote domain (parallel to `remote_id_bases`)              | `""`    |
+| `remote_gateway_rtr_ids`| Comma-separated LOCAL `rtr_id` of the gateway router to each remote domain              | `""`    |
+| `remote_gateway_ports`  | Comma-separated port index the gateway router uses for each remote domain's link       | `""`    |
+| `verbose`               | Verbosity level                                                                         | `5`     |
+
+**Subcomponent slot:** `inner_topology` — the real `TopologyAPI` being wrapped.
+
+**Known limitations:**
+- Broadcast relay reaches every domain reachable via some path of directly-linked
+  gateways; the dedup state that makes this cycle-safe is a plain static map (not an
+  SST SharedObject), so it is not rank-safe (MPI) and not checkpointed.
+- A router's gateway ports must be the trailing contiguous block of its port indices
+  (enforced with a fatal at construction if misconfigured).
+
+See `tests/mesh2x2_gateway_ucie_testnic.py` (two meshes), `tests/torus3D_3x3x3_2vc_gateway_ucie_testnic.py`
+(two tori), `tests/mesh2x2_triangle_gateway_ucie_testnic.py` (three domains, fully
+connected), and `tests/mesh2x2_chain_gateway_ucie_testnic.py` (three domains,
+multi-hop transit, no direct link between the two end domains) for worked examples,
+plus their `*_untimed_broadcast` counterparts.
+
 ---
 
 ## Allocators and Arbiters
@@ -334,6 +388,15 @@ Tests live in `tests/` and are run via `make test` from the build directory.
 | `mesh2x1_uciePhysChannel_flit_format2.py`   | 2×1 mesh           | `prydwen.uciePhysChannel`, FLIT format 2 (68B/64B payload, 16 GT/s) |
 | `mesh3x3_uciePhysChannel_2module.py`        | 3×3 mesh           | `prydwen.uciePhysChannel`, 2 bonded modules |
 | `mesh3x3_uciePhysChannel_2stack.py`         | 3×3 mesh           | `prydwen.uciePhysChannel`, 2 UCIe stacks; uses `mordred.mordredTestEP` for multi-VN traffic |
+| `mesh2x1_ucie_rtrlink_testnic.py`           | 2×1 mesh           | `prydwen.uciePhysChannel` isolated to the router-router link only; both endpoints use plain `mordredNIC` (no UCIe on the endpoint hop) |
+| `mesh4x2_ucie_rtrlink_testnic.py`           | 4×2 mesh           | Same idea, scaled to a 2×2 mesh on each side of the single UCIe link (plus one necessary plain boundary link, since the two halves are one unified `MeshTopology`) |
+| `mesh2x2_gateway_ucie_testnic.py`           | Two 2×2 meshes     | `mordred.GatewayTopology`; single UCIe link carries 100% of cross-mesh traffic (no second boundary link needed, since the two meshes are independently addressed) |
+| `mesh2x2_gateway_untimed_broadcast.py`      | Two 2×2 meshes     | Same, with `send_untimed_broadcast=true` |
+| `torus3D_3x3x3_2vc_gateway_ucie_testnic.py` | Two 3×3×3 3D tori  | `GatewayTopology` wrapping `torus3DTopo`; gateway router gets a genuinely additive port, never a repurposed wraparound link |
+| `mesh2x2_triangle_gateway_ucie_testnic.py`  | Three 2×2 meshes   | `GatewayTopology`; fully-connected triangle (each domain has 2 gateway routers, one per edge) |
+| `mesh2x2_triangle_gateway_untimed_broadcast.py` | Three 2×2 meshes | Triangle + broadcast; exercises the domain-wide, cycle-safe dedup |
+| `mesh2x2_chain_gateway_ucie_testnic.py`     | Three 2×2 meshes   | `GatewayTopology`; A-B-C chain with no direct A-C link — A and C reach each other via multi-hop transit through B, using only configuration (aggregated `remote_*` routes), no address translation |
+| `mesh2x2_chain_gateway_untimed_broadcast.py`| Three 2×2 meshes   | Chain + broadcast; exercises multi-hop broadcast relay through the middle domain |
 
 ---
 
@@ -348,7 +411,7 @@ Tests live in `tests/` and are run via `make test` from the build directory.
 - **Arbitration:** Round-robin only for both VC allocation and crossbar arbitration.
 - **Timing:** Router and subcomponent timing should continue to be reviewed.
 - **Routing:** Each topology implements its own routing; no general-purpose routing algorithm API.
-- **Broadcast/Multicast:** Not supported at simulation time. Untimed broadcast (SST init/complete phases) is supported and tested via the `*_untimed_broadcast` test scripts — each topology implements `routeUntimedBroadcastPacket` with its own flood logic.
+- **Broadcast/Multicast:** Not supported at simulation time. Untimed broadcast (SST init/complete phases) is supported and tested via the `*_untimed_broadcast` test scripts — each topology implements `routeUntimedBroadcastPacket` with its own flood logic. Across `GatewayTopology`-joined domains, broadcasts relay through the domain graph (multi-hop, cycle-safe — see [Cross-Domain Gateway](#cross-domain-gateway--mordredgatewaytopology)) as long as every domain that needs the broadcast is reachable via directly-linked gateways.
 - **UCIe multi-stack (requires Prydwen) (`num_stacks=2`):** Tested via `mesh3x3_uciePhysChannel_2stack.py` using `mordred.mordredTestEP` with `num_vns=2`. `merlin.test_nic` and `merlin.trafficgen` cannot be used here: both hardcode `num_vns=1` when loading their `networkIF` subcomponent (trafficgen's `num_vns` parameter is documented but its value is ignored in the implementation), so `uciePhysChannel` always receives a VN count of 1 and rejects `num_vns_per_stack="1,1"` (total=2) as a mismatch. `mordredTestEP` was added to mordred specifically to support configurable `num_vns`.
 
 ---
