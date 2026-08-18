@@ -27,26 +27,48 @@ namespace SST::Mordred {
  * GatewayTopology — decorates any TopologyAPI implementation (Mesh, Torus2d,
  * Torus3d, FlatButterfly, ...) with cross-domain gateway redirection.
  *
- * Two or more independently-addressed topology domains (e.g. two meshes,
- * or a mesh and a torus) can be joined by a single router-router link if
- * every router in each domain loads GatewayTopology as its "topology"
- * subcomponent, wrapping that domain's real topology in the "inner_topology"
- * slot. Each domain owns a contiguous slice [id_base, id_base+local_range_size)
- * of one shared global id space; a destination outside that slice is
- * "foreign" and gets redirected toward the domain's one designated gateway
- * router, which forwards it out its own extra, dedicated port unchanged
- * (no address translation — the dest field is already globally meaningful).
+ * Two or more independently-addressed topology domains (e.g. meshes, tori,
+ * or a mix) can be joined -- not just pairwise, but in any graph among
+ * domains (a triangle of three domains each linked to the other two, a
+ * star, a chain, ...) -- if every router in each domain loads
+ * GatewayTopology as its "topology" subcomponent, wrapping that domain's
+ * real topology in the "inner_topology" slot. Each domain owns a contiguous
+ * slice [id_base, id_base+local_range_size) of one shared global id space.
+ * A destination outside that slice is "foreign"; the four parallel
+ * "remote_*" lists describe, for each OTHER domain directly reachable from
+ * here, its own slice [remote_id_bases[i], +remote_range_sizes[i]) and
+ * which LOCAL router (remote_gateway_rtr_ids[i]) + port
+ * (remote_gateway_ports[i]) is the gateway to it. A foreign destination is
+ * matched against these ranges and redirected toward that entry's gateway
+ * router; that router alone forwards it out its own extra, dedicated port
+ * unchanged (no address translation — the dest field is already globally
+ * meaningful).
  *
  * GatewayTopology must be loaded on EVERY router in the domain, not just the
- * gateway router — MordredRouter calls topology->routePacket() at every hop,
- * including the router where a foreign-destined packet is first injected, so
- * every router needs to know how to steer such traffic toward the gateway.
- * Only the router configured with gateway_rtr_id == its own rtr_id is "the"
- * gateway; it alone reads gateway_port and gets an extra, additive port
- * beyond its inner topology's normal direction set (never a repurposed
- * cardinal/wraparound port — several inner topologies, e.g. Torus2dTopo and
- * Torus3dTopo, fatal in init() if any of their own router-router ports is
- * left unconnected).
+ * gateway routers — MordredRouter calls topology->routePacket() at every
+ * hop, including the router where a foreign-destined packet is first
+ * injected, so every router needs the full remote-route list to know how to
+ * steer such traffic toward whichever gateway serves it (which may be a
+ * different router than the one serving some OTHER remote domain). Only a
+ * router named as some entry's gateway_rtr_id gets an extra, additive port
+ * beyond its inner topology's normal direction set for that entry (never a
+ * repurposed cardinal/wraparound port — several inner topologies, e.g.
+ * Torus2dTopo and Torus3dTopo, fatal in init() if any of their own
+ * router-router ports is left unconnected); a router can be the named
+ * gateway for more than one remote entry, in which case it gets one extra
+ * port per entry, all as the trailing contiguous block of port indices.
+ *
+ * Broadcast relay assumes every domain is DIRECTLY linked to every other
+ * domain it needs to reach (true for a fully-connected graph of domains,
+ * e.g. this triangle): a broadcast is relayed out ALL of a router's gateway
+ * ports only when it did NOT arrive via one of those ports; a broadcast
+ * arriving via a gateway port floods the local domain only and is never
+ * re-relayed. In a graph with a cycle among domains (a triangle is exactly
+ * such a cycle), re-relaying would double-deliver -- e.g. domain C would
+ * see a broadcast both directly from A and relayed via B -- so this only
+ * gives every domain a broadcast if it has a direct link to the originator;
+ * a domain reachable only via multi-hop through another domain's gateway
+ * would not (currently) receive it.
  */
 class GatewayTopology : public TopologyAPI {
 
@@ -65,11 +87,16 @@ public:
   SST_ELI_DOCUMENT_PARAMS(
     { "verbose", "Sets the output verbosity", "5" },
     { "id_base", "Offset of this domain's slice in the shared global id space", "0" },
-    { "gateway_rtr_id", "Local rtr_id (within this domain) of the designated gateway router", nullptr },
-    { "gateway_port", "Port index the gateway router uses for the cross-domain link "
-                       "(required on the gateway router only)", nullptr },
     { "local_range_size", "Total endpoints this domain's inner topology owns "
-                           "(e.g. xDim*yDim*num_local_ports)", nullptr }
+                           "(e.g. xDim*yDim*num_local_ports)", nullptr },
+    { "remote_id_bases", "Comma-separated id_base of each directly-reachable remote domain", "" },
+    { "remote_range_sizes", "Comma-separated local_range_size of each directly-reachable remote domain "
+                             "(parallel to remote_id_bases)", "" },
+    { "remote_gateway_rtr_ids", "Comma-separated LOCAL rtr_id of the gateway router to each remote domain "
+                                 "(parallel to remote_id_bases)", "" },
+    { "remote_gateway_ports", "Comma-separated port index the gateway router uses for each remote domain's "
+                               "link (parallel to remote_id_bases; only meaningful on the router named by "
+                               "the matching remote_gateway_rtr_ids entry)", "" }
   )
 
   // register the ports
@@ -99,16 +126,34 @@ public:
   uint32_t routePacket( uint32_t dest ) final;
 
   /// Do routing for untimed broadcast packets. Delegates to the inner
-  /// topology for intra-domain flooding; on the gateway router, additionally
-  /// relays every broadcast across the cross-domain link -- except the one
-  /// just received FROM that link, so it never bounces back.
+  /// topology for intra-domain flooding; on a gateway router, additionally
+  /// relays every broadcast out each of its gateway ports -- except the one
+  /// it was just received FROM, so it never bounces back (see the class
+  /// doc comment for why this assumes a fully-connected domain graph).
   void routeUntimedBroadcastPacket( uint32_t receive_port_id, MordredInitEvent* ev, std::vector<Event*>& output_events ) final;
 
-  /// Pass through to the inner topology; the gateway port itself is never a wraparound link.
+  /// Pass through to the inner topology; a gateway port is never a wraparound link.
   bool isWrapAroundOutput( uint32_t output_port ) const override;
 
   /// default constructor
   GatewayTopology() : SST::Mordred::TopologyAPI() {}
+
+  /// One directly-reachable remote domain and how to reach it from here.
+  struct RemoteRoute {
+    uint32_t idBase;
+    uint32_t rangeSize;
+    uint32_t gatewayRtrId;  // LOCAL rtr_id (within THIS domain) of the gateway to this remote domain
+    uint32_t gatewayPort;   // meaningful only on the router named by gatewayRtrId
+
+    bool contains( uint32_t dest ) const { return ( dest >= idBase ) && ( ( dest - idBase ) < rangeSize ); }
+
+    void serialize_order( SST::Core::Serialization::serializer& ser ) {
+      SST_SER( idBase );
+      SST_SER( rangeSize );
+      SST_SER( gatewayRtrId );
+      SST_SER( gatewayPort );
+    }
+  };
 
   /// serialization
   void serialize_order( SST::Core::Serialization::serializer& ser ) override {
@@ -117,10 +162,8 @@ public:
     SST_SER( rtrId );
     SST_SER( numLocalPorts );
     SST_SER( idBase );
-    SST_SER( gatewayRtrId );
     SST_SER( localRangeSize );
-    SST_SER( gatewayPort );
-    SST_SER( amGateway );
+    SST_SER( remoteRoutes );
     SST_SER( perPortConnectedRtr );
   }
 
@@ -136,13 +179,12 @@ private:
   uint32_t numLocalPorts;
 
   uint32_t idBase;
-  uint32_t gatewayRtrId;
   uint32_t localRangeSize;
-  uint32_t gatewayPort{ 0 };
-  bool     amGateway{ false };
 
-  // Needed to check whether the gateway port is actually wired before
-  // relaying a broadcast out it (see routeUntimedBroadcastPacket()).
+  std::vector<RemoteRoute> remoteRoutes;
+
+  // Needed to check whether a gateway port is actually wired before relaying
+  // a broadcast out it (see routeUntimedBroadcastPacket()).
   std::vector<uint32_t>* perPortConnectedRtr;
 };
 

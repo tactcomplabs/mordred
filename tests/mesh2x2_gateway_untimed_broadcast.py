@@ -85,21 +85,27 @@ def getLink(name1, name2):
         links[name] = sst.Link(name)
     return links[name]
 
-def build_mesh(mesh_name, id_base, gateway_rtr_id, gateway_port_idx):
+def build_mesh(mesh_name, id_base, remotes):
     """Build one self-contained 2x2 mesh; returns its routers keyed by (x,y).
 
-    mesh_name        -- prefix for component names (e.g. "meshA")
-    id_base          -- this mesh's offset into the shared global id space
-    gateway_rtr_id   -- LOCAL rtr_id (0..3) of this mesh's designated gateway router
-    gateway_port_idx -- port index the gateway router uses for the cross-mesh link
+    mesh_name -- prefix for component names (e.g. "meshA")
+    id_base   -- this mesh's offset into the shared global id space
+    remotes   -- list of dicts, one per directly-linked remote mesh:
+                 {"id_base":, "range_size":, "gateway_rtr_id":, "gateway_port":}
+                 gateway_rtr_id is the LOCAL rtr_id (0..3) of THIS mesh's
+                 designated gateway router to that remote mesh.
     """
     routers = {}
+    remote_id_bases        = ",".join(str(r["id_base"])        for r in remotes)
+    remote_range_sizes     = ",".join(str(r["range_size"])     for r in remotes)
+    remote_gateway_rtr_ids = ",".join(str(r["gateway_rtr_id"]) for r in remotes)
+    remote_gateway_ports   = ",".join(str(r["gateway_port"])   for r in remotes)
 
     for y in range(y_size):
         for x in range(x_size):
             rtr_id = y * x_size + x
-            is_gateway = (rtr_id == gateway_rtr_id)
-            num_ports = (4 + 1 + 1) if is_gateway else (4 + 1)  # N,E,S,W,local[,gateway]
+            my_gateway_ports = [r["gateway_port"] for r in remotes if r["gateway_rtr_id"] == rtr_id]
+            num_ports = 4 + 1 + len(my_gateway_ports)  # N,E,S,W,local[,gateway...]
 
             rtr = sst.Component("%s_rtr_%d_%d" % (mesh_name, x, y), "mordred.mordred_router")
             rtr.addParam("id", rtr_id)
@@ -117,15 +123,15 @@ def build_mesh(mesh_name, id_base, gateway_rtr_id, gateway_port_idx):
             routers[(x, y)] = rtr
 
             gw_topo = rtr.setSubComponent("topology", "mordred.GatewayTopology")
-            gw_params = {
-                "verbose"          : MAXV,
-                "id_base"          : id_base,
-                "gateway_rtr_id"   : gateway_rtr_id,
-                "local_range_size" : local_range_size,
-            }
-            if is_gateway:
-                gw_params["gateway_port"] = gateway_port_idx
-            gw_topo.addParams(gw_params)
+            gw_topo.addParams({
+                "verbose"                : MAXV,
+                "id_base"                : id_base,
+                "local_range_size"       : local_range_size,
+                "remote_id_bases"        : remote_id_bases,
+                "remote_range_sizes"     : remote_range_sizes,
+                "remote_gateway_rtr_ids" : remote_gateway_rtr_ids,
+                "remote_gateway_ports"   : remote_gateway_ports,
+            })
 
             inner_topo = gw_topo.setSubComponent("inner_topology", "mordred.MeshTopology")
             inner_topo.addParams({"verbose": MAXV, "xDim": x_size, "yDim": y_size})
@@ -143,13 +149,13 @@ def build_mesh(mesh_name, id_base, gateway_rtr_id, gateway_port_idx):
             rtr.addLink(ep_link, "port4", noc_link_latency)
             ep_iface.addLink(ep_link, "port", noc_link_latency)
 
-            # ---- gateway port (extra, additive -- never a repurposed cardinal port) ----
-            if is_gateway:
-                pc = rtr.setSubComponent("portcontrol", "mordred.rtrPortControlPC", gateway_port_idx)
+            # ---- gateway port(s) (extra, additive -- never a repurposed cardinal port) ----
+            for i, gw_port in enumerate(sorted(my_gateway_ports)):
+                pc = rtr.setSubComponent("portcontrol", "mordred.rtrPortControlPC", gw_port)
                 pc.addParams(PortControlPCParams)
                 pif = pc.setSubComponent("port_iface", "prydwen.uciePhysChannel", 0)
                 pif.addParams(UCIeParams)
-                pif.addParams({"port_name": "port%d" % gateway_port_idx, "endpoint_id": id_base + 100})
+                pif.addParams({"port_name": "port%d" % gw_port, "endpoint_id": id_base + 100 + i})
 
     # ---- intra-mesh router-router links (plain, standard 2x2 mesh) ----
     for y in range(y_size):
@@ -180,8 +186,10 @@ def build_mesh(mesh_name, id_base, gateway_rtr_id, gateway_port_idx):
 
 GATEWAY_PORT_IDX = 5  # 6th port (index 5): 4 cardinal (0-3) + 1 local (4) + 1 gateway (5)
 
-meshA = build_mesh("meshA", id_base=0, gateway_rtr_id=1, gateway_port_idx=GATEWAY_PORT_IDX)
-meshB = build_mesh("meshB", id_base=4, gateway_rtr_id=0, gateway_port_idx=GATEWAY_PORT_IDX)
+meshA = build_mesh("meshA", id_base=0,
+                    remotes=[{"id_base": 4, "range_size": local_range_size, "gateway_rtr_id": 1, "gateway_port": GATEWAY_PORT_IDX}])
+meshB = build_mesh("meshB", id_base=4,
+                    remotes=[{"id_base": 0, "range_size": local_range_size, "gateway_rtr_id": 0, "gateway_port": GATEWAY_PORT_IDX}])
 
 # ---- The single cross-mesh UCIe link ----
 gateway_link = sst.Link("link_gateway_meshA_meshB")

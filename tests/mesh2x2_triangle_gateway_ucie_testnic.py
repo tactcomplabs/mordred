@@ -1,49 +1,61 @@
-# mesh2x2_gateway_ucie_testnic.py
+# mesh2x2_triangle_gateway_ucie_testnic.py
 #
 # Copyright (C) 2025-2026 Tactical Computing Laboratories, LLC
 # All Rights Reserved
 # contact@tactcomplabs.com
 # See LICENSE in the top level directory for licensing details
 #
-# Two INDEPENDENTLY-ADDRESSED 2x2 meshes ("mesh A" and "mesh B"), each with
-# its own self-contained MeshTopology (local ids 0-3), joined by a single
-# UCIe link that carries ALL cross-mesh traffic -- unlike
-# mesh4x2_ucie_rtrlink_testnic.py, there is no second (plain) boundary link
-# required for correctness, because the two meshes are not one bigger
-# rectangular MeshTopology.
+# Three INDEPENDENTLY-ADDRESSED 2x2 meshes ("mesh A", "mesh B", "mesh C"),
+# laid out as a TRIANGLE: each mesh has its own DIRECT UCIe link to BOTH of
+# the other two (A<->B, B<->C, A<->C), unlike mesh2x2_gateway_ucie_testnic.py
+# where each domain only ever had one other domain to reach.
 #
-# This is possible because every router loads mordred.GatewayTopology as its
-# "topology" subcomponent, wrapping a normal mordred.MeshTopology in the
-# "inner_topology" slot. Each mesh owns a contiguous slice of one shared
-# global id space (mesh A: ids 0-3, mesh B: ids 4-7, via id_base); any
-# destination outside a router's own mesh is "foreign" and gets redirected,
-# via ordinary MeshTopology dimension-order routing, toward that mesh's one
-# designated gateway router -- regardless of which row/column the packet
-# originates in. Only the two gateway routers (meshA_rtr_1_0 and
-# meshB_rtr_0_0) have an extra, additive 6th port for the UCIe link; every
-# other router keeps the normal 5 ports (4 cardinal + 1 local) untouched.
-# See GatewayTopology.h for the full design rationale.
+# This needed a real generalization of GatewayTopology: with two different
+# foreign destinations (mesh B's range and mesh C's range, from mesh A's own
+# perspective) that must exit through two DIFFERENT ports, a single
+# (gateway_rtr_id, gateway_port) pair can no longer describe "how do I reach
+# what's not mine". GatewayTopology now takes four parallel comma-separated
+# "remote_*" lists -- one entry per directly-linked remote domain -- so each
+# domain can name a DIFFERENT local router as its gateway to each neighbor.
+# See GatewayTopology.h's class doc comment for the full design (including
+# why this broadcast-relay scheme specifically requires a fully-connected
+# domain graph -- which a triangle is).
 #
-# Every test_nic-to-router hop is still a plain mordred.mordredNIC link --
-# no UCIe/PhysChannelAPI anywhere except the one gateway-to-gateway link.
+# Every mesh uses two distinct gateway routers (one per edge), each getting
+# one extra, additive 6th port; the other two routers in each mesh keep the
+# normal 5 (4 cardinal + 1 local). Every test_nic-to-router hop is still a
+# plain mordred.mordredNIC link -- no UCIe/PhysChannelAPI anywhere except
+# the three gateway-to-gateway links.
 #
 # Topology (ids are LOCAL to each mesh; global id = id_base + local id):
 #
-#   mesh A (id_base=0)                    mesh B (id_base=4)
-#   meshA_rtr_0_1 -- meshA_rtr_1_1        meshB_rtr_0_1 -- meshB_rtr_1_1
-#        |                |                    |                |
-#   meshA_rtr_0_0 -- meshA_rtr_1_0 ==UCIe== meshB_rtr_0_0 -- meshB_rtr_1_0
-#      (gw_rtr_id=1, port5)              (gw_rtr_id=0, port5)
+#             mesh A (id_base=0)
+#        meshA_rtr_0_1 -- meshA_rtr_1_1 (gw->C, port5)
+#             |                |  \
+#        meshA_rtr_0_0 -- meshA_rtr_1_0 (gw->B, port5)
+#             |                          \
+#             |                           \
+#   (gw->A,port5) meshC_rtr_0_0 -- meshC_rtr_1_0   meshB_rtr_0_0 (gw->A,port5)
+#             |                |                        |            |
+#   (gw->B,port5) meshC_rtr_0_1 -- meshC_rtr_1_1 ------ meshB_rtr_1_0 (gw->C,port5)
+#        mesh C (id_base=8)  \_____________________/    mesh B (id_base=4)
+#                                    B<->C link
 #
-# Every test_nic addresses num_peers=8 (the full global space), so real
-# cross-mesh traffic is generated and is guaranteed -- by construction, not
-# by observation -- to funnel entirely through the single gateway link.
+# (ASCII art can't quite capture 3 pairwise links between 3 squares -- the
+# three UCIe links are: meshA_rtr_1_0<->meshB_rtr_0_0 (A-B),
+# meshA_rtr_1_1<->meshC_rtr_0_0 (A-C), meshB_rtr_1_0<->meshC_rtr_0_1 (B-C).)
+#
+# Every test_nic addresses num_peers=12 (the full global space across all
+# three meshes), so real cross-mesh traffic to BOTH other meshes is
+# generated from every node, and is guaranteed -- by construction, not by
+# observation -- to funnel entirely through the correct one of the two
+# gateway links each mesh has.
 #
 
 import sst
 from sst import UnitAlgebra
 
-testname = "mesh2x2_gateway_ucie_testnic"
+testname = "mesh2x2_triangle_gateway_ucie_testnic"
 
 # ---- Simulation parameters ----
 MAXV              = 10  # MORDRED_VERBOSE_ALL (see MordredEvents.h)
@@ -55,17 +67,17 @@ num_vns           = 1
 num_vcs           = 1
 ucie_link_latency = "2ns"
 
-# credits_per_vn/buffer sizes below are 2x mesh4x2_ucie_rtrlink_testnic.py's
-# values: that test split cross-mesh traffic across TWO boundary links (one
-# UCIe, one plain), so each link only ever saw about half the inter-mesh
-# load. Here, ALL cross-mesh traffic -- both "rows" -- funnels through this
-# one gateway link, so it needs roughly double the headroom to avoid credit
-# stalls under the now-fully-concentrated load.
+# Same credits_per_vn/buffer sizes as mesh2x2_gateway_ucie_testnic.py: unlike
+# that test's single link (which had to carry ALL cross-mesh traffic), each
+# of THIS test's three links only ever carries traffic between the two
+# meshes it directly joins -- the same magnitude of load as the two-mesh
+# test's one link (4 senders x 4 remote peers x num_messages per edge) -- so
+# there's no reason to size them any larger.
 UCIeParams = {
     "link_latency"      : ucie_link_latency,
     "num_stacks"        : 1,
     "num_vns_per_stack" : "1",
-    "credits_per_vn"    : "64",   # was 32 in mesh4x2_ucie_rtrlink_testnic.py
+    "credits_per_vn"    : "64",
     "flit_format"       : 5,
     "num_modules"       : 1,
     "num_lanes"         : 16,
@@ -75,8 +87,8 @@ UCIeParams = {
 
 PortControlPCParams = {
     "flit_size"       : flit_size,
-    "input_buf_size"  : UnitAlgebra(32) * flit_size,  # was 16x in mesh4x2_ucie_rtrlink_testnic.py
-    "output_buf_size" : UnitAlgebra(2)  * flit_size,  # was 1x in mesh4x2_ucie_rtrlink_testnic.py
+    "input_buf_size"  : UnitAlgebra(32) * flit_size,
+    "output_buf_size" : UnitAlgebra(2)  * flit_size,
     "verbose"         : MAXV,
 }
 
@@ -97,6 +109,7 @@ MordredNICParams = {
 x_size = 2
 y_size = 2
 local_range_size = x_size * y_size  # 1 local port per router -> 4 endpoints/mesh
+num_domains = 3
 
 links = dict()
 def getLink(name1, name2):
@@ -113,7 +126,8 @@ def build_mesh(mesh_name, id_base, remotes):
     remotes   -- list of dicts, one per directly-linked remote mesh:
                  {"id_base":, "range_size":, "gateway_rtr_id":, "gateway_port":}
                  gateway_rtr_id is the LOCAL rtr_id (0..3) of THIS mesh's
-                 designated gateway router to that remote mesh.
+                 designated gateway router to that remote mesh -- a
+                 DIFFERENT router for each remote, in this test.
     """
     routers = {}
     remote_id_bases        = ",".join(str(r["id_base"])        for r in remotes)
@@ -161,7 +175,7 @@ def build_mesh(mesh_name, id_base, remotes):
             ep_name = "testnic_%s_%d_%d" % (mesh_name, x, y)
             ep = sst.Component(ep_name, "merlin.test_nic")
             ep.addParams(FixedTestNicParams)
-            ep.addParams({"id": global_id, "num_peers": 2 * local_range_size})
+            ep.addParams({"id": global_id, "num_peers": num_domains * local_range_size})
             ep_iface = ep.setSubComponent("networkIF", "mordred.mordredNIC")
             ep_iface.addParams(MordredNICParams)
 
@@ -204,17 +218,36 @@ def build_mesh(mesh_name, id_base, remotes):
 
     return routers
 
-GATEWAY_PORT_IDX = 5  # 6th port (index 5): 4 cardinal (0-3) + 1 local (4) + 1 gateway (5)
+GATEWAY_PORT_IDX = 5  # 6th port (index 5): every gateway router here hosts exactly one edge
 
-meshA = build_mesh("meshA", id_base=0,
-                    remotes=[{"id_base": 4, "range_size": local_range_size, "gateway_rtr_id": 1, "gateway_port": GATEWAY_PORT_IDX}])
-meshB = build_mesh("meshB", id_base=4,
-                    remotes=[{"id_base": 0, "range_size": local_range_size, "gateway_rtr_id": 0, "gateway_port": GATEWAY_PORT_IDX}])
+ID_BASE_A, ID_BASE_B, ID_BASE_C = 0, local_range_size, 2 * local_range_size
 
-# ---- The single cross-mesh UCIe link ----
-gateway_link = sst.Link("link_gateway_meshA_meshB")
-meshA[(1, 0)].addLink(gateway_link, "port%d" % GATEWAY_PORT_IDX, ucie_link_latency)
-meshB[(0, 0)].addLink(gateway_link, "port%d" % GATEWAY_PORT_IDX, ucie_link_latency)
+meshA = build_mesh("meshA", id_base=ID_BASE_A, remotes=[
+    {"id_base": ID_BASE_B, "range_size": local_range_size, "gateway_rtr_id": 1, "gateway_port": GATEWAY_PORT_IDX},  # -> B
+    {"id_base": ID_BASE_C, "range_size": local_range_size, "gateway_rtr_id": 3, "gateway_port": GATEWAY_PORT_IDX},  # -> C
+])
+meshB = build_mesh("meshB", id_base=ID_BASE_B, remotes=[
+    {"id_base": ID_BASE_A, "range_size": local_range_size, "gateway_rtr_id": 0, "gateway_port": GATEWAY_PORT_IDX},  # -> A
+    {"id_base": ID_BASE_C, "range_size": local_range_size, "gateway_rtr_id": 1, "gateway_port": GATEWAY_PORT_IDX},  # -> C
+])
+meshC = build_mesh("meshC", id_base=ID_BASE_C, remotes=[
+    {"id_base": ID_BASE_A, "range_size": local_range_size, "gateway_rtr_id": 0, "gateway_port": GATEWAY_PORT_IDX},  # -> A
+    {"id_base": ID_BASE_B, "range_size": local_range_size, "gateway_rtr_id": 2, "gateway_port": GATEWAY_PORT_IDX},  # -> B
+])
+
+# ---- The three cross-mesh UCIe links (one per triangle edge) ----
+
+link_ab = sst.Link("link_gateway_meshA_meshB")
+meshA[(1, 0)].addLink(link_ab, "port%d" % GATEWAY_PORT_IDX, ucie_link_latency)
+meshB[(0, 0)].addLink(link_ab, "port%d" % GATEWAY_PORT_IDX, ucie_link_latency)
+
+link_ac = sst.Link("link_gateway_meshA_meshC")
+meshA[(1, 1)].addLink(link_ac, "port%d" % GATEWAY_PORT_IDX, ucie_link_latency)
+meshC[(0, 0)].addLink(link_ac, "port%d" % GATEWAY_PORT_IDX, ucie_link_latency)
+
+link_bc = sst.Link("link_gateway_meshB_meshC")
+meshB[(1, 0)].addLink(link_bc, "port%d" % GATEWAY_PORT_IDX, ucie_link_latency)
+meshC[(0, 1)].addLink(link_bc, "port%d" % GATEWAY_PORT_IDX, ucie_link_latency)
 
 # ---- Statistics ----
 
