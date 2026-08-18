@@ -72,17 +72,24 @@ namespace SST::Mordred {
  * that the packet actually originated at A rather than one of its own local
  * endpoints, since routing is purely dest-based at every hop.
  *
- * Broadcast relay assumes every domain is DIRECTLY linked to every other
- * domain it needs to reach (true for a fully-connected graph of domains,
- * e.g. this triangle): a broadcast is relayed out ALL of a router's gateway
- * ports only when it did NOT arrive via one of those ports; a broadcast
- * arriving via a gateway port floods the local domain only and is never
- * re-relayed. In a graph with a cycle among domains (a triangle is exactly
- * such a cycle), re-relaying would double-deliver -- e.g. domain C would
- * see a broadcast both directly from A and relayed via B -- so this only
- * gives every domain a broadcast if it has a direct link to the originator;
- * a domain reachable only via multi-hop through another domain's gateway
- * would not (currently) receive it.
+ * Broadcast relay is multi-hop, mirroring unicast routing: a broadcast is
+ * relayed out every one of a router's gateway ports except the one it just
+ * arrived from, so it propagates through the whole domain graph -- a
+ * chain's far leaf gets it via the middle domain, same as unicast transit.
+ * The one thing that needs care is a domain graph with a CYCLE (a triangle
+ * is exactly one): domain C there can be entered externally via two
+ * different physical routers (its two separate gateway routers, one per
+ * edge), each its own GatewayTopology instance with no other shared state,
+ * so per-router bookkeeping alone can't recognize the second arrival as a
+ * duplicate of a broadcast this domain already fully flooded. This is
+ * handled by a domain-wide (not per-router) dedup keyed by id_base, gated
+ * ONLY on genuine external entries (arrival via one of a router's own
+ * gateway ports) -- ordinary hops within an already-started intra-domain
+ * flood (arriving via a cardinal/local port) are never gated, since the
+ * inner topology's own flood algorithm already guarantees each of ITS
+ * routers sees a given flood at most once. See routeUntimedBroadcastPacket()
+ * and the sSeenBroadcastOrigins comment in the .cc for the full mechanism,
+ * including known limitations (not rank-safe, not checkpointed).
  */
 class GatewayTopology : public TopologyAPI {
 

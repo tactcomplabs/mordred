@@ -14,6 +14,8 @@
 #include <cstdint>
 #include <sstream>
 #include <string>
+#include <unordered_map>
+#include <unordered_set>
 
 // Local SST header
 #include "sst_config.h"
@@ -40,6 +42,26 @@ std::vector<uint32_t> parseUintList( const std::string& s ) {
   }
   return result;
 }
+
+// Domain-wide (NOT per-router) broadcast-origin dedup, keyed by id_base --
+// every GatewayTopology instance sharing the same id_base belongs to the
+// same domain and shares the same entry. This is what makes multi-hop
+// relay safe when a domain has more than one gateway router (e.g. each of
+// a triangle's three domains has two, one per edge): a domain can be
+// entered externally via two different physical routers, each running its
+// own separate GatewayTopology C++ object with no other shared state, so
+// per-router tracking alone can't recognize the second arrival as a
+// duplicate of one already fully flooded through this domain by the first.
+//
+// Deliberately a plain static map rather than an SST SharedObject: this
+// codebase has no existing pattern for state shared across ComponentS
+// (RtrOwnedSharedObjs in MordredEvents.h is scoped to ports within ONE
+// router). Known limitations from that choice: (1) not rank-safe -- a
+// domain split across MPI ranks would need real cross-rank shared state
+// instead; (2) not checkpointed, matching mordred_router's own
+// "Checkpointable: false" today; (3) not thread-safe, matching the rest of
+// this single-threaded-per-rank test suite.
+std::unordered_map<uint32_t, std::unordered_set<int64_t>> sSeenBroadcastOrigins;
 
 }  // namespace
 
@@ -192,43 +214,53 @@ uint32_t GatewayTopology::routePacket( uint32_t dest ) {
 void GatewayTopology::routeUntimedBroadcastPacket(
   uint32_t receive_port_id, MordredInitEvent* init_ev, std::vector<Event*>& output_events
 ) {
+  bool arrived_via_my_gateway = false;
   for( const auto p : myGatewayPorts ) {
     if( p == receive_port_id ) {
-      // Arrived from that remote domain via the cross-domain link -- flood
-      // this ENTIRE domain as if it originated at one of my own local
-      // endpoints, and do not relay it further (see the class doc comment:
-      // relaying on to another remote domain here would double-deliver in
-      // a domain graph with a cycle, e.g. a triangle -- the originating
-      // domain already relays directly to every domain it's linked to).
-      // "p" doubles as the sentinel here: it is guaranteed to be >= the
-      // inner topology's own local-port range (by the trailing-contiguous-
-      // block check in the constructor) yet never equal to any of its real
-      // port indices, so the inner topology's "send to all local endpoints
-      // except sender" exclusion never matches a real port -- every real
-      // local endpoint in this domain still gets the broadcast -- while its
-      // "receive_port_id >= <cardinal-port-count>" check still correctly
-      // treats this as an endpoint-style injection, flooding all cardinal
-      // directions too.
-      inner->routeUntimedBroadcastPacket( p, init_ev, output_events );
-      return;
+      arrived_via_my_gateway = true;
+      break;
     }
   }
 
+  if( arrived_via_my_gateway ) {
+    // A genuine external entry into my domain from a neighboring domain --
+    // NOT a hop within an already-started intra-domain flood (those arrive
+    // via ordinary cardinal/local ports, never a gateway port). Domain-wide
+    // dedup only needs to gate entry points: a domain graph with a cycle
+    // (the triangle) can enter this same domain a second time, via a
+    // different gateway router, after it's already been fully flooded --
+    // recognize and drop that duplicate here rather than double-flood
+    // locally or bounce it back out. See sSeenBroadcastOrigins's comment.
+    const int64_t origin = init_ev->req->src;
+    if( !sSeenBroadcastOrigins[idBase].insert( origin ).second )
+      return;
+  }
+
+  // Flood this domain. If this arrived via one of my own gateway ports,
+  // receive_port_id already equals that port's value, which -- by the
+  // trailing-contiguous-block property enforced in the constructor -- is
+  // guaranteed to be outside the inner topology's own port range. That
+  // means the inner topology's "send to all local endpoints except sender"
+  // exclusion never matches a real port (every real local endpoint still
+  // gets the broadcast), while its "receive_port_id >= <cardinal-port-
+  // count>" check still correctly treats this as an endpoint-style
+  // injection -- so no special-casing is needed here versus a genuinely
+  // local/cardinal arrival.
   inner->routeUntimedBroadcastPacket( receive_port_id, init_ev, output_events );
 
-  // This broadcast is circulating in MY domain -- whether it originated at
-  // one of my own local endpoints or is arriving from a neighboring router
-  // as part of the normal intra-domain flood -- and hasn't been seen on any
-  // remote domain yet (arrival FROM a gateway port returned above). Relay it
-  // out every gateway port this router hosts so each directly-linked remote
-  // domain gets it too. A given broadcast can only reach this router once
-  // via the intra-domain flood (each inner topology's flood algorithm is a
-  // spanning tree over its own mesh/torus/etc.), so each relay fires
-  // exactly once per distinct broadcast, not once per hop.
+  // Relay out every one of my OWN gateway ports except the one this just
+  // arrived from (if any), so the broadcast keeps propagating through the
+  // domain graph -- e.g. reaching a chain's far leaf via the middle
+  // domain, or every domain in a triangle. This fires at whichever
+  // router(s) in this domain host a gateway port, wherever the intra-
+  // domain flood happens to reach them (including the very entry router,
+  // for its OTHER gateway ports if it has more than one) -- the dedup
+  // check above is what makes this safe even when domains form a cycle.
   for( const auto p : myGatewayPorts ) {
-    if( perPortConnectedRtr->at( p ) != UINT32_MAX ) {
+    if( p == receive_port_id )
+      continue;  // don't bounce it back out the way it just came in
+    if( perPortConnectedRtr->at( p ) != UINT32_MAX )
       output_events.at( p ) = init_ev->clone();
-    }
   }
 }
 
