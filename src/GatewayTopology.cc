@@ -79,32 +79,36 @@ GatewayTopology::GatewayTopology(
   for( size_t i = 0; i < remote_id_bases.size(); i++ )
     remoteRoutes.push_back( RemoteRoute{ remote_id_bases[i], remote_range_sizes[i], remote_gateway_rtr_ids[i], remote_gateway_ports[i] } );
 
-  // Ports this router itself hosts, one per remote route it's named as the
-  // gateway for. The inner topology only ever needs to know about its own
-  // direction set plus local ports -- it stays completely unaware it is
-  // being wrapped, and never sees (or routes to) these extra ports.
-  std::vector<uint32_t> my_gateway_ports;
+  // Distinct physical ports this router itself hosts. Several remote routes
+  // can name the same gateway_rtr_id/gateway_port -- e.g. in a chain A-B-C,
+  // A has separate entries for B's range and C's range, but both point at
+  // the one physical link to B -- so dedupe by port value, not raw entry
+  // count, or a shared port would get counted twice and corrupt
+  // inner_num_ports below. The inner topology only ever needs to know about
+  // its own direction set plus local ports -- it stays completely unaware
+  // it is being wrapped, and never sees (or routes to) these extra ports.
   for( const auto& r : remoteRoutes )
     if( r.gatewayRtrId == rtrId )
-      my_gateway_ports.push_back( r.gatewayPort );
-  std::sort( my_gateway_ports.begin(), my_gateway_ports.end() );
+      myGatewayPorts.push_back( r.gatewayPort );
+  std::sort( myGatewayPorts.begin(), myGatewayPorts.end() );
+  myGatewayPorts.erase( std::unique( myGatewayPorts.begin(), myGatewayPorts.end() ), myGatewayPorts.end() );
 
-  const uint32_t inner_num_ports = num_ports - static_cast<uint32_t>( my_gateway_ports.size() );
+  const uint32_t inner_num_ports = num_ports - static_cast<uint32_t>( myGatewayPorts.size() );
 
   // routeUntimedBroadcastPacket() relies on a gateway port being outside the
   // range the inner topology knows about (see its use of a gateway port as
-  // an out-of-range sentinel) -- enforce that my_gateway_ports is exactly
-  // the trailing contiguous block [inner_num_ports, num_ports), rather than
-  // let a misconfigured port silently corrupt the inner topology's own
+  // an out-of-range sentinel) -- enforce that myGatewayPorts is exactly the
+  // trailing contiguous block [inner_num_ports, num_ports), rather than let
+  // a misconfigured port silently corrupt the inner topology's own
   // local-port bookkeeping.
-  for( size_t i = 0; i < my_gateway_ports.size(); i++ ) {
-    if( my_gateway_ports[i] != inner_num_ports + i )
+  for( size_t i = 0; i < myGatewayPorts.size(); i++ ) {
+    if( myGatewayPorts[i] != inner_num_ports + i )
       output->fatal(
         CALL_INFO, -1,
         "GatewayTopology: gateway ports on rtr_id=%" PRIu32 " must be the trailing contiguous block of port "
         "indices [%" PRIu32 ", %" PRIu32 ") -- they must be extra, additive ports, never repurposed "
         "cardinal/local ones (got port=%" PRIu32 " at position %zu)\n",
-        rtrId, inner_num_ports, num_ports, my_gateway_ports[i], i
+        rtrId, inner_num_ports, num_ports, myGatewayPorts[i], i
       );
   }
 
@@ -118,13 +122,13 @@ GatewayTopology::GatewayTopology(
     CALL_INFO, MORDRED_VERBOSE_MIN, 0,
     "GatewayTopology constructed; rtr_id=%" PRIu32 ", id_base=%" PRIu32 ", local_range_size=%" PRIu32 ", "
     "remote_routes=%zu, my_gateway_ports=%zu\n",
-    rtrId, idBase, localRangeSize, remoteRoutes.size(), my_gateway_ports.size()
+    rtrId, idBase, localRangeSize, remoteRoutes.size(), myGatewayPorts.size()
   );
 }
 
 int32_t GatewayTopology::getEndpointId( uint32_t portnum ) {
-  for( const auto& r : remoteRoutes )
-    if( ( r.gatewayRtrId == rtrId ) && ( r.gatewayPort == portnum ) )
+  for( const auto p : myGatewayPorts )
+    if( p == portnum )
       return -1;  // not a local endpoint, same convention as any router-facing port
 
   // This is the value RtrPortControlBase hands to a connected NIC as its
@@ -188,24 +192,24 @@ uint32_t GatewayTopology::routePacket( uint32_t dest ) {
 void GatewayTopology::routeUntimedBroadcastPacket(
   uint32_t receive_port_id, MordredInitEvent* init_ev, std::vector<Event*>& output_events
 ) {
-  for( const auto& r : remoteRoutes ) {
-    if( ( r.gatewayRtrId == rtrId ) && ( r.gatewayPort == receive_port_id ) ) {
+  for( const auto p : myGatewayPorts ) {
+    if( p == receive_port_id ) {
       // Arrived from that remote domain via the cross-domain link -- flood
       // this ENTIRE domain as if it originated at one of my own local
       // endpoints, and do not relay it further (see the class doc comment:
       // relaying on to another remote domain here would double-deliver in
       // a domain graph with a cycle, e.g. a triangle -- the originating
       // domain already relays directly to every domain it's linked to).
-      // "gatewayPort" doubles as the sentinel here: it is guaranteed to be
-      // >= the inner topology's own local-port range (by the trailing-
-      // contiguous-block check in the constructor) yet never equal to any
-      // of its real port indices, so the inner topology's "send to all
-      // local endpoints except sender" exclusion never matches a real
-      // port -- every real local endpoint in this domain still gets the
-      // broadcast -- while its "receive_port_id >= <cardinal-port-count>"
-      // check still correctly treats this as an endpoint-style injection,
-      // flooding all cardinal directions too.
-      inner->routeUntimedBroadcastPacket( r.gatewayPort, init_ev, output_events );
+      // "p" doubles as the sentinel here: it is guaranteed to be >= the
+      // inner topology's own local-port range (by the trailing-contiguous-
+      // block check in the constructor) yet never equal to any of its real
+      // port indices, so the inner topology's "send to all local endpoints
+      // except sender" exclusion never matches a real port -- every real
+      // local endpoint in this domain still gets the broadcast -- while its
+      // "receive_port_id >= <cardinal-port-count>" check still correctly
+      // treats this as an endpoint-style injection, flooding all cardinal
+      // directions too.
+      inner->routeUntimedBroadcastPacket( p, init_ev, output_events );
       return;
     }
   }
@@ -221,9 +225,9 @@ void GatewayTopology::routeUntimedBroadcastPacket(
   // via the intra-domain flood (each inner topology's flood algorithm is a
   // spanning tree over its own mesh/torus/etc.), so each relay fires
   // exactly once per distinct broadcast, not once per hop.
-  for( const auto& r : remoteRoutes ) {
-    if( ( r.gatewayRtrId == rtrId ) && ( perPortConnectedRtr->at( r.gatewayPort ) != UINT32_MAX ) ) {
-      output_events.at( r.gatewayPort ) = init_ev->clone();
+  for( const auto p : myGatewayPorts ) {
+    if( perPortConnectedRtr->at( p ) != UINT32_MAX ) {
+      output_events.at( p ) = init_ev->clone();
     }
   }
 }

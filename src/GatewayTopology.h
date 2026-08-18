@@ -54,9 +54,23 @@ namespace SST::Mordred {
  * beyond its inner topology's normal direction set for that entry (never a
  * repurposed cardinal/wraparound port — several inner topologies, e.g.
  * Torus2dTopo and Torus3dTopo, fatal in init() if any of their own
- * router-router ports is left unconnected); a router can be the named
- * gateway for more than one remote entry, in which case it gets one extra
- * port per entry, all as the trailing contiguous block of port indices.
+ * router-router ports is left unconnected); a router named as the gateway
+ * for more than one remote entry gets one extra port per DISTINCT physical
+ * port those entries name, as the trailing contiguous block of port
+ * indices -- multiple entries sharing the same gateway_rtr_id AND
+ * gateway_port (e.g. two remote domains reachable via the same physical
+ * link, see below) are deduplicated to that one port, not double-counted.
+ *
+ * This also gives multi-hop transit for free, with no address translation:
+ * a domain doesn't need a direct link to every domain it needs to reach --
+ * it just needs a remote_* entry (or several, aggregated or not) whose
+ * range covers that domain's ids and whose gateway_rtr_id/gateway_port
+ * point at whichever neighbor is actually directly linked. E.g. in a chain
+ * A-B-C, A can have entries for both B's range and C's range that both name
+ * A's B-facing gateway; once such a packet crosses into B, B's own
+ * (accurate, direct) entry for C forwards it onward -- B needs no awareness
+ * that the packet actually originated at A rather than one of its own local
+ * endpoints, since routing is purely dest-based at every hop.
  *
  * Broadcast relay assumes every domain is DIRECTLY linked to every other
  * domain it needs to reach (true for a fully-connected graph of domains,
@@ -164,6 +178,7 @@ public:
     SST_SER( idBase );
     SST_SER( localRangeSize );
     SST_SER( remoteRoutes );
+    SST_SER( myGatewayPorts );
     SST_SER( perPortConnectedRtr );
   }
 
@@ -182,6 +197,13 @@ private:
   uint32_t localRangeSize;
 
   std::vector<RemoteRoute> remoteRoutes;
+
+  // Distinct physical ports this router itself hosts (deduplicated -- see
+  // the class doc comment on multiple remote entries sharing one physical
+  // link), computed once in the constructor and reused by getEndpointId()
+  // and routeUntimedBroadcastPacket() instead of re-deriving from
+  // remoteRoutes (and re-hitting the same dedup question) each time.
+  std::vector<uint32_t> myGatewayPorts;
 
   // Needed to check whether a gateway port is actually wired before relaying
   // a broadcast out it (see routeUntimedBroadcastPacket()).
